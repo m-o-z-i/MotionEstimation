@@ -5,6 +5,9 @@
 #include <math.h> 
 #include <vector>
 
+#include <sstream>
+#include <string.h>
+
 using namespace cv;
 using namespace std;
 
@@ -76,6 +79,9 @@ int main() {
 
 	while(true)
 	{
+
+		++frame; 
+
 		open_stream(image1);
 		key = cvWaitKey(30);
 		open_stream(image2);
@@ -336,10 +342,20 @@ int main() {
 		 * the window we created above.
 		 */
 		cvShowImage("Optical Flow", image1_1C);
-		//cvSaveImage("current.png", image1_1C);
+
+		// save image in every frame
+		string path = "data/image/current"+(to_string(frame))+".png";
+		//cvSaveImage(path.c_str(), image1_1C);
+
+		// clear all data
 		directions.clear();
 		lengths1.clear();
 		lengths2.clear();
+		cvReleaseImage(&eig_image);
+		cvReleaseImage(&temp_image);
+		cvReleaseImage(&pyramid1);
+		cvReleaseImage(&pyramid2);
+    	//cvReleaseImage(&calibrated_frame);
 
 	}
 

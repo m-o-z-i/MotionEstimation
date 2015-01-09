@@ -58,6 +58,9 @@ int main() {
 	IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 	IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
+	std::vector<double> lengths;
+	std::vector<double> directions;
+
 	//IplImage* frame1_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 	//IplImage* frame2_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
@@ -66,10 +69,13 @@ int main() {
 
 	//cv::Mat* image = cv::Mat::zeros(m_imageSize, CV_8U);
 
+	int frame=0;
+
 	cvNamedWindow("Optical Flow", CV_WINDOW_AUTOSIZE);
 
 	while(true)
 	{
+
 		open_stream(image1);
 		key = cvWaitKey(30);
 		open_stream(image2);
@@ -89,8 +95,9 @@ int main() {
 		/* Shi and Tomasi Feature Tracking! */
 
 		/* Preparation: Allocate the necessary storage. */
-		IplImage* eig_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3 );
-		IplImage* temp_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3 );
+
+		IplImage* eig_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
+		IplImage* temp_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
 
 		/* Preparation: This array will contain the features found in frame 1. */
 		CvPoint2D32f frame1_features[400];
@@ -115,7 +122,7 @@ int main() {
 		 * "frame1_features" will contain the feature points.
 		 * "number_of_features" will be set to a value <= 400 indicating the number of feature points found.
 		 */
-		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .03, 10, NULL);
+		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .1, .1, NULL);
 
 
 		/* Pyramidal Lucas Kanade Optical Flow! */
@@ -140,7 +147,7 @@ int main() {
 		 * work pretty well in many situations.
 		 */
 		CvTermCriteria optical_flow_termination_criteria
-			= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 100, 0.9 );
+			= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3 );
 
 		/* This is some workspace for the algorithm.
 		 * (The algorithm actually carves the image into pyramids of different resolutions.)
@@ -163,7 +170,29 @@ int main() {
 		 * "0" means disable enhancements.  (For example, the second array isn't pre-initialized with guesses.)
 		 */
 		cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, optical_flow_termination_criteria, 0 );
-		
+			
+
+		// get mean of length and direction of all corresponding points
+		for(int i = 0; i < number_of_features; i++)
+		{
+			CvPoint a,b;
+			a.x = (int) frame1_features[i].x;
+			a.y = (int) frame1_features[i].y;
+			b.x = (int) frame2_features[i].x;
+			b.y = (int) frame2_features[i].y;
+
+			double direction;		direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
+			double length;	length = sqrt( square(a.y - b.y) + square(a.x - b.x) );
+
+	
+			lengths.push_back(length);
+		}
+
+		double sum_length = std::accumulate(lengths.begin(), lengths.end(), 0.0);
+		double mean_length = sum_length / lengths.size();
+
+		//cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
+
 		/* For fun (and debugging :)), let's draw the flow field. */
 		for(int i = 0; i < number_of_features; i++)
 		{
@@ -174,7 +203,7 @@ int main() {
 			/* CV_RGB(red, green, blue) is the red, green, and blue components
 			 * of the color you want, each out of 255.
 			 */	
-			CvScalar line_color;			line_color = CV_RGB(255,0,0);
+			CvScalar line_color;			
 	
 			/* Let's make the flow field look nice with arrows. */
 
@@ -190,34 +219,44 @@ int main() {
 			double angle;		angle = atan2( (double) p.y - q.y, (double) p.x - q.x );
 			double hypotenuse;	hypotenuse = sqrt( square(p.y - q.y) + square(p.x - q.x) );
 			
-
 			/* Here we lengthen the arrow by a factor of three. */
 			q.x = (int) (p.x - 3 * hypotenuse * cos(angle));
 			q.y = (int) (p.y - 3 * hypotenuse * sin(angle));
 
-			/* Now we draw the main line of the arrow. */
-			/* "frame1" is the frame to draw on.
-			 * "p" is the point where the line begins.
-			 * "q" is the point where the line stops.
-			 * "CV_AA" means antialiased drawing.
-			 * "0" means no fractional bits in the center cooridinate or radius.
-			 */
-			cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
-			/* Now draw the tips of the arrow.  I do some scaling so that the
-			 * tips look proportional to the main line of the arrow.
-			 */			
-			p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-			p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-			cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
-			p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-			p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-			cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
+
+			if (hypotenuse < (mean_length*2) && hypotenuse > 0.1) {
+
+				line_color = CV_RGB(255,0,0);
+
+				/* Now we draw the main line of the arrow. */
+				/* "frame1" is the frame to draw on.
+				 * "p" is the point where the line begins.
+				 * "q" is the point where the line stops.
+				 * "CV_AA" means antialiased drawing.
+				 * "0" means no fractional bits in the center cooridinate or radius.
+				 */
+				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
+				/* Now draw the tips of the arrow.  I do some scaling so that the
+				 * tips look proportional to the main line of the arrow.
+				 */			
+				p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+				p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
+				p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+				p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
+			} else {
+				cout << "dont draw : " << hypotenuse << "    dir " << angle << endl;
+			}
 		}
+		
 
 		/* Now display the image we drew on.  Recall that "Optical Flow" is the name of
 		 * the window we created above.
 		 */
 		cvShowImage("Optical Flow", image1);
+		directions.clear();
+		lengths.clear();
 
 	}
 

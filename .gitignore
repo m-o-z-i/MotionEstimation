@@ -1,0 +1,38 @@
+# Temporary files
+*~
+*.tmp
+*.swp
+
+# Vim session files
+*.vim
+
+# OS dependent files
+.DS_Store
+Thumbs.db
+desktop.ini
+.desktop
+
+# Library files
+*.so
+*.a
+*.lib
+
+# Object files
+*.o
+
+# Executables
+ObsticalAvoidance
+
+# Images
+*.png
+*.bmp
+
+# Other repositories
+.svn
+.cvs
+
+# other files
+.nfs*
+
+# data
+data/

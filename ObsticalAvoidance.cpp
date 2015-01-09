@@ -53,6 +53,7 @@ BGAPI2::Buffer*			m_buffer(NULL);
 void init_camera();
 void open_stream(IplImage* ref);
 void feature_tracking();
+void drawLine(IplImage* ref, CvPoint p, CvPoint q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 
 int main() {
 	// initialize baumer camera
@@ -83,7 +84,7 @@ int main() {
 		++frame; 
 
 		open_stream(image1);
-		key = cvWaitKey(30);
+		key = cvWaitKey(10);
 		open_stream(image2);
 
 		
@@ -248,91 +249,17 @@ int main() {
 			q.x = (int) (p.x - 3 * hypotenuse * cos(angle));
 			q.y = (int) (p.y - 3 * hypotenuse * sin(angle));
 
-			if (hypotenuse > 0.1 && angle < mean_direction) {
-				if (hypotenuse < (mean_length1*2)) {
-
-					line_color = CV_RGB(255,0,0);
-
-					/* Now we draw the main line of the arrow. */
-					/* "frame1" is the frame to draw on.
-					 * "p" is the point where the line begins.
-					 * "q" is the point where the line stops.
-					 * "CV_AA" means antialiased drawing.
-					 * "0" means no fractional bits in the center cooridinate or radius.
-					 */
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					/* Now draw the tips of the arrow.  I do some scaling so that the
-					 * tips look proportional to the main line of the arrow.
-					 */			
-					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+			if (angle < mean_direction) {
+				if (hypotenuse < (mean_length1*2) && hypotenuse > 1.5) {
+					drawLine(image1_1C, p, q, angle, CV_RGB(255,0,0));
 				} else {
-					line_color = CV_RGB(0,0,0);
-
-					/* Now we draw the main line of the arrow. */
-					/* "frame1" is the frame to draw on.
-					 * "p" is the point where the line begins.
-					 * "q" is the point where the line stops.
-					 * "CV_AA" means antialiased drawing.
-					 * "0" means no fractional bits in the center cooridinate or radius.
-					 */
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					/* Now draw the tips of the arrow.  I do some scaling so that the
-					 * tips look proportional to the main line of the arrow.
-					 */			
-					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
 				}
 			} else {
-				if (hypotenuse < (mean_length2*2)) {
-
-					line_color = CV_RGB(0,255,0);
-
-					/* Now we draw the main line of the arrow. */
-					/* "frame1" is the frame to draw on.
-					 * "p" is the point where the line begins.
-					 * "q" is the point where the line stops.
-					 * "CV_AA" means antialiased drawing.
-					 * "0" means no fractional bits in the center cooridinate or radius.
-					 */
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					/* Now draw the tips of the arrow.  I do some scaling so that the
-					 * tips look proportional to the main line of the arrow.
-					 */			
-					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+				if (hypotenuse < (mean_length2*2) && hypotenuse > 1.5) {
+					drawLine(image1_1C, p, q, angle, CV_RGB(0,255,0));
 				} else {
-					line_color = CV_RGB(0,0,0);
-
-					/* Now we draw the main line of the arrow. */
-					/* "frame1" is the frame to draw on.
-					 * "p" is the point where the line begins.
-					 * "q" is the point where the line stops.
-					 * "CV_AA" means antialiased drawing.
-					 * "0" means no fractional bits in the center cooridinate or radius.
-					 */
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					/* Now draw the tips of the arrow.  I do some scaling so that the
-					 * tips look proportional to the main line of the arrow.
-					 */			
-					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
-					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
 				}
 			}
 		}
@@ -345,7 +272,7 @@ int main() {
 
 		// save image in every frame
 		string path = "data/image/current"+(to_string(frame))+".png";
-		//cvSaveImage(path.c_str(), image1_1C);
+		cvSaveImage(path.c_str(), image1_1C);
 
 		// clear all data
 		directions.clear();
@@ -355,11 +282,30 @@ int main() {
 		cvReleaseImage(&temp_image);
 		cvReleaseImage(&pyramid1);
 		cvReleaseImage(&pyramid2);
-    	//cvReleaseImage(&calibrated_frame);
-
 	}
 
 	return 0;
+}
+
+
+void drawLine (IplImage* ref, CvPoint p, CvPoint q, float angle, CvScalar const& color, int line_thickness ) {
+	/* Now we draw the main line of the arrow. */
+	/* "frame1" is the frame to draw on.
+	 * "p" is the point where the line begins.
+	 * "q" is the point where the line stops.
+	 * "CV_AA" means antialiased drawing.
+	 * "0" means no fractional bits in the center cooridinate or radius.
+	 */
+	cvLine( ref, p, q, color, line_thickness, CV_AA, 0 );
+	/* Now draw the tips of the arrow.  I do some scaling so that the
+	 * tips look proportional to the main line of the arrow.
+	 */			
+	p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+	p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+	cvLine( ref, p, q, color, line_thickness, CV_AA, 0 );
+	p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+	p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+	cvLine( ref, p, q, color, line_thickness, CV_AA, 0 );
 }
 
 

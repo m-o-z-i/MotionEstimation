@@ -58,10 +58,11 @@ int main() {
 	IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 	IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
-	std::vector<double> lengths;
+	std::vector<double> lengths1;
+	std::vector<double> lengths2;
 	std::vector<double> directions;
 
-	//IplImage* frame1_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
+	IplImage* image1_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3);
 	//IplImage* frame2_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
 	//cvConvertImage(image1, frame1_1C, CV_CVTIMG_FLIP);
@@ -75,27 +76,14 @@ int main() {
 
 	while(true)
 	{
-
 		open_stream(image1);
 		key = cvWaitKey(30);
 		open_stream(image2);
 
-		//cvShowImage("stream 1", image1);
-		//cvShowImage("stream 2", image2);
-
-		//cv::Mat mat_image(ipl_image);
-		//imshow("Mat", mat_image);
-
-		if (image1->imageData == image2->imageData)
-		{
-			cout << "same pictures" << std::endl;
-		}
-
-
+		
 		/* Shi and Tomasi Feature Tracking! */
 
 		/* Preparation: Allocate the necessary storage. */
-
 		IplImage* eig_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
 		IplImage* temp_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
 
@@ -173,8 +161,28 @@ int main() {
 			
 
 		// get mean of length and direction of all corresponding points
+		
 		for(int i = 0; i < number_of_features; i++)
 		{
+			if ( optical_flow_found_feature[i] == 0 )	continue;
+
+			CvPoint a,b;
+			a.x = (int) frame1_features[i].x;
+			a.y = (int) frame1_features[i].y;
+			b.x = (int) frame2_features[i].x;
+			b.y = (int) frame2_features[i].y;
+
+			double direction;		direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
+			directions.push_back(direction);
+		}
+		double sum_direction = std::accumulate(directions.begin(), directions.end(), 0.0);
+		double mean_direction = sum_direction / directions.size();
+
+
+		for(int i = 0; i < number_of_features; i++)
+		{
+			if ( optical_flow_found_feature[i] == 0 )	continue;
+
 			CvPoint a,b;
 			a.x = (int) frame1_features[i].x;
 			a.y = (int) frame1_features[i].y;
@@ -184,14 +192,24 @@ int main() {
 			double direction;		direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
 			double length;	length = sqrt( square(a.y - b.y) + square(a.x - b.x) );
 
-	
-			lengths.push_back(length);
+			if (direction < mean_direction) {
+				lengths1.push_back(length);		
+			} else {
+				lengths2.push_back(length);		
+			}
 		}
 
-		double sum_length = std::accumulate(lengths.begin(), lengths.end(), 0.0);
-		double mean_length = sum_length / lengths.size();
+		double sum_length1 = std::accumulate(lengths1.begin(), lengths1.end(), 0.0);
+		double sum_length2 = std::accumulate(lengths2.begin(), lengths2.end(), 0.0);
+		double mean_length1 = sum_length1 / lengths1.size();
+		double mean_length2 = sum_length2 / lengths2.size();
 
-		//cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
+
+		cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
+
+
+		// convert grayscale to color image
+  		cvCvtColor(image1, image1_1C, CV_GRAY2RGB);
 
 		/* For fun (and debugging :)), let's draw the flow field. */
 		for(int i = 0; i < number_of_features; i++)
@@ -200,6 +218,7 @@ int main() {
 			if ( optical_flow_found_feature[i] == 0 )	continue;
 
 			int line_thickness;				line_thickness = 1;
+			
 			/* CV_RGB(red, green, blue) is the red, green, and blue components
 			 * of the color you want, each out of 255.
 			 */	
@@ -223,30 +242,92 @@ int main() {
 			q.x = (int) (p.x - 3 * hypotenuse * cos(angle));
 			q.y = (int) (p.y - 3 * hypotenuse * sin(angle));
 
+			if (hypotenuse > 0.1 && angle < mean_direction) {
+				if (hypotenuse < (mean_length1*2)) {
 
-			if (hypotenuse < (mean_length*2) && hypotenuse > 0.1) {
+					line_color = CV_RGB(255,0,0);
 
-				line_color = CV_RGB(255,0,0);
+					/* Now we draw the main line of the arrow. */
+					/* "frame1" is the frame to draw on.
+					 * "p" is the point where the line begins.
+					 * "q" is the point where the line stops.
+					 * "CV_AA" means antialiased drawing.
+					 * "0" means no fractional bits in the center cooridinate or radius.
+					 */
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					/* Now draw the tips of the arrow.  I do some scaling so that the
+					 * tips look proportional to the main line of the arrow.
+					 */			
+					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+				} else {
+					line_color = CV_RGB(0,0,0);
 
-				/* Now we draw the main line of the arrow. */
-				/* "frame1" is the frame to draw on.
-				 * "p" is the point where the line begins.
-				 * "q" is the point where the line stops.
-				 * "CV_AA" means antialiased drawing.
-				 * "0" means no fractional bits in the center cooridinate or radius.
-				 */
-				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
-				/* Now draw the tips of the arrow.  I do some scaling so that the
-				 * tips look proportional to the main line of the arrow.
-				 */			
-				p.x = (int) (q.x + 9 * cos(angle + pi / 4));
-				p.y = (int) (q.y + 9 * sin(angle + pi / 4));
-				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
-				p.x = (int) (q.x + 9 * cos(angle - pi / 4));
-				p.y = (int) (q.y + 9 * sin(angle - pi / 4));
-				cvLine( image1, p, q, line_color, line_thickness, CV_AA, 0 );
+					/* Now we draw the main line of the arrow. */
+					/* "frame1" is the frame to draw on.
+					 * "p" is the point where the line begins.
+					 * "q" is the point where the line stops.
+					 * "CV_AA" means antialiased drawing.
+					 * "0" means no fractional bits in the center cooridinate or radius.
+					 */
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					/* Now draw the tips of the arrow.  I do some scaling so that the
+					 * tips look proportional to the main line of the arrow.
+					 */			
+					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+				}
 			} else {
-				cout << "dont draw : " << hypotenuse << "    dir " << angle << endl;
+				if (hypotenuse < (mean_length2*2)) {
+
+					line_color = CV_RGB(0,255,0);
+
+					/* Now we draw the main line of the arrow. */
+					/* "frame1" is the frame to draw on.
+					 * "p" is the point where the line begins.
+					 * "q" is the point where the line stops.
+					 * "CV_AA" means antialiased drawing.
+					 * "0" means no fractional bits in the center cooridinate or radius.
+					 */
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					/* Now draw the tips of the arrow.  I do some scaling so that the
+					 * tips look proportional to the main line of the arrow.
+					 */			
+					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+				} else {
+					line_color = CV_RGB(0,0,0);
+
+					/* Now we draw the main line of the arrow. */
+					/* "frame1" is the frame to draw on.
+					 * "p" is the point where the line begins.
+					 * "q" is the point where the line stops.
+					 * "CV_AA" means antialiased drawing.
+					 * "0" means no fractional bits in the center cooridinate or radius.
+					 */
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					/* Now draw the tips of the arrow.  I do some scaling so that the
+					 * tips look proportional to the main line of the arrow.
+					 */			
+					p.x = (int) (q.x + 9 * cos(angle + pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle + pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+					p.x = (int) (q.x + 9 * cos(angle - pi / 4));
+					p.y = (int) (q.y + 9 * sin(angle - pi / 4));
+					cvLine( image1_1C, p, q, line_color, line_thickness, CV_AA, 0 );
+				}
 			}
 		}
 		
@@ -254,9 +335,11 @@ int main() {
 		/* Now display the image we drew on.  Recall that "Optical Flow" is the name of
 		 * the window we created above.
 		 */
-		cvShowImage("Optical Flow", image1);
+		cvShowImage("Optical Flow", image1_1C);
+		//cvSaveImage("current.png", image1_1C);
 		directions.clear();
-		lengths.clear();
+		lengths1.clear();
+		lengths2.clear();
 
 	}
 

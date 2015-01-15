@@ -1,9 +1,12 @@
 #include "bgapi2_genicam.hpp"
 #include <opencv2/opencv.hpp>
 
+#include "myline.h"
+
 #include <cmath>
 #include <math.h> 
 #include <vector>
+#include <utility>
 
 #include <sstream>
 #include <string.h>
@@ -46,6 +49,7 @@ BGAPI2::String			m_datastreamID("");
 
 BGAPI2::BufferList*		m_bufferList(NULL);
 BGAPI2::Buffer*			m_buffer(NULL);
+
 
 
 
@@ -117,7 +121,7 @@ int main() {
 		 * "frame1_features" will contain the feature points.
 		 * "number_of_features" will be set to a value <= 400 indicating the number of feature points found.
 		 */
-		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .1, .1, NULL);
+		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .01, .01, NULL);
 
 
 		/* Pyramidal Lucas Kanade Optical Flow! */
@@ -142,7 +146,7 @@ int main() {
 		 * work pretty well in many situations.
 		 */
 		CvTermCriteria optical_flow_termination_criteria
-			= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3 );
+			= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 30, .3 );
 
 		/* This is some workspace for the algorithm.
 		 * (The algorithm actually carves the image into pyramids of different resolutions.)
@@ -164,11 +168,14 @@ int main() {
 		 * "optical_flow_termination_criteria" is as described above (how long the algorithm should look).
 		 * "0" means disable enhancements.  (For example, the second array isn't pre-initialized with guesses.)
 		 */
-		cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, optical_flow_termination_criteria, 0 );
+		cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, 
+							   optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, 
+							   optical_flow_termination_criteria, 0);
 			
 
-		// get mean of length and direction of all corresponding points
-		
+		// get median of length and direction of all corresponding points
+		vector<myLine>corresPoints;
+
 		for(int i = 0; i < number_of_features; i++)
 		{
 			if ( optical_flow_found_feature[i] == 0 )	continue;
@@ -179,13 +186,19 @@ int main() {
 			b.x = (int) frame2_features[i].x;
 			b.y = (int) frame2_features[i].y;
 
-			double direction;		direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
+			corresPoints.push_back(myLine(a,b));
+			
+			double direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
 			directions.push_back(direction);
 		}
 		double sum_direction = std::accumulate(directions.begin(), directions.end(), 0.0);
 		double mean_direction = sum_direction / directions.size();
 
+		sort(corresPoints.begin(), corresPoints.end(),[](myLine a, myLine b) -> bool { return a.getLength() > b.getLength();});
+		double median_lenght = corresPoints[(int)(corresPoints.size()/2)].getLength();
+		double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
 
+		
 		for(int i = 0; i < number_of_features; i++)
 		{
 			if ( optical_flow_found_feature[i] == 0 )	continue;
@@ -212,7 +225,7 @@ int main() {
 		double mean_length2 = sum_length2 / lengths2.size();
 
 
-		cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
+		//cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
 
 
 		// convert grayscale to color image
@@ -249,18 +262,18 @@ int main() {
 			q.x = (int) (p.x - 3 * hypotenuse * cos(angle));
 			q.y = (int) (p.y - 3 * hypotenuse * sin(angle));
 
-			if (angle < mean_direction) {
-				if (hypotenuse < (mean_length1*2) && hypotenuse > 1.5) {
+			if (angle < mean_direction + 5 && angle > mean_direction - 5 ) {
+				if (hypotenuse < (median_lenght*1.2) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.8) {
 					drawLine(image1_1C, p, q, angle, CV_RGB(255,0,0));
 				} else {
 					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
 				}
 			} else {
-				if (hypotenuse < (mean_length2*2) && hypotenuse > 1.5) {
-					drawLine(image1_1C, p, q, angle, CV_RGB(0,255,0));
-				} else {
+				//if (hypotenuse < (median_lenght*1.2) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.8) {
+				//	drawLine(image1_1C, p, q, angle, CV_RGB(0,255,0));
+				//} else {
 					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
-				}
+				//}
 			}
 		}
 		
@@ -278,6 +291,7 @@ int main() {
 		directions.clear();
 		lengths1.clear();
 		lengths2.clear();
+		corresPoints.clear();
 		cvReleaseImage(&eig_image);
 		cvReleaseImage(&temp_image);
 		cvReleaseImage(&pyramid1);
@@ -286,6 +300,34 @@ int main() {
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void drawLine (IplImage* ref, CvPoint p, CvPoint q, float angle, CvScalar const& color, int line_thickness ) {

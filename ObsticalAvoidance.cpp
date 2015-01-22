@@ -56,7 +56,7 @@ BGAPI2::Buffer*			m_buffer(NULL);
 // callbacks
 void init_camera();
 void open_stream(IplImage* ref);
-void feature_tracking();
+void feature_tracking(IplImage* image1, IplImage* image2);
 void drawLine(IplImage* ref, CvPoint p, CvPoint q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 
 int main() {
@@ -66,21 +66,18 @@ int main() {
 	IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 	IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
-	std::vector<double> lengths1;
-	std::vector<double> lengths2;
-	std::vector<double> directions;
-
-	IplImage* image1_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3);
-	//IplImage* frame2_1C = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
-
-	//cvConvertImage(image1, frame1_1C, CV_CVTIMG_FLIP);
-	//cvConvertImage(image2, frame2_1C, CV_CVTIMG_FLIP);
-
-	//cv::Mat* image = cv::Mat::zeros(m_imageSize, CV_8U);
+	/*	
+	while (true) {
+		open_stream(image1);
+		cvShowImage("Optical Flow", image1);
+		key = cvWaitKey(10);
+	}
+	*/
 
 	int frame=0;
 
 	cvNamedWindow("Optical Flow", CV_WINDOW_AUTOSIZE);
+
 
 	while(true)
 	{
@@ -91,7 +88,25 @@ int main() {
 		key = cvWaitKey(10);
 		open_stream(image2);
 
-		
+		//convert to Mat
+		//cv::Mat mat_image(image1);
+		//imshow("Mat", mat_image);
+
+		feature_tracking(image1, image2);
+	}
+
+	return 0;
+}
+
+
+
+void feature_tracking(IplImage* image1, IplImage* image2) {
+		std::vector<double> lengths1;
+		std::vector<double> lengths2;
+		std::vector<double> directions;
+
+		IplImage* colorImage = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3);
+
 		/* Shi and Tomasi Feature Tracking! */
 
 		/* Preparation: Allocate the necessary storage. */
@@ -121,7 +136,7 @@ int main() {
 		 * "frame1_features" will contain the feature points.
 		 * "number_of_features" will be set to a value <= 400 indicating the number of feature points found.
 		 */
-		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .01, .01, NULL);
+		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .1, .1, NULL);
 
 
 		/* Pyramidal Lucas Kanade Optical Flow! */
@@ -229,7 +244,7 @@ int main() {
 
 
 		// convert grayscale to color image
-  		cvCvtColor(image1, image1_1C, CV_GRAY2RGB);
+  		cvCvtColor(image1, colorImage, CV_GRAY2RGB);
 
 		/* For fun (and debugging :)), let's draw the flow field. */
 		for(int i = 0; i < number_of_features; i++)
@@ -264,15 +279,15 @@ int main() {
 
 			if (angle < mean_direction + 5 && angle > mean_direction - 5 ) {
 				if (hypotenuse < (median_lenght*1.2) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.8) {
-					drawLine(image1_1C, p, q, angle, CV_RGB(255,0,0));
+					drawLine(colorImage, p, q, angle, CV_RGB(255,0,0));
 				} else {
-					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
+					drawLine(colorImage, p, q, angle, CV_RGB(0,0,0));
 				}
 			} else {
 				//if (hypotenuse < (median_lenght*1.2) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.8) {
-				//	drawLine(image1_1C, p, q, angle, CV_RGB(0,255,0));
+				//	drawLine(colorImage, p, q, angle, CV_RGB(0,255,0));
 				//} else {
-					drawLine(image1_1C, p, q, angle, CV_RGB(0,0,0));
+					drawLine(colorImage, p, q, angle, CV_RGB(0,0,0));
 				//}
 			}
 		}
@@ -281,11 +296,11 @@ int main() {
 		/* Now display the image we drew on.  Recall that "Optical Flow" is the name of
 		 * the window we created above.
 		 */
-		cvShowImage("Optical Flow", image1_1C);
+		cvShowImage("Optical Flow", colorImage);
 
 		// save image in every frame
-		string path = "data/image/current"+(to_string(frame))+".png";
-		cvSaveImage(path.c_str(), image1_1C);
+		//string path = "data/image/current"+(to_string(frame))+".png";
+		//cvSaveImage(path.c_str(), colorImage);
 
 		// clear all data
 		directions.clear();
@@ -296,38 +311,7 @@ int main() {
 		cvReleaseImage(&temp_image);
 		cvReleaseImage(&pyramid1);
 		cvReleaseImage(&pyramid2);
-	}
-
-	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void drawLine (IplImage* ref, CvPoint p, CvPoint q, float angle, CvScalar const& color, int line_thickness ) {
@@ -404,8 +388,8 @@ void init_camera() {
 	        std::cout << "DeviceID: " << m_deviceID << std::endl;
 	    }
 
-
-	    //m_device->GetRemoteNode("Gain")->SetDouble(15.56);
+	    m_device->GetRemoteNode("PixelFormat")->SetString("Mono8");
+	    m_device->GetRemoteNode("Gain")->SetDouble(10.00);
 	    //m_device->GetRemoteNode("TriggerMode")->SetString("On");
 	    //m_device->GetRemoteNode("TriggerSource")->SetValue("Line0");
 	    //m_device->GetRemoteNode("ExposureTime")->SetDouble(13000);

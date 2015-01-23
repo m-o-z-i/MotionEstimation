@@ -2,21 +2,23 @@
 #define MYLINE_H
 
 #include <opencv2/opencv.hpp>
-class myLine; 
 
+class myLine; 
 
 class myLine
 {
 public:
 	myLine();
-	myLine(CvPoint a, CvPoint b);
+	myLine(cv::Point2f a, cv::Point2f b);
 	
 	double getLength();
 	double getAngle();
+	cv::Point2f getPointA() const;
+	cv::Point2f getPointB() const;
 
 private:
-	CvPoint m_a;
-	CvPoint m_b;
+	cv::Point2f m_a;
+	cv::Point2f m_b;
 	double m_length;
 	double m_angle;
 };

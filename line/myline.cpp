@@ -9,7 +9,7 @@ myLine::myLine()
 {
 }
 
-myLine::myLine(CvPoint a, CvPoint b)
+myLine::myLine(cv::Point2f a, cv::Point2f b)
 	:m_a(a),m_b(b)
 {
 	m_angle = atan2( (double) m_a.y - m_b.y, (double) m_b.x - m_b.x );
@@ -22,3 +22,12 @@ double myLine::getLength(){
 double myLine::getAngle(){
 	return m_angle;
 }
+
+cv::Point2f myLine::getPointA() const{
+	return m_a;
+}
+
+cv::Point2f myLine::getPointB() const{
+	return m_b;
+}
+

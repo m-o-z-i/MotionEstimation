@@ -230,14 +230,14 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		}
 	}
 
-	std::cout << points1.size() << " " << points2.size() << " " << cv::Mat(points1).rows << std::endl; 
 
 	// Compute F matrix using RANSAC
-	std::vector<uchar> inliers(points1.size(),0);
 	if (points1.size()>10 && points2.size()>10){
+		std::cout << "fundamental: " << points1.size() << " " << points2.size() << " " << cv::Mat(points1).rows << std::endl; 
+		std::vector<uchar> inliers_fundamental(points1.size(),0);
 		cv::Mat fundemental = cv::findFundamentalMat(
 								cv::Mat(points1), cv::Mat(points2), // matching points
-								inliers,      // match status (inlier ou outlier)  
+								inliers_fundamental,      // match status (inlier ou outlier)  
 								CV_FM_RANSAC, // RANSAC method
 								1,            // distance to epipolar line
 								0.98);        // confidence probability
@@ -265,7 +265,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		// Draw the inlier points
 		std::vector<cv::Point2f> points1In, points2In;
 		std::vector<cv::Point2f>::const_iterator itPts= points1.begin();
-		std::vector<uchar>::const_iterator itIn= inliers.begin();
+		std::vector<uchar>::const_iterator itIn= inliers_fundamental.begin();
 		while (itPts!=points1.end()) {
 
 			// draw a circle at each inlier location
@@ -278,7 +278,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		}
 
 		itPts= points2.begin();
-		itIn= inliers.begin();
+		itIn= inliers_fundamental.begin();
 		while (itPts!=points2.end()) {
 
 			// draw a circle at each inlier location
@@ -296,48 +296,53 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		cv::namedWindow("Left Image Epilines (RANSAC)", WINDOW_NORMAL);
 		cv::imshow("Left Image Epilines (RANSAC)",mat_image2);
 
-		if (points1In.size() > 0 && points2In.size() > 0) {
-			cv::findHomography(cv::Mat(points1In),cv::Mat(points2In),inliers,CV_RANSAC,1.);
-			// Draw the inlier points
-			itPts= points1In.begin();
-			itIn= inliers.begin();
-			cout << "go" << points1In.size() << " " << points2In.size() << endl;
-			while (itPts!=points1In.end()) {
+		
+		std::vector<uchar> inliers_homographie(points1.size(),0);
+		cv::findHomography(cv::Mat(points1In),cv::Mat(points2In),inliers_homographie,CV_RANSAC,1.);
+		// Draw the inlier points
+		itPts= points1In.begin();
+		itIn= inliers_homographie.begin();
+		cout << "Homography:  " << points1In.size() << " " << points2In.size() << endl;
+		while (itPts!=points1In.end()) {
 
-				// draw a circle at each inlier location
-				if (*itIn) 
-		 			cv::circle(mat_color1,*itPts,3,cv::Scalar(255,0,0),2);
-		 		else {
-		 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
-		 		}
-				
-				++itPts;
-				++itIn;
-			}
-
-			itPts= points2In.begin();
-			itIn= inliers.begin();
-			while (itPts!=points2In.end()) {
-
-				// draw a circle at each inlier location
-				if (*itIn) 
-					cv::circle(mat_color2,*itPts,3,cv::Scalar(255,0,0),2);
-				else {
-		 			cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
-		 		}
-
-				++itPts;
-				++itIn;
-			}
-
-		    // Display the images with points
-			cv::namedWindow("Right Image Homography (RANSAC)", WINDOW_NORMAL);
-			cv::imshow("Right Image Homography (RANSAC)",mat_color1);
-			cv::namedWindow("Left Image Homography (RANSAC)", WINDOW_NORMAL);
-			cv::imshow("Left Image Homography (RANSAC)",mat_color2);
-
-			cv::waitKey();
+			// draw a circle at each inlier location
+			if (*itIn) 
+	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(255,0,0),2);
+	 		else {
+	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
+	 		}
+			
+			++itPts;
+			++itIn;
 		}
+
+		itPts= points2In.begin();
+		itIn= inliers_homographie.begin();
+		while (itPts!=points2In.end()) {
+
+			// draw a circle at each inlier location
+			if (*itIn) 
+				cv::circle(mat_color2,*itPts,3,cv::Scalar(255,0,0),2);
+			else {
+	 			cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
+	 		}
+
+			++itPts;
+			++itIn;
+		}
+
+		if (inliers_homographie.size() > inliers_fundamental.size()){
+			cout << "skip frame because points are on one plane" << endl;
+		}
+
+	    // Display the images with points
+		cv::namedWindow("Right Image Homography (RANSAC)", WINDOW_NORMAL);
+		cv::imshow("Right Image Homography (RANSAC)",mat_color1);
+		cv::namedWindow("Left Image Homography (RANSAC)", WINDOW_NORMAL);
+		cv::imshow("Left Image Homography (RANSAC)",mat_color2);
+
+		cv::waitKey();
+
 		mat_image1.release();
 		mat_image2.release();
 		mat_color1.release();

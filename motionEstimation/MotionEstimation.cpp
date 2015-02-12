@@ -1,7 +1,7 @@
 #include "bgapi2_genicam.hpp"
 #include <opencv2/opencv.hpp>
 
-#include "myline.h"
+#include "line/MyLine.h"
 
 #include <cmath>
 #include <math.h> 
@@ -199,7 +199,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 
 
 	//get median angle and length
-	vector<myLine>corresPoints;
+	vector<MyLine>corresPoints;
 	for(int i = 0; i < number_of_features; i++)
 	{
 		if ( optical_flow_found_feature[i] == 0 )	continue;
@@ -210,12 +210,12 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 		b.x = (int) frame2_features[i].x;
 		b.y = (int) frame2_features[i].y;
 
-		corresPoints.push_back(myLine(a,b));
+		corresPoints.push_back(MyLine(a,b));
 	}
-	sort(corresPoints.begin(), corresPoints.end(),[](myLine a, myLine b) -> bool { return a.getLength() > b.getLength();});
+	sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getLength() > b.getLength();});
 	double median_lenght = corresPoints[(int)(corresPoints.size()/2)].getLength();
 	
-	sort(corresPoints.begin(), corresPoints.end(),[](myLine a, myLine b) -> bool { return a.getAngle() > b.getAngle();});
+	sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getAngle() > b.getAngle();});
 	double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
 
 
@@ -444,7 +444,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 			
 
 		// get median of length and direction of all corresponding points
-		vector<myLine>corresPoints;
+		vector<MyLine>corresPoints;
 
 		for(int i = 0; i < number_of_features; i++)
 		{
@@ -456,7 +456,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 			b.x = (int) frame2_features[i].x;
 			b.y = (int) frame2_features[i].y;
 
-			corresPoints.push_back(myLine(a,b));
+			corresPoints.push_back(MyLine(a,b));
 			
 			double direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
 			directions.push_back(direction);
@@ -464,10 +464,10 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 		double sum_direction = std::accumulate(directions.begin(), directions.end(), 0.0);
 		double mean_direction = sum_direction / directions.size();
 
-		sort(corresPoints.begin(), corresPoints.end(),[](myLine a, myLine b) -> bool { return a.getLength() > b.getLength();});
+		sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getLength() > b.getLength();});
 		double median_lenght = corresPoints[(int)(corresPoints.size()/2)].getLength();
 		
-		sort(corresPoints.begin(), corresPoints.end(),[](myLine a, myLine b) -> bool { return a.getAngle() > b.getAngle();});
+		sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getAngle() > b.getAngle();});
 		double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
 
 		

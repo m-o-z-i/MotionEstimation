@@ -10,10 +10,10 @@ SDL_LDFLAGS := $(shell sdl-config --libs) -lpthread
 
 MOTION_ESTIMATION = MotionEstimation
 
-INCLUDES = -I./libbaumer/src/baumer/inc -I/opt/boost/boost_1_55_0/include -Ipng++-0.2.3/ \
-		   -I/opt/boost/boost_1_55_0/include -I./opencv-touch/src -I./line
+INCLUDES = -I../libbaumer/src/baumer/inc -I/opt/boost/boost_1_55_0/include -Ipng++-0.2.3/ \
+		   -I/opt/boost/boost_1_55_0/include -I../camera/src -I./line
 
-LDPATH = -L./opencv-touch/src -L/opt/boost/boost_1_55_0/lib -L/usr/local/lib/baumer
+LDPATH = -L../camera/src -L/opt/boost/boost_1_55_0/lib -L/usr/local/lib/baumer
 
 LDFLAGS = -lbgapi2_ext \
           -lbgapi2_genicam \
@@ -29,7 +29,7 @@ LDFLAGS = -lbgapi2_ext \
 CFLAGS  = -fPIC -Wall -O3 $(SDL_CFLAGS) -DLINUX -D_GNULINUX
 CXXFLAGS = $(CFLAGS) $(INCLUDES) -std=c++11
 
-LINE_SOURCES = ./line/myline.cpp
+LINE_SOURCES = ./line/MyLine.cpp
 
 MOTION_ESTIMATION_SOURCES = MotionEstimation.cpp
 MOTION_ESTIMATION_OBJECTS = MotionEstimation.o
@@ -37,14 +37,14 @@ MOTION_ESTIMATION_OBJECTS = MotionEstimation.o
 COMMON_SOURCES = $(LINE_SOURCES)
 COMMON_OBJECTS = $(COMMON_SOURCES:.cpp=.o)
 
-all: obsticalavoidance opencv
+all: motionestimation camera
 
-obsticalavoidance: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
+motionestimation: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
 	$(CXX) -o $(MOTION_ESTIMATION) $+ $(SDL_LDFLAGS) $(FRAMEWORKS) $(LDPATH) $(LDFLAGS)
 
-opencv: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
-	cd ./opencv-touch/src/ && make
+camera: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
+	cd ../camera/src/ && make
 
 clean:
 	rm -rf $(MOTION_ESTIMATION) $(MOTION_ESTIMATION_OBJECTS) $(COMMON_OBJECTS)
-	cd ./opencv-touch/src/ && make clean
+	cd ../camera/src/ && make clean

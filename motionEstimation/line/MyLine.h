@@ -3,13 +3,13 @@
 
 #include <opencv2/opencv.hpp>
 
-class myLine; 
+class MyLine; 
 
-class myLine
+class MyLine
 {
 public:
-	myLine();
-	myLine(cv::Point2f a, cv::Point2f b);
+	MyLine();
+	MyLine(cv::Point2f a, cv::Point2f b);
 	
 	double getLength();
 	double getAngle();

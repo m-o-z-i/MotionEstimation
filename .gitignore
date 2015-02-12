@@ -6,6 +6,10 @@
 # Vim session files
 *.vim
 
+# QTCreator
+*.pro.user
+*.pro.user.*
+
 # OS dependent files
 .DS_Store
 Thumbs.db
@@ -22,7 +26,7 @@ desktop.ini
 
 # Executables
 ObsticalAvoidance
-MotionEstimation
+motionEstimation/MotionEstimation
 
 # Images
 *.png
@@ -36,4 +40,5 @@ MotionEstimation
 .nfs*
 
 # data
-data/
+motionEstimation/data/
+build/

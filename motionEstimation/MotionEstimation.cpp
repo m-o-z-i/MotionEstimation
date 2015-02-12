@@ -11,7 +11,6 @@
 #include <sstream>
 #include <string.h>
 
-using namespace cv;
 using namespace std;
 
 static const double pi = 3.14159265358979323846;
@@ -21,12 +20,10 @@ inline static double square(int a)
 	return a * a;
 }
 
-
 char key;
 
 int 					m_camWidth;
 int 					m_camHeight;
-
 
 CvSize 					m_imageSize(cvSize(1384, 1036));
 IplImage* 				m_frame1(cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1));
@@ -51,19 +48,19 @@ BGAPI2::BufferList*		m_bufferList(NULL);
 BGAPI2::Buffer*			m_buffer(NULL);
 
 
-
-
 // callbacks
 void init_camera();
 void open_stream(IplImage* ref);
 void feature_tracking(IplImage* image1, IplImage* image2, int frame);
 void epipole_tracking(IplImage* image1, IplImage* image2, int frame);
-void drawLine(IplImage* ref, Point2f p, Point2f q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
+void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 
 int main() {
-	// initialize baumer camera
+
+    // initialize baumer camera
 	init_camera();
 
+    // init images
 	IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 	IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
@@ -78,7 +75,6 @@ int main() {
 	int frame=0;
 
 	cvNamedWindow("Optical Flow", CV_WINDOW_AUTOSIZE);
-
 
 	while(true)
 	{
@@ -99,8 +95,6 @@ int main() {
 
 	return 0;
 }
-
-
 
 void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 	std::vector<double> lengths1;
@@ -187,7 +181,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 	 */
 	cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, 
 	 					   optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, 
-	 					   optical_flow_termination_criteria, OPTFLOW_LK_GET_MIN_EIGENVALS);
+                           optical_flow_termination_criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 		
 	cv::Mat mat_image1(image1);
 	cv::Mat mat_image2(image2);
@@ -204,7 +198,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 	{
 		if ( optical_flow_found_feature[i] == 0 )	continue;
 
-		Point2f a,b;
+        cv::Point2f a,b;
 		a.x = (int) frame1_features[i].x;
 		a.y = (int) frame1_features[i].y;
 		b.x = (int) frame2_features[i].x;
@@ -219,7 +213,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 	double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
 
 
-	// Convert inliers into Point2f
+    // Convert inliers into cv::Point2f
 	std::vector<cv::Point2f> points1, points2;
 	for(auto i = corresPoints.begin(); i < corresPoints.end(); ++i)
 	{
@@ -292,9 +286,9 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 		}
 
 		// Display the images with points
-		cv::namedWindow("Right Image Epilines (RANSAC)", WINDOW_NORMAL);
+        cv::namedWindow("Right Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
 		cv::imshow("Right Image Epilines (RANSAC)",mat_image1);
-		cv::namedWindow("Left Image Epilines (RANSAC)", WINDOW_NORMAL);
+        cv::namedWindow("Left Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
 		cv::imshow("Left Image Epilines (RANSAC)",mat_image2);
 
 		
@@ -337,9 +331,9 @@ void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 		}
 
 	    // Display the images with points
-		cv::namedWindow("Right Image Homography (RANSAC)", WINDOW_NORMAL);
+        cv::namedWindow("Right Image Homography (RANSAC)", cv::WINDOW_NORMAL);
 		cv::imshow("Right Image Homography (RANSAC)",mat_color1);
-		cv::namedWindow("Left Image Homography (RANSAC)", WINDOW_NORMAL);
+        cv::namedWindow("Left Image Homography (RANSAC)", cv::WINDOW_NORMAL);
 		cv::imshow("Left Image Homography (RANSAC)",mat_color2);
 
 		string path = "data/image/epipoles/current"+(to_string(frame))+".png";
@@ -440,7 +434,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 		 */
 		cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, 
 							   optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, 
-							   optical_flow_termination_criteria, OPTFLOW_LK_GET_MIN_EIGENVALS);
+                               optical_flow_termination_criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 			
 
 		// get median of length and direction of all corresponding points
@@ -450,7 +444,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 		{
 			if ( optical_flow_found_feature[i] == 0 )	continue;
 
-			Point2f a,b;
+            cv::Point2f a,b;
 			a.x = (int) frame1_features[i].x;
 			a.y = (int) frame1_features[i].y;
 			b.x = (int) frame2_features[i].x;
@@ -475,7 +469,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 		{
 			if ( optical_flow_found_feature[i] == 0 )	continue;
 
-			Point2f a,b;
+            cv::Point2f a,b;
 			a.x = (int) frame1_features[i].x;
 			a.y = (int) frame1_features[i].y;
 			b.x = (int) frame2_features[i].x;
@@ -521,7 +515,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 			/* The arrows will be a bit too short for a nice visualization because of the high framerate
 			 * (ie: there's not much motion between the frames).  So let's lengthen them by a factor of 3.
 			 */
-			Point2f p,q;
+            cv::Point2f p,q;
 			p.x = (int) frame1_features[i].x;
 			p.y = (int) frame1_features[i].y;
 			q.x = (int) frame2_features[i].x;
@@ -573,7 +567,7 @@ void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 }
 
 
-void drawLine (IplImage* ref, Point2f p, Point2f q, float angle, CvScalar const& color, int line_thickness ) {
+void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color, int line_thickness ) {
 	/* Now we draw the main line of the arrow. */
 	/* "frame1" is the frame to draw on.
 	 * "p" is the point where the line begins.

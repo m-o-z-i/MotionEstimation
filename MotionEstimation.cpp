@@ -56,8 +56,8 @@ BGAPI2::Buffer*			m_buffer(NULL);
 // callbacks
 void init_camera();
 void open_stream(IplImage* ref);
-void feature_tracking(IplImage* image1, IplImage* image2);
-void epipole_tracking(IplImage* image1, IplImage* image2);
+void feature_tracking(IplImage* image1, IplImage* image2, int frame);
+void epipole_tracking(IplImage* image1, IplImage* image2, int frame);
 void drawLine(IplImage* ref, Point2f p, Point2f q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 
 int main() {
@@ -93,7 +93,8 @@ int main() {
 		//cv::Mat mat_image(image1);
 		//imshow("Mat", mat_image);
 
-		epipole_tracking(image1, image2);
+		feature_tracking(image1, image2, frame);
+		//epipole_tracking(image1, image2, frame);
 	}
 
 	return 0;
@@ -101,7 +102,7 @@ int main() {
 
 
 
-void epipole_tracking(IplImage* image1, IplImage* image2) {
+void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
 	std::vector<double> lengths1;
 	std::vector<double> lengths2;
 	std::vector<double> directions;
@@ -299,7 +300,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		
 		std::vector<uchar> inliers_homographie(points1.size(),0);
 		cv::findHomography(cv::Mat(points1In),cv::Mat(points2In),inliers_homographie,CV_RANSAC,1.);
-		// Draw the inlier points
+		// Draw the homography inlier points
 		itPts= points1In.begin();
 		itIn= inliers_homographie.begin();
 		cout << "Homography:  " << points1In.size() << " " << points2In.size() << endl;
@@ -307,7 +308,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 
 			// draw a circle at each inlier location
 			if (*itIn) 
-	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(255,0,0),2);
+	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,255,0),2);
 	 		else {
 	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
 	 		}
@@ -322,7 +323,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 
 			// draw a circle at each inlier location
 			if (*itIn) 
-				cv::circle(mat_color2,*itPts,3,cv::Scalar(255,0,0),2);
+				cv::circle(mat_color2,*itPts,3,cv::Scalar(0,255,0),2);
 			else {
 	 			cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
 	 		}
@@ -341,6 +342,8 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 		cv::namedWindow("Left Image Homography (RANSAC)", WINDOW_NORMAL);
 		cv::imshow("Left Image Homography (RANSAC)",mat_color2);
 
+		string path = "data/image/epipoles/current"+(to_string(frame))+".png";
+		imwrite(path.c_str(), mat_image1);
 		cv::waitKey();
 
 		mat_image1.release();
@@ -352,7 +355,7 @@ void epipole_tracking(IplImage* image1, IplImage* image2) {
 }
 
 
-void feature_tracking(IplImage* image1, IplImage* image2) {
+void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
 		std::vector<double> lengths1;
 		std::vector<double> lengths2;
 		std::vector<double> directions;
@@ -555,8 +558,8 @@ void feature_tracking(IplImage* image1, IplImage* image2) {
 		cvShowImage("Optical Flow", colorImage);
 
 		// save image in every frame
-		//string path = "data/image/current"+(to_string(frame))+".png";
-		//cvSaveImage(path.c_str(), colorImage);
+		string path = "data/image/vectors/current"+(to_string(frame))+".png";
+		cvSaveImage(path.c_str(), colorImage);
 
 		// clear all data
 		directions.clear();

@@ -22,6 +22,7 @@ desktop.ini
 
 # Executables
 ObsticalAvoidance
+MotionEstimation
 
 # Images
 *.png

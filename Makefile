@@ -8,7 +8,7 @@ PLATFORM=$(shell uname)
 SDL_CFLAGS  := $(shell sdl-config --cflags)
 SDL_LDFLAGS := $(shell sdl-config --libs) -lpthread
 
-OBSTICAL_AVOIDANCE = ObsticalAvoidance
+MOTION_ESTIMATION = MotionEstimation
 
 INCLUDES = -I./libbaumer/src/baumer/inc -I/opt/boost/boost_1_55_0/include -Ipng++-0.2.3/ \
 		   -I/opt/boost/boost_1_55_0/include -I./opencv-touch/src -I./line
@@ -31,20 +31,20 @@ CXXFLAGS = $(CFLAGS) $(INCLUDES) -std=c++11
 
 LINE_SOURCES = ./line/myline.cpp
 
-OBSTICAL_AVOIDANCE_SOURCES = ObsticalAvoidance.cpp
-OBSTICAL_AVOIDANCE_OBJECTS = ObsticalAvoidance.o
+MOTION_ESTIMATION_SOURCES = MotionEstimation.cpp
+MOTION_ESTIMATION_OBJECTS = MotionEstimation.o
 
 COMMON_SOURCES = $(LINE_SOURCES)
 COMMON_OBJECTS = $(COMMON_SOURCES:.cpp=.o)
 
 all: obsticalavoidance opencv
 
-obsticalavoidance: $(COMMON_OBJECTS) $(OBSTICAL_AVOIDANCE_OBJECTS)
-	$(CXX) -o $(OBSTICAL_AVOIDANCE) $+ $(SDL_LDFLAGS) $(FRAMEWORKS) $(LDPATH) $(LDFLAGS)
+obsticalavoidance: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
+	$(CXX) -o $(MOTION_ESTIMATION) $+ $(SDL_LDFLAGS) $(FRAMEWORKS) $(LDPATH) $(LDFLAGS)
 
-opencv: $(COMMON_OBJECTS) $(OBSTICAL_AVOIDANCE_OBJECTS)
+opencv: $(COMMON_OBJECTS) $(MOTION_ESTIMATION_OBJECTS)
 	cd ./opencv-touch/src/ && make
 
 clean:
-	rm -rf $(OBSTICAL_AVOIDANCE) $(OBSTICAL_AVOIDANCE_OBJECTS) $(COMMON_OBJECTS)
+	rm -rf $(MOTION_ESTIMATION) $(MOTION_ESTIMATION_OBJECTS) $(COMMON_OBJECTS)
 	cd ./opencv-touch/src/ && make clean

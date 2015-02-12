@@ -63,6 +63,22 @@ void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f> > features, vecto
 void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2);
 
 //TODO: calcOpticalFlowFarneback
+/* STEP BY STEP:
+ * 1.  capture stereo calibrated images in frame 1
+ * 2.1 find feature points in image 1.1
+ * 2.2 find corresponding points in image 1.2
+ * 3.  triangulate 3d points from frame 1
+ * 4.  wait one frame
+ * 5.  capture again images from frame 2
+ * 6.  try to find same corresponding points from frame 1 in new stereo images from frame 2
+ * 7.  triangulate 3d points from frame 2
+ * 8.  calculate essential matrix from frame 1 to frame 2
+ * 9.  estimate motion with 2 sets of 2d and 3d points and the essential matrix
+ * 10. swap 2d points of frame 1 and frame 2
+ * 11. try to add some new feature points (until defined numer of necessary points are reached)
+ * 12. continue with step 4
+ */
+
 
 int main() {
 

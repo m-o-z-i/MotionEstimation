@@ -11,6 +11,8 @@
 #include <sstream>
 #include <string.h>
 
+#include <opencv2/core/core.hpp>
+
 using namespace std;
 
 static const double pi = 3.14159265358979323846;
@@ -60,7 +62,7 @@ std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat image, int number = 50,
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat prev_image, cv::Mat next_image, vector<cv::Point2f> frame1_features);
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> points1, vector<cv::Point2f> points2);
 void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f> > features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2);
+void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, const CvScalar& color, int id);
 
 //TODO: calcOpticalFlowFarneback
 /* STEP BY STEP:
@@ -73,7 +75,7 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
  * 6.  try to find same corresponding points from frame 1 in new stereo images from frame 2
  * 7.  triangulate 3d points from frame 2
  * 8.  calculate essential matrix from frame 1 to frame 2
- * 9.  estimate motion with 2 sets of 2d and 3d points and the essential matrix
+ * 9.  estimate motion with 2 sets of 2d and 3d points and the essential matrix .. how?
  * 10. swap 2d points of frame 1 and frame 2
  * 11. try to add some new feature points (until defined numer of necessary points are reached)
  * 12. continue with step 4
@@ -97,35 +99,55 @@ int main() {
 	}
 	*/
 
-	int frame=0;
+    int frame=1;
 
 	while(true)
 	{
-		++frame; 
-
-		open_stream(image1);
-		key = cvWaitKey(1);
-		open_stream(image2);
+        //open_stream(image1);
+        //key = cvWaitKey(1);
+        //open_stream(image2);
 
 		//convert to Mat
-        cv::Mat mat_image1(image1);
-        cv::Mat mat_image2(image2);
+        //cv::Mat mat_image1(image1);
+        //cv::Mat mat_image2(image2);
 
-        //cv::imshow("Mat", mat_image1);
+        //stereo1
+        cv::Mat mat_image11 = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
+        cv::Mat mat_image12 = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
 
-        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image1);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints = refindFeaturePoints(mat_image1, mat_image2, features1);
-        //drawCorresPoints(mat_image1,corresPoints.first, corresPoints.second);
+        //stereo2
+        cv::Mat mat_image21 = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
+        cv::Mat mat_image22 = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
 
-        vector<cv::Point2f> inliers1, inliers2;
-        getInliers(corresPoints, &inliers1, &inliers2);
+        cv::imshow("11", mat_image11);
+        cv::imshow("12", mat_image12);
+        cv::imshow("21", mat_image21);
+        cv::imshow("22", mat_image22);
+
+        if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)                              // Check for invalid input
+        {
+            cout <<  "Could not open or find the image: "  << std::endl ;
+            break;
+        }
+
+        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image12, features1);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
+
+        drawCorresPoints(mat_image11,corresPoints1.first, corresPoints1.second, cvScalar(255,0,0),1);
+        drawCorresPoints(mat_image11,corresPoints2.first, corresPoints2.second, cvScalar(0,255,0),2);
+        drawCorresPoints(mat_image11,corresPoints3.first, corresPoints3.second, cvScalar(0,0,255),3);
+
+        //vector<cv::Point2f> inliers1, inliers2;
+        //getInliers(corresPoints, &inliers1, &inliers2);
         //std::cout << "main:   " << inliers1.size() << "  " << inliers2.size() << std::endl;
 
-        drawEpipolarLines(mat_image1, mat_image2, inliers1, inliers2);
+        //drawEpipolarLines(mat_image1, mat_image2, inliers1, inliers2);
 
 
-        //feature_tracking(image1, image2, frame);
-        //epipole_tracking(image1, image2, frame);
+        ++frame;
+        cvWaitKey();
 	}
 
 	return 0;
@@ -377,7 +399,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> point
     }
 }
 
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2) {
+void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, CvScalar const& color, int id) {
     // convert grayscale to color image
     cv::Mat color_image;
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
@@ -410,7 +432,7 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
 
         if (angle < median_angle + 2 && angle > median_angle - 2 ) {
             if (hypotenuse < (median_lenght*3) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.1) {
-                drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(255,0,0));
+                drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color.val[0], color.val[1], color.val[2]));
             } else {
                 drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(0,0,0));
             }
@@ -423,7 +445,7 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
     /* Now display the image we drew on.  Recall that "Optical Flow" is the name of
      * the window we created above.
      */
-    cv::imshow("Optical Flow", color_image);
+    cv::imshow("Optical Flow"+to_string(id), color_image);
 
     // save image in every frame
     //string path = "data/image/vectors/current"+(to_string(frame))+".png";
@@ -608,488 +630,3 @@ void open_stream(IplImage* ref) {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-void epipole_tracking(IplImage* image1, IplImage* image2, int frame) {
-	std::vector<double> lengths1;
-	std::vector<double> lengths2;
-	std::vector<double> directions;
-
-	IplImage* colorImage = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3);
-
-	/* Shi and Tomasi Feature Tracking! */
-
-	/* Preparation: Allocate the necessary storage. */
-	IplImage* eig_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
-	IplImage* temp_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
-
-	/* Preparation: This array will contain the features found in frame 1. */
-	CvPoint2D32f frame1_features[50];
-	/* Preparation: BEFORE the function call this variable is the array size
-	 * (or the maximum number of features to find).  AFTER the function call
-	 * this variable is the number of features actually found.
-	 */
-	int number_of_features;
-
-	/* I'm hardcoding this at 50.  But you should make this a #define so that you can
-	 * change the number of features you use for an accuracy/speed tradeoff analysis.
-	 */
-	number_of_features = 50;
-
-	/* Actually run the Shi and Tomasi algorithm!!
-	 * "frame1_1C" is the input image.
-	 * "eig_image" and "temp_image" are just workspace for the algorithm.
-	 * The first ".01" specifies the minimum quality of the features (based on the eigenvalues).
-	 * The second ".01" specifies the minimum Euclidean distance between features.
-	 * "NULL" means use the entire input image.  You could point to a part of the image.
-	 * WHEN THE ALGORITHM RETURNS:
-	 * "frame1_features" will contain the feature points.
-	 * "number_of_features" will be set to a value <= 50 indicating the number of feature points found.
-	 */
-	cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .03, .1, NULL);
-
-
-	/* Pyramidal Lucas Kanade Optical Flow! */
-
-	/* This array will contain the locations of the points from frame 1 in frame 2. */
-	CvPoint2D32f frame2_features[50];
-	/* The i-th element of this array will be non-zero if and only if the i-th feature of
-	 * frame 1 was found in frame 2.
-	 */
-	char optical_flow_found_feature[50];
-	/* The i-th element of this array is the error in the optical flow for the i-th feature
-	 * of frame1 as found in frame 2.  If the i-th feature was not found (see the array above)
-	 * I think the i-th entry in this array is undefined.
-	 */
-	float optical_flow_feature_error[50];
-
-	/* This is the window size to use to avoid the aperture problem (see slide "Optical Flow: Overview"). */
-	CvSize optical_flow_window = cvSize(3,3);
-
-	/* This termination criteria tells the algorithm to stop when it has either done 20 iterations or when
-	 * epsilon is better than .3.  You can play with these parameters for speed vs. accuracy but these values
-	 * work pretty well in many situations.
-	 */
-	CvTermCriteria optical_flow_termination_criteria
-		= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 30, .3 );
-
-	/* This is some workspace for the algorithm.
-	 * (The algorithm actually carves the image into pyramids of different resolutions.)
-	 */
-	IplImage* pyramid1 = cvCreateImage( m_imageSize, IPL_DEPTH_8U, 1 );
-	IplImage* pyramid2 = cvCreateImage( m_imageSize, IPL_DEPTH_8U, 1 );
-
-	/* Actually run Pyramidal Lucas Kanade Optical Flow!!
-	 * "frame1_1C" is the first frame with the known features.
-	 * "frame2_1C" is the second frame where we want to find the first frame's features.
-	 * "pyramid1" and "pyramid2" are workspace for the algorithm.
-	 * "frame1_features" are the features from the first frame.
-	 * "frame2_features" is the (outputted) locations of those features in the second frame.
-	 * "number_of_features" is the number of features in the frame1_features array.
-	 * "optical_flow_window" is the size of the window to use to avoid the aperture problem.
-	 * "5" is the maximum number of pyramids to use.  0 would be just one level.
-	 * "optical_flow_found_feature" is as described above (non-zero iff feature found by the flow).
-	 * "optical_flow_feature_error" is as described above (error in the flow for this feature).
-	 * "optical_flow_termination_criteria" is as described above (how long the algorithm should look).
-	 * "0" means disable enhancements.  (For example, the second array isn't pre-initialized with guesses.)
-	 */
-	cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, 
-	 					   optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, 
-                           optical_flow_termination_criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
-		
-	cv::Mat mat_image1(image1);
-	cv::Mat mat_image2(image2);
-	cv::Mat mat_color1;
-	cv::Mat mat_color2;
-
-	cv::cvtColor(mat_image1, mat_color1, CV_GRAY2RGB);
-	cv::cvtColor(mat_image2, mat_color2, CV_GRAY2RGB);
-
-
-	//get median angle and length
-	vector<MyLine>corresPoints;
-	for(int i = 0; i < number_of_features; i++)
-	{
-		if ( optical_flow_found_feature[i] == 0 )	continue;
-
-        cv::Point2f a,b;
-		a.x = (int) frame1_features[i].x;
-		a.y = (int) frame1_features[i].y;
-		b.x = (int) frame2_features[i].x;
-		b.y = (int) frame2_features[i].y;
-
-		corresPoints.push_back(MyLine(a,b));
-	}
-	sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getLength() > b.getLength();});
-	double median_lenght = corresPoints[(int)(corresPoints.size()/2)].getLength();
-	
-	sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getAngle() > b.getAngle();});
-	double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
-
-
-    // Convert inliers into cv::Point2f
-	std::vector<cv::Point2f> points1, points2;
-	for(auto i = corresPoints.begin(); i < corresPoints.end(); ++i)
-	{
-		if (i->getAngle() < median_angle + 2 && i->getAngle() > median_angle - 2 ) {
-			if (i->getLength() < (median_lenght*3) && i->getLength() > 1.5 && i->getLength() > median_lenght*0.1) {
-				points1.push_back(i->getPointA());
-				points2.push_back(i->getPointB());
-			}
-		}
-	}
-
-    std::cout << "old: size  " << points1.size() << "  " << points2.size() << endl;
-	// Compute F matrix using RANSAC
-	if (points1.size()>10 && points2.size()>10){
-		std::cout << "fundamental: " << points1.size() << " " << points2.size() << " " << cv::Mat(points1).rows << std::endl; 
-		std::vector<uchar> inliers_fundamental(points1.size(),0);
-		cv::Mat fundemental = cv::findFundamentalMat(
-								cv::Mat(points1), cv::Mat(points2), // matching points
-								inliers_fundamental,      // match status (inlier ou outlier)  
-								CV_FM_RANSAC, // RANSAC method
-								1,            // distance to epipolar line
-								0.98);        // confidence probability
-
-		std::vector<cv::Vec3f> lines1; 
-		cv::computeCorrespondEpilines(cv::Mat(points1),1,fundemental,lines1);
-		for (vector<cv::Vec3f>::const_iterator it= lines1.begin();
-			 it!=lines1.end(); ++it) {
-
-				 cv::line(mat_image2,cv::Point(0,-(*it)[2]/(*it)[1]),
-					             cv::Point(mat_image2.cols,-((*it)[2]+(*it)[0]*mat_image2.cols)/(*it)[1]),
-								 cv::Scalar(255,255,255));
-		}
-		
-		std::vector<cv::Vec3f> lines2; 
-		cv::computeCorrespondEpilines(cv::Mat(points2),2,fundemental,lines2);
-		for (vector<cv::Vec3f>::const_iterator it= lines2.begin();
-			 it!=lines2.end(); ++it) {
-
-				 cv::line(mat_image1,cv::Point(0,-(*it)[2]/(*it)[1]),
-					             cv::Point(mat_image1.cols,-((*it)[2]+(*it)[0]*mat_image1.cols)/(*it)[1]),
-								 cv::Scalar(255,255,255));
-		}
-
-		// Draw the inlier points
-		std::vector<cv::Point2f> points1In, points2In;
-		std::vector<cv::Point2f>::const_iterator itPts= points1.begin();
-		std::vector<uchar>::const_iterator itIn= inliers_fundamental.begin();
-		while (itPts!=points1.end()) {
-
-			// draw a circle at each inlier location
-			if (*itIn) {
-	 			cv::circle(mat_image1,*itPts,3,cv::Scalar(255,255,255),2);
-				points1In.push_back(*itPts);
-			}
-			++itPts;
-			++itIn;
-		}
-
-		itPts= points2.begin();
-		itIn= inliers_fundamental.begin();
-		while (itPts!=points2.end()) {
-
-			// draw a circle at each inlier location
-			if (*itIn) {
-				cv::circle(mat_image2,*itPts,3,cv::Scalar(255,255,255),2);
-				points2In.push_back(*itPts);
-			}
-			++itPts;
-			++itIn;
-		}
-
-		// Display the images with points
-        cv::namedWindow("Right Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
-		cv::imshow("Right Image Epilines (RANSAC)",mat_image1);
-        cv::namedWindow("Left Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
-		cv::imshow("Left Image Epilines (RANSAC)",mat_image2);
-
-		
-		std::vector<uchar> inliers_homographie(points1.size(),0);
-		cv::findHomography(cv::Mat(points1In),cv::Mat(points2In),inliers_homographie,CV_RANSAC,1.);
-		// Draw the homography inlier points
-		itPts= points1In.begin();
-		itIn= inliers_homographie.begin();
-		cout << "Homography:  " << points1In.size() << " " << points2In.size() << endl;
-		while (itPts!=points1In.end()) {
-
-			// draw a circle at each inlier location
-			if (*itIn) 
-	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,255,0),2);
-	 		else {
-	 			cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
-	 		}
-			
-			++itPts;
-			++itIn;
-		}
-
-		itPts= points2In.begin();
-		itIn= inliers_homographie.begin();
-		while (itPts!=points2In.end()) {
-
-			// draw a circle at each inlier location
-			if (*itIn) 
-				cv::circle(mat_color2,*itPts,3,cv::Scalar(0,255,0),2);
-			else {
-	 			cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
-	 		}
-
-			++itPts;
-			++itIn;
-		}
-
-		if (inliers_homographie.size() > inliers_fundamental.size()){
-			cout << "skip frame because points are on one plane" << endl;
-		}
-
-	    // Display the images with points
-        cv::namedWindow("Right Image Homography (RANSAC)", cv::WINDOW_NORMAL);
-		cv::imshow("Right Image Homography (RANSAC)",mat_color1);
-        cv::namedWindow("Left Image Homography (RANSAC)", cv::WINDOW_NORMAL);
-		cv::imshow("Left Image Homography (RANSAC)",mat_color2);
-
-		string path = "data/image/epipoles/current"+(to_string(frame))+".png";
-		imwrite(path.c_str(), mat_image1);
-		cv::waitKey();
-
-		mat_image1.release();
-		mat_image2.release();
-		mat_color1.release();
-		mat_color2.release();
-
-	}
-}
-
-
-void feature_tracking(IplImage* image1, IplImage* image2, int frame) {
-		std::vector<double> lengths1;
-		std::vector<double> lengths2;
-		std::vector<double> directions;
-
-		IplImage* colorImage = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 3);
-
-		/* Shi and Tomasi Feature Tracking! */
-
-		/* Preparation: Allocate the necessary storage. */
-		IplImage* eig_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
-		IplImage* temp_image = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1 );
-
-		/* Preparation: This array will contain the features found in frame 1. */
-		CvPoint2D32f frame1_features[400];
-		/* Preparation: BEFORE the function call this variable is the array size
-		 * (or the maximum number of features to find).  AFTER the function call
-		 * this variable is the number of features actually found.
-		 */
-		int number_of_features;
-
-		/* I'm hardcoding this at 400.  But you should make this a #define so that you can
-		 * change the number of features you use for an accuracy/speed tradeoff analysis.
-		 */
-		number_of_features = 400;
-
-		/* Actually run the Shi and Tomasi algorithm!!
-		 * "frame1_1C" is the input image.
-		 * "eig_image" and "temp_image" are just workspace for the algorithm.
-		 * The first ".01" specifies the minimum quality of the features (based on the eigenvalues).
-		 * The second ".01" specifies the minimum Euclidean distance between features.
-		 * "NULL" means use the entire input image.  You could point to a part of the image.
-		 * WHEN THE ALGORITHM RETURNS:
-		 * "frame1_features" will contain the feature points.
-		 * "number_of_features" will be set to a value <= 400 indicating the number of feature points found.
-		 */
-		cvGoodFeaturesToTrack(image1, eig_image, temp_image, frame1_features, &number_of_features, .03, .1, NULL);
-
-
-		/* Pyramidal Lucas Kanade Optical Flow! */
-
-		/* This array will contain the locations of the points from frame 1 in frame 2. */
-		CvPoint2D32f frame2_features[400];
-		/* The i-th element of this array will be non-zero if and only if the i-th feature of
-		 * frame 1 was found in frame 2.
-		 */
-		char optical_flow_found_feature[400];
-		/* The i-th element of this array is the error in the optical flow for the i-th feature
-		 * of frame1 as found in frame 2.  If the i-th feature was not found (see the array above)
-		 * I think the i-th entry in this array is undefined.
-		 */
-		float optical_flow_feature_error[400];
-
-		/* This is the window size to use to avoid the aperture problem (see slide "Optical Flow: Overview"). */
-		CvSize optical_flow_window = cvSize(15,15);
-		
-		/* This termination criteria tells the algorithm to stop when it has either done 20 iterations or when
-		 * epsilon is better than .3.  You can play with these parameters for speed vs. accuracy but these values
-		 * work pretty well in many situations.
-		 */
-		CvTermCriteria optical_flow_termination_criteria
-			= cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 50, .9 );
-
-		/* This is some workspace for the algorithm.
-		 * (The algorithm actually carves the image into pyramids of different resolutions.)
-		 */
-		IplImage* pyramid1 = cvCreateImage( m_imageSize, IPL_DEPTH_8U, 1 );
-		IplImage* pyramid2 = cvCreateImage( m_imageSize, IPL_DEPTH_8U, 1 );
-
-		/* Actually run Pyramidal Lucas Kanade Optical Flow!!
-		 * "frame1_1C" is the first frame with the known features.
-		 * "frame2_1C" is the second frame where we want to find the first frame's features.
-		 * "pyramid1" and "pyramid2" are workspace for the algorithm.
-		 * "frame1_features" are the features from the first frame.
-		 * "frame2_features" is the (outputted) locations of those features in the second frame.
-		 * "number_of_features" is the number of features in the frame1_features array.
-		 * "optical_flow_window" is the size of the window to use to avoid the aperture problem.
-		 * "5" is the maximum number of pyramids to use.  0 would be just one level.
-		 * "optical_flow_found_feature" is as described above (non-zero iff feature found by the flow).
-		 * "optical_flow_feature_error" is as described above (error in the flow for this feature).
-		 * "optical_flow_termination_criteria" is as described above (how long the algorithm should look).
-		 * "0" means disable enhancements.  (For example, the second array isn't pre-initialized with guesses.)
-		 */
-		cvCalcOpticalFlowPyrLK(image1, image2, pyramid1, pyramid2, frame1_features, frame2_features, number_of_features, 
-							   optical_flow_window, 5, optical_flow_found_feature, optical_flow_feature_error, 
-                               optical_flow_termination_criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
-			
-
-		// get median of length and direction of all corresponding points
-		vector<MyLine>corresPoints;
-
-		for(int i = 0; i < number_of_features; i++)
-		{
-			if ( optical_flow_found_feature[i] == 0 )	continue;
-
-            cv::Point2f a,b;
-			a.x = (int) frame1_features[i].x;
-			a.y = (int) frame1_features[i].y;
-			b.x = (int) frame2_features[i].x;
-			b.y = (int) frame2_features[i].y;
-
-			corresPoints.push_back(MyLine(a,b));
-			
-			double direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
-			directions.push_back(direction);
-		}
-		double sum_direction = std::accumulate(directions.begin(), directions.end(), 0.0);
-		double mean_direction = sum_direction / directions.size();
-
-		sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getLength() > b.getLength();});
-		double median_lenght = corresPoints[(int)(corresPoints.size()/2)].getLength();
-		
-		sort(corresPoints.begin(), corresPoints.end(),[](MyLine a, MyLine b) -> bool { return a.getAngle() > b.getAngle();});
-		double median_angle = corresPoints[(int)(corresPoints.size()/2)].getAngle();
-
-		
-		for(int i = 0; i < number_of_features; i++)
-		{
-			if ( optical_flow_found_feature[i] == 0 )	continue;
-
-            cv::Point2f a,b;
-			a.x = (int) frame1_features[i].x;
-			a.y = (int) frame1_features[i].y;
-			b.x = (int) frame2_features[i].x;
-			b.y = (int) frame2_features[i].y;
-
-			double direction;		direction = atan2( (double) a.y - b.y, (double) b.x - b.x );
-			double length;	length = sqrt( square(a.y - b.y) + square(a.x - b.x) );
-
-			if (direction < mean_direction) {
-				lengths1.push_back(length);		
-			} else {
-				lengths2.push_back(length);		
-			}
-		}
-
-		double sum_length1 = std::accumulate(lengths1.begin(), lengths1.end(), 0.0);
-		double sum_length2 = std::accumulate(lengths2.begin(), lengths2.end(), 0.0);
-		double mean_length1 = sum_length1 / lengths1.size();
-		double mean_length2 = sum_length2 / lengths2.size();
-
-
-		//cout << "length1 : " << mean_length1 << "   ; length2  " << mean_length2 <<  "  : direction " << mean_direction << endl;
-
-
-		// convert grayscale to color image
-  		cvCvtColor(image1, colorImage, CV_GRAY2RGB);
-
-		/* For fun (and debugging :)), let's draw the flow field. */
-		for(int i = 0; i < number_of_features; i++)
-		{
-			/* If Pyramidal Lucas Kanade didn't really find the feature, skip it. */
-			if ( optical_flow_found_feature[i] == 0 )	continue;
-
-			int line_thickness;				line_thickness = 1;
-			
-			/* CV_RGB(red, green, blue) is the red, green, and blue components
-			 * of the color you want, each out of 255.
-			 */	
-			CvScalar line_color;			
-	
-			/* Let's make the flow field look nice with arrows. */
-
-			/* The arrows will be a bit too short for a nice visualization because of the high framerate
-			 * (ie: there's not much motion between the frames).  So let's lengthen them by a factor of 3.
-			 */
-            cv::Point2f p,q;
-			p.x = (int) frame1_features[i].x;
-			p.y = (int) frame1_features[i].y;
-			q.x = (int) frame2_features[i].x;
-			q.y = (int) frame2_features[i].y;
-
-			double angle;		angle = atan2( (double) p.y - q.y, (double) p.x - q.x );
-			double hypotenuse;	hypotenuse = sqrt( square(p.y - q.y) + square(p.x - q.x) );
-			
-			/* Here we lengthen the arrow by a factor of three. */
-			q.x = (int) (p.x - 3 * hypotenuse * cos(angle));
-			q.y = (int) (p.y - 3 * hypotenuse * sin(angle));
-
-			if (angle < median_angle + 2 && angle > median_angle - 2 ) {
-				if (hypotenuse < (median_lenght*3) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.1) {
-					drawLine(colorImage, p, q, angle, CV_RGB(255,0,0));
-				} else {
-					drawLine(colorImage, p, q, angle, CV_RGB(0,0,0));
-					//cout << "1 do not draw " << hypotenuse << " angle: " << angle << ";   mean length: " << median_lenght << " ; mean_direction: " << median_angle << endl;
-				}
-			} else {
-				//if (hypotenuse < (median_lenght*1.2) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.8) {
-				//	drawLine(colorImage, p, q, angle, CV_RGB(0,255,0));
-				//} else {
-					drawLine(colorImage, p, q, angle, CV_RGB(0,0,0));
-					//cout << "2 do not draw " << hypotenuse << " angle: " << angle << ";    mean length: " << median_lenght << " ; mean_direction: " << median_angle << endl;
-				//}
-			}
-		}
-		
-
-		/* Now display the image we drew on.  Recall that "Optical Flow" is the name of
-		 * the window we created above.
-		 */
-		cvShowImage("Optical Flow", colorImage);
-
-		// save image in every frame
-		string path = "data/image/vectors/current"+(to_string(frame))+".png";
-		cvSaveImage(path.c_str(), colorImage);
-
-		// clear all data
-		directions.clear();
-		lengths1.clear();
-		lengths2.clear();
-		corresPoints.clear();
-		cvReleaseImage(&eig_image);
-		cvReleaseImage(&temp_image);
-		cvReleaseImage(&pyramid1);
-		cvReleaseImage(&pyramid2);
-}
-#endif
-

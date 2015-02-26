@@ -1,4 +1,3 @@
-#include "bgapi2_genicam.hpp"
 #include <opencv2/opencv.hpp>
 
 #include "line/MyLine.h"
@@ -23,36 +22,6 @@ inline static double square(int a)
 }
 
 char key;
-
-int 					m_camWidth;
-int 					m_camHeight;
-
-CvSize 					m_imageSize(cvSize(1384, 1036));
-IplImage* 				m_frame1(cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1));
-
-BGAPI2::SystemList* 	m_systemList(NULL);
-BGAPI2::System* 		m_systemMem(NULL);
-BGAPI2::String 			m_systemID("");
-
-BGAPI2::InterfaceList*	m_interfaceList(NULL);
-BGAPI2::Interface* 		m_interface(NULL);
-BGAPI2::String			m_interfaceID("");
-
-BGAPI2::DeviceList*		m_deviceList(NULL);
-BGAPI2::Device*			m_device(NULL);
-BGAPI2::String			m_deviceID("");
-
-BGAPI2::DataStreamList*	m_datastreamList(NULL);
-BGAPI2::DataStream*		m_datastream(NULL);
-BGAPI2::String			m_datastreamID("");
-
-BGAPI2::BufferList*		m_bufferList(NULL);
-BGAPI2::Buffer*			m_buffer(NULL);
-
-
-// callbacks
-void init_camera();
-void open_stream(IplImage* ref);
 
 void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 void drawLine(cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
@@ -84,34 +53,10 @@ void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector
 
 
 int main() {
-
-    // initialize baumer camera
-    //init_camera();
-
-    // init images
-    //IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
-    //IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
-
-    /*
-    while (true) {
-        open_stream(image1);
-        cvShowImage("Optical Flow", image1);
-        key = cvWaitKey(10);
-    }
-    */
-
     int frame=1;
 
 	while(true)
 	{
-        //open_stream(image1);
-        //key = cvWaitKey(1);
-        //open_stream(image2);
-
-        //convert to Mat
-        //cv::Mat mat_image1(image1);
-        //cv::Mat mat_image2(image2);
-
         //stereo1
         cv::Mat mat_image11 = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
         cv::Mat mat_image12 = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
@@ -501,143 +446,4 @@ void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string window
         cv::circle(colorImg,i,3,color,1);
     }
     cv::imshow(windowName, colorImg);
-}
-
-
-
-
-void init_camera() {
-    // SYSTEM
-    try {
-        m_systemList = BGAPI2::SystemList::GetInstance();
-        m_systemList->Refresh();
-        std::cout << "Detected systems: " << m_systemList->size() << std::endl;
-
-        m_systemList->begin()->second->Open();
-        m_systemID = m_systemList->begin()->first;
-        if(m_systemID == "") {
-            std::cout << "Error: no system found" << std::endl;
-        }
-        else {
-            m_systemMem = (*m_systemList)[m_systemID];
-            std::cout << "SystemID:  " << m_systemID << std::endl;
-        }
-
-        //INTERFACE
-        m_interfaceList = m_systemMem->GetInterfaces();
-        m_interfaceList->Refresh(100);
-        std::cout << "Detected interfaces: " << m_interfaceList->size() << std::endl;
-
-        for (BGAPI2::InterfaceList::iterator interfaceIter = m_interfaceList->begin(); interfaceIter != m_interfaceList->end(); interfaceIter++) {
-            interfaceIter->second->Open();
-            m_deviceList = interfaceIter->second->GetDevices();
-            m_deviceList->Refresh(100);
-
-            if (m_deviceList->size() > 0) {
-                std::cout << "Detected Devices: " << m_deviceList->size() << std::endl;
-                m_interfaceID = interfaceIter->first;
-                m_interface = interfaceIter->second;
-                break;
-            }
-            else {
-                interfaceIter->second->Close();
-            }
-        }
-
-        // DEVICE
-        m_device  = m_deviceList->begin()->second;
-        m_device->Open();
-        m_deviceID = m_deviceList->begin()->first;
-        if(m_deviceID == "") {
-            std::cout << "Error: no camera found" << std::endl;
-        }
-        else {
-            m_device = (*m_deviceList)[m_deviceID];
-            std::cout << "DeviceID: " << m_deviceID << std::endl;
-        }
-
-        m_device->GetRemoteNode("PixelFormat")->SetString("Mono8");
-        m_device->GetRemoteNode("Gain")->SetDouble(10.00);
-        //m_device->GetRemoteNode("TriggerMode")->SetString("On");
-        //m_device->GetRemoteNode("TriggerSource")->SetValue("Line0");
-        //m_device->GetRemoteNode("ExposureTime")->SetDouble(13000);
-
-        //Set cam resolution to halve reolution [696, 520]
-        //std::cout << "1 " << m_device->GetRemoteNode("TriggerSource")->GetDescription()  << std::endl;
-        //std::cout << "2 " << m_device->GetRemoteNode("TriggerSource")->GetInterface()  << std::endl;
-        //m_device->GetRemoteNode("BinningHorizontal")->SetInt( 2);
-        //m_device->GetRemoteNode("BinningVertical")->SetInt( 2);
-
-
-        // GET CAM RESOLUTION
-        m_camWidth = m_device->GetRemoteNode("Width")->GetInt();
-        m_camHeight = m_device->GetRemoteNode("Height")->GetInt();
-        std::cout << "Cam resolution : " << m_camWidth << "  " <<  m_camHeight << std::endl;
-
-
-        // DATASTREAM
-        m_datastreamList = m_device->GetDataStreams();
-        m_datastreamList->Refresh();
-        std::cout << "Detected datastreams: " << m_datastreamList->size() << std::endl;
-
-        m_datastreamList->begin()->second->Open();
-        m_datastreamID = m_datastreamList->begin()->first;
-        if(m_datastreamID == "") {
-            std::cout << "Error: no datastream found" << std::endl;
-        }
-        else{
-            m_datastream = (*m_datastreamList)[m_datastreamID];
-            std::cout << "DatastreamID: " << m_datastreamID << std::endl;
-        }
-
-        // BUFFER
-        m_bufferList = m_datastream->GetBufferList();
-        for(int i=0; i<(4); i++) { // 4 buffers using internal buffers
-             m_buffer = new BGAPI2::Buffer();
-             m_bufferList->Add(m_buffer);
-        }
-        std::cout << "Announced buffers: " << m_bufferList->size() << std::endl;
-        for (BGAPI2::BufferList::iterator buf = m_bufferList->begin(); buf != m_bufferList->end(); buf++) {
-             buf->second->QueueBuffer();
-        }
-        std::cout << "Queued buffers: " << m_bufferList->GetQueuedCount() << std::endl;
-
-        // START DATASTREAM AND FILL BUFFER
-        m_datastream->StartAcquisitionContinuous();
-        m_device->GetRemoteNode("AcquisitionStart")->Execute();
-
-    } catch (BGAPI2::Exceptions::IException& ex) {
-        std::cerr << ex.GetErrorDescription() << std::endl;
-    }
-
-}
-
-void open_stream(IplImage* ref) {
-    char* img = nullptr;
-    try {
-        BGAPI2::Buffer* m_bufferFilled = NULL;
-        m_bufferFilled = m_datastream->GetFilledBuffer(1000);
-        if(m_bufferFilled == NULL){
-            std::cout << "Error: buffer timeout" << std::endl;
-        }
-
-        img = (char*)m_bufferFilled->GetMemPtr();
-        m_bufferFilled->QueueBuffer();
-
-        IplImage* frameTemp = cvCreateImageHeader(cvSize(m_camWidth, m_camHeight), IPL_DEPTH_8U, 1);
-        cvSetData(frameTemp, img, m_camWidth);
-
-        cvCopy(frameTemp, ref, NULL);
-        cvReleaseImageHeader(&frameTemp);
-
-        cvFlip(ref, ref, -1);
-
-        if (char(key) == 32) { // Space saves the current image
-            cvSaveImage("current.png", ref);
-        }
-
-    } catch (BGAPI2::Exceptions::IException& ex) {
-        std::cerr << ex.GetErrorDescription() << std::endl;
-    }
-
 }

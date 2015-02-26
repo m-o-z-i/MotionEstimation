@@ -53,16 +53,17 @@ BGAPI2::Buffer*			m_buffer(NULL);
 // callbacks
 void init_camera();
 void open_stream(IplImage* ref);
-void feature_tracking(IplImage* image1, IplImage* image2, int frame);
-void epipole_tracking(IplImage* image1, IplImage* image2, int frame);
-void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
-void drawLine(cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 
-std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat image, int number = 50, float qualityLevel = .03, float minDistance = 0.1);
-pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat prev_image, cv::Mat next_image, vector<cv::Point2f> frame1_features);
-void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> points1, vector<cv::Point2f> points2);
+void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
+void drawLine(cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
+void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color = CV_RGB(0,0,0));
+
+
+std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int number = 50, float minQualityLevel = .03, float minDistance = 0.1);
+pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
+void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
 void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f> > features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, const CvScalar& color, int id);
+void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
 
 //TODO: calcOpticalFlowFarneback
 /* STEP BY STEP:
@@ -85,19 +86,19 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
 int main() {
 
     // initialize baumer camera
-	init_camera();
+    //init_camera();
 
     // init images
-	IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
-	IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
+    //IplImage* image1 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
+    //IplImage* image2 = cvCreateImage(m_imageSize, IPL_DEPTH_8U, 1);
 
-	/*	
-	while (true) {
-		open_stream(image1);
-		cvShowImage("Optical Flow", image1);
-		key = cvWaitKey(10);
-	}
-	*/
+    /*
+    while (true) {
+        open_stream(image1);
+        cvShowImage("Optical Flow", image1);
+        key = cvWaitKey(10);
+    }
+    */
 
     int frame=1;
 
@@ -107,7 +108,7 @@ int main() {
         //key = cvWaitKey(1);
         //open_stream(image2);
 
-		//convert to Mat
+        //convert to Mat
         //cv::Mat mat_image1(image1);
         //cv::Mat mat_image2(image2);
 
@@ -119,41 +120,70 @@ int main() {
         cv::Mat mat_image21 = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
         cv::Mat mat_image22 = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
 
-        cv::imshow("11", mat_image11);
-        cv::imshow("12", mat_image12);
-        cv::imshow("21", mat_image21);
-        cv::imshow("22", mat_image22);
+        cv::namedWindow("OpticalFlow", cv::WINDOW_AUTOSIZE);
 
-        if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)                              // Check for invalid input
+        // Check for invalid input
+        if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)
         {
             cout <<  "Could not open or find the image: "  << std::endl ;
             break;
         }
+        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 20,0.05,1);
+        cv::Mat color11;
+        cv::cvtColor(mat_image11, color11, CV_GRAY2RGB);
 
-        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11);
+        for (auto i : features1) {
+            // draw a circle at each inlier location
+            cv::circle(color11,i,3,cv::Scalar(255,0,0),1);
+        }
+        cv::imshow("1_left_features", color11);
+
+//        vector<cv::Point2f> features2 = getStrongFeaturePoints(mat_image21, 20,0.1,20);
+//        cv::Mat color21;
+//        cv::cvtColor(mat_image21, color21, CV_GRAY2RGB);
+
+//        for (auto i : features2) {
+//            // draw a circle at each inlier location
+//            cv::circle(color21,i,3,cv::Scalar(0,0,255),1);
+//        }
+//        cv::imshow("2_left_features", color21);
+
+
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image12, features1);
+        drawPoints(mat_image12, corresPoints1.second, "hallo welt", cv::Scalar(0,255,255));
+
+
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
+        drawPoints(mat_image12, corresPoints2.second, "hallo welt", cv::Scalar(0,255,255));
+
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
+        drawPoints(mat_image12, corresPoints3.second, "hallo welt", cv::Scalar(0,255,255));
 
-        drawCorresPoints(mat_image11,corresPoints1.first, corresPoints1.second, cvScalar(255,0,0),1);
-        drawCorresPoints(mat_image11,corresPoints2.first, corresPoints2.second, cvScalar(0,255,0),2);
-        drawCorresPoints(mat_image11,corresPoints3.first, corresPoints3.second, cvScalar(0,0,255),3);
 
-        //vector<cv::Point2f> inliers1, inliers2;
-        //getInliers(corresPoints, &inliers1, &inliers2);
+        vector<cv::Point2f> inliers1, inliers2;
+        getInliers(corresPoints1, &inliers1, &inliers2);
+
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> inliers = make_pair(inliers1,inliers2);
+        //drawCorresPoints(mat_image11,inliers1, inliers2, cvScalar(255,0,0));
+
+
+        //drawCorresPoints(mat_image11,corresPoints2.first, corresPoints2.second, cvScalar(0,255,0),2);
+        //drawCorresPoints(mat_image11,corresPoints3.first, corresPoints3.second, cvScalar(0,0,255),3);
+
         //std::cout << "main:   " << inliers1.size() << "  " << inliers2.size() << std::endl;
 
-        //drawEpipolarLines(mat_image1, mat_image2, inliers1, inliers2);
+        drawEpipolarLines(mat_image11, mat_image12, inliers1, inliers2);
 
 
         ++frame;
+        cout << frame << endl;
         cvWaitKey();
 	}
 
 	return 0;
 }
 
-vector<cv::Point2f> getStrongFeaturePoints(cv::Mat image, int number, float qualityLevel, float minDistance) {
+vector<cv::Point2f> getStrongFeaturePoints(const cv::Mat& image, int number, float minQualityLevel, float minDistance) {
     /* Shi and Tomasi Feature Tracking! */
 
     /* Preparation: This array will contain the features found in image1. */
@@ -172,12 +202,11 @@ vector<cv::Point2f> getStrongFeaturePoints(cv::Mat image, int number, float qual
      * RETURNS:
      * "image_features" will contain the feature points.
      */
-    cv::goodFeaturesToTrack(image, image_features, number_of_features, qualityLevel, minDistance);
-
+    cv::goodFeaturesToTrack(image, image_features, number_of_features, minQualityLevel, minDistance);
     return image_features;
 }
 
-pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(cv::Mat prev_image, cv::Mat next_image, vector<cv::Point2f> frame1_features){
+pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat& prev_image, const cv::Mat& next_image, vector<cv::Point2f> frame1_features){
     /* Pyramidal Lucas Kanade Optical Flow! */
 
     /* This array will contain the locations of the points from frame 1 in frame 2. */
@@ -195,20 +224,20 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(cv::Mat prev_
     vector<float> optical_flow_feature_error;
 
     /* This is the window size to use to avoid the aperture problem (see slide "Optical Flow: Overview"). */
-    CvSize optical_flow_window = cvSize(3,3);
+    CvSize optical_flow_window = cvSize(15,15);
 
     /* 0-based maximal pyramid level number; if set to 0, pyramids are not used (single level),
      * if set to 1, two levels are used, and so on; if pyramids are passed to input then algorithm
      * will use as many levels as pyramids have but no more than maxLevel.
      * */
-    int maxLevel = 5;
+    int maxLevel = 10;
 
     /* This termination criteria tells the algorithm to stop when it has either done 20 iterations or when
      * epsilon is better than .3.  You can play with these parameters for speed vs. accuracy but these values
      * work pretty well in many situations.
      */
     cv::TermCriteria optical_flow_termination_criteria
-        = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, .3 );
+        = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, .3 );
 
     /* Actually run Pyramidal Lucas Kanade Optical Flow!!
      * "prev_image" is the first frame with the known features. pyramid constructed by buildOpticalFlowPyramid()
@@ -239,6 +268,7 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(cv::Mat prev_
         ++iter_f1;
         ++iter_f2;
     }
+
 
     return make_pair(frame1_features, frame2_features);
 }
@@ -275,7 +305,7 @@ void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f>> features, vector
     }
 }
 
-void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> points1, vector<cv::Point2f> points2) {
+void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2) {
     cv::Mat mat_color1;
     cv::Mat mat_color2;
 
@@ -289,7 +319,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> point
         cv::Mat fundemental = cv::findFundamentalMat(
                               cv::Mat(points1), cv::Mat(points2),   // matching points
                               inliers_fundamental,                  // match status (inlier ou outlier)
-                              CV_FM_LMEDS,                          // RANSAC method
+                              cv::FM_RANSAC,                          // RANSAC method
                               1,                                    // distance to epipolar line
                               0.98);                                // confidence probability
 
@@ -321,7 +351,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> point
 
             // draw a circle at each inlier location
             if (*itIn ) {
-                cv::circle(frame1,*itPts,3,cv::Scalar(255,255,255),2);
+                cv::circle(frame1,*itPts,3,cv::Scalar(0,255,0),2);
                 points1In.push_back(*itPts);
             }
             ++itPts;
@@ -334,7 +364,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> point
 
             // draw a circle at each inlier location
             if (*itIn) {
-                cv::circle(frame2,*itPts,3,cv::Scalar(255,255,255),2);
+                cv::circle(frame2,*itPts,3,cv::Scalar(0,255,0),2);
                 points2In.push_back(*itPts);
             }
             ++itPts;
@@ -399,60 +429,31 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> point
     }
 }
 
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, CvScalar const& color, int id) {
+void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color) {
     // convert grayscale to color image
     cv::Mat color_image;
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
 
-    vector<double> directions, lengths;
-
-    for (unsigned i = 0; i < inliers1.size(); ++i){
-        double direction = atan2( (double) inliers1[i].y - inliers2[i].y, (double) inliers2[i].x - inliers2[i].x );
-        directions.push_back(direction);
-
-        double length = sqrt( square(inliers1[i].y - inliers2[i].y) + square(inliers1[i].x - inliers2[i].x) );
-        lengths.push_back(length);
-    }
-
-    sort(directions.begin(), directions.end());
-    double median_angle = directions[(int)(directions.size()/2)];
-
-    sort(lengths.begin(),lengths.end());
-    double median_lenght = lengths[(int)(lengths.size()/2)];
-
-
-    for(int i = 0; i < inliers1.size(); i++)
+    for(unsigned int i = 0; i < inliers1.size(); i++)
     {
         double angle;		angle = atan2( (double) inliers1[i].y - inliers2[i].y, (double) inliers1[i].x - inliers2[i].x );
         double hypotenuse;	hypotenuse = sqrt( square(inliers1[i].y - inliers2[i].y) + square(inliers1[i].x - inliers2[i].x) );
 
         /* Here we lengthen the arrow by a factor of three. */
-        inliers2[i].x = (int) (inliers1[i].x - 3 * hypotenuse * cos(angle));
-        inliers2[i].y = (int) (inliers1[i].y - 3 * hypotenuse * sin(angle));
+        inliers2[i].x = (int) (inliers1[i].x - hypotenuse * cos(angle));
+        inliers2[i].y = (int) (inliers1[i].y - hypotenuse * sin(angle));
 
-        if (angle < median_angle + 2 && angle > median_angle - 2 ) {
-            if (hypotenuse < (median_lenght*3) && hypotenuse > 1.5 && hypotenuse > median_lenght*0.1) {
-                drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color.val[0], color.val[1], color.val[2]));
-            } else {
-                drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(0,0,0));
-            }
-        } else {
-            drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(0,0,0));
-        }
+        drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
     }
 
 
     /* Now display the image we drew on.  Recall that "Optical Flow" is the name of
      * the window we created above.
      */
-    cv::imshow("Optical Flow"+to_string(id), color_image);
-
-    // save image in every frame
-    //string path = "data/image/vectors/current"+(to_string(frame))+".png";
-    //cvSaveImage(path.c_str(), colorImage);
+    cv::imshow("OpticalFlow", color_image);
 }
 
-void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color, int line_thickness ) {
+void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
     /* Now we draw the main line of the arrow. */
     /* "frame1" is the frame to draw on.
      * "p" is the point where the line begins.
@@ -472,7 +473,7 @@ void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar 
     cv::line( ref, p, q, color, line_thickness, CV_AA, 0 );
 }
 
-void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, CvScalar const& color, int line_thickness ) {
+void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
     /* Now we draw the main line of the arrow. */
     /* "frame1" is the frame to draw on.
      * "p" is the point where the line begins.
@@ -491,12 +492,22 @@ void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, CvScala
     p.y = (int) (q.y + 9 * sin(angle - pi / 4));
     cvLine( ref, p, q, color, line_thickness, CV_AA, 0 );
 }
+
+void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color) {
+    cv::Mat colorImg;
+    cv::cvtColor(image, colorImg, CV_GRAY2RGB);
+    for (auto i : points) {
+        // draw a circle at each inlier location
+        cv::circle(colorImg,i,3,color,1);
+    }
+    cv::imshow(windowName, colorImg);
+}
+
+
+
 
 void init_camera() {
     // SYSTEM
-
-
-
     try {
         m_systemList = BGAPI2::SystemList::GetInstance();
         m_systemList->Refresh();

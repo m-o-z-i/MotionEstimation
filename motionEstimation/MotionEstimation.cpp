@@ -11,6 +11,11 @@
 #include <string.h>
 
 #include <opencv2/core/core.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+//#include "opencv2/nonfree/nonfree.hpp"
 
 using namespace std;
 
@@ -32,10 +37,13 @@ std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int numbe
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
 void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
+void drawOptFlowMap (const cv::Mat& flow, cv::Mat& cflowmap, int step, const cv::Scalar& color);
 
 
 void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
 void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2);
+
+
 
 //TODO: calcOpticalFlowFarneback
 /* STEP BY STEP:
@@ -52,14 +60,17 @@ void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2
  * 10. swap 2d points of frame 1 and frame 2
  * 11. try to add some new feature points (until defined numer of necessary points are reached)
  * 12. continue with step 4
+ *
+ *
+ *
+ * surf detection need nonfree lib... can't use it in the vr-lab
  */
-
 
 int main() {
     int frame=1;
 
 	while(true)
-	{
+    {
         //stereo1
         cv::Mat mat_image11 = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
         cv::Mat mat_image12 = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
@@ -77,12 +88,12 @@ int main() {
             break;
         }
 
-        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 20,0.05,1);
+        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 150,0.01,5);
         drawPoints(mat_image11, features1, "1_left_features", cv::Scalar(0,0,0));
 
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image12, features1);
-        drawPoints(mat_image12, corresPoints1.second, "inliers by mean in Frame12", cv::Scalar(0,255,255));
-        drawPoints(mat_image12, corresPoints1.second, "inliers by fundamental in Frame12", cv::Scalar(0,255,255));
+        drawPoints(mat_image12, corresPoints1.second, "corres points in Frame12", cv::Scalar(0,0,0));
+        std::cout << "Frame: "<< frame << " found " << features1.size() << " features and " << corresPoints1.first.size() << "  corres Points " << std::endl;
 
         //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
         //drawPoints(mat_image12, corresPoints2.second, "corresPoints in Frame21", cv::Scalar(0,255,255));
@@ -102,12 +113,37 @@ int main() {
         std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
         drawPoints(mat_image12, inliersF2, "inliers by fundamental in Frame12", cv::Scalar(255,255,0));
 
+        // Motion Estimation
+        // Get Matrix K
+        // calculate EssentialMatrix
+        // for bundle adjustment use SSBA
+        // or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
+        // recover Pose (need newer version of calib3d)
+
+
+        cv::Mat flow, cflow;
+        cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+        cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
+        drawOptFlowMap(flow, cflow, 32, 50, CV_RGB(0, 255, 0));
+        cv::imshow("optical Flow", cflow);
+
 
         ++frame;
-        cout << "Frame:  " << frame << endl;
         cvWaitKey();
 	}
 	return 0;
+}
+
+void drawOptFlowMap (const cv::Mat& flow, cv::Mat& cflowmap, int step, const cv::Scalar& color) {
+    for(int y = 0; y < cflowmap.rows; y += step) {
+        for(int x = 0; x < cflowmap.cols; x += step)
+        {
+            const cv::Point2f& fxy = flow.at<cv::Point2f>(y, x);
+            cv::line(cflowmap, cv::Point(x,y), cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)),
+                 color);
+            cv::circle(cflowmap, cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), 1, color, -1);
+        }
+    }
 }
 
 vector<cv::Point2f> getStrongFeaturePoints(const cv::Mat& image, int number, float minQualityLevel, float minDistance) {
@@ -232,7 +268,6 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     }
 }
 
-
 void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2) {
     // Compute F matrix using RANSAC
     if(points.first.size() != points.second.size()){
@@ -256,8 +291,6 @@ void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2
         }
     }
 }
-
-
 
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2) {
     cv::Mat mat_color1;

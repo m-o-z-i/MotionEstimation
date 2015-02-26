@@ -31,8 +31,11 @@ void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string window
 std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int number = 50, float minQualityLevel = .03, float minDistance = 0.1);
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
-void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f> > features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
 void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
+
+
+void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
+void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2);
 
 //TODO: calcOpticalFlowFarneback
 /* STEP BY STEP:
@@ -65,7 +68,7 @@ int main() {
         cv::Mat mat_image21 = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
         cv::Mat mat_image22 = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
 
-        cv::namedWindow("OpticalFlow", cv::WINDOW_AUTOSIZE);
+        //cv::namedWindow("OpticalFlow", cv::WINDOW_AUTOSIZE);
 
         // Check for invalid input
         if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)
@@ -73,58 +76,37 @@ int main() {
             cout <<  "Could not open or find the image: "  << std::endl ;
             break;
         }
+
         vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 20,0.05,1);
-        cv::Mat color11;
-        cv::cvtColor(mat_image11, color11, CV_GRAY2RGB);
-
-        for (auto i : features1) {
-            // draw a circle at each inlier location
-            cv::circle(color11,i,3,cv::Scalar(255,0,0),1);
-        }
-        cv::imshow("1_left_features", color11);
-
-//        vector<cv::Point2f> features2 = getStrongFeaturePoints(mat_image21, 20,0.1,20);
-//        cv::Mat color21;
-//        cv::cvtColor(mat_image21, color21, CV_GRAY2RGB);
-
-//        for (auto i : features2) {
-//            // draw a circle at each inlier location
-//            cv::circle(color21,i,3,cv::Scalar(0,0,255),1);
-//        }
-//        cv::imshow("2_left_features", color21);
-
+        drawPoints(mat_image11, features1, "1_left_features", cv::Scalar(0,0,0));
 
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image12, features1);
-        drawPoints(mat_image12, corresPoints1.second, "hallo welt", cv::Scalar(0,255,255));
+        drawPoints(mat_image12, corresPoints1.second, "inliers by mean in Frame12", cv::Scalar(0,255,255));
+        drawPoints(mat_image12, corresPoints1.second, "inliers by fundamental in Frame12", cv::Scalar(0,255,255));
 
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
+        //drawPoints(mat_image12, corresPoints2.second, "corresPoints in Frame21", cv::Scalar(0,255,255));
 
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
-        drawPoints(mat_image12, corresPoints2.second, "hallo welt", cv::Scalar(0,255,255));
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
+        //drawPoints(mat_image12, corresPoints3.second, "corresPoints in Frame22", cv::Scalar(0,255,255));
 
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
-        drawPoints(mat_image12, corresPoints3.second, "hallo welt", cv::Scalar(0,255,255));
+        vector<cv::Point2f> inliersM1, inliersM2;
+        getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
+        std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
+        drawPoints(mat_image12, inliersM2, "inliers by mean in Frame12", cv::Scalar(0,255,0));
 
+        //drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
 
-        vector<cv::Point2f> inliers1, inliers2;
-        getInliers(corresPoints1, &inliers1, &inliers2);
-
-        //pair<vector<cv::Point2f>, vector<cv::Point2f>> inliers = make_pair(inliers1,inliers2);
-        //drawCorresPoints(mat_image11,inliers1, inliers2, cvScalar(255,0,0));
-
-
-        //drawCorresPoints(mat_image11,corresPoints2.first, corresPoints2.second, cvScalar(0,255,0),2);
-        //drawCorresPoints(mat_image11,corresPoints3.first, corresPoints3.second, cvScalar(0,0,255),3);
-
-        //std::cout << "main:   " << inliers1.size() << "  " << inliers2.size() << std::endl;
-
-        drawEpipolarLines(mat_image11, mat_image12, inliers1, inliers2);
+        vector<cv::Point2f> inliersF1, inliersF2;
+        getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2);
+        std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
+        drawPoints(mat_image12, inliersF2, "inliers by fundamental in Frame12", cv::Scalar(255,255,0));
 
 
         ++frame;
-        cout << frame << endl;
+        cout << "Frame:  " << frame << endl;
         cvWaitKey();
 	}
-
 	return 0;
 }
 
@@ -218,7 +200,7 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat
     return make_pair(frame1_features, frame2_features);
 }
 
-void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f>> features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
+void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
     vector<double> directions;
     vector<double> lengths;
 
@@ -249,6 +231,33 @@ void getInliers (pair<vector<cv::Point2f>, vector<cv::Point2f>> features, vector
         }
     }
 }
+
+
+void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2) {
+    // Compute F matrix using RANSAC
+    if(points.first.size() != points.second.size()){
+        return;
+    }
+    std::vector<uchar> inliers_fundamental(points.first.size(),0);
+    cv::Mat fundemental = cv::findFundamentalMat(
+                          cv::Mat(points.first), cv::Mat(points.second),   // matching points
+                          inliers_fundamental,                             // match status (inlier ou outlier)
+                          cv::FM_RANSAC,                                   // RANSAC method
+                          1,                                               // distance to epipolar line
+                          0.98);                                           // confidence probability
+
+    //get Inlier
+    std::vector<uchar>::const_iterator itIn = inliers_fundamental.begin();
+    for(unsigned i = 0; i<points.first.size(); ++i){
+        // draw a circle at each inlier location
+        if (inliers_fundamental[i] == 1) {
+            inliers1->push_back(points.first[i]);
+            inliers2->push_back(points.second[i]);
+        }
+    }
+}
+
+
 
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2) {
     cv::Mat mat_color1;

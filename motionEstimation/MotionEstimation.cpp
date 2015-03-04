@@ -30,15 +30,16 @@ char key;
 
 void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 void drawLine(cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
-void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color = CV_RGB(0,0,0));
+void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color = CV_RGB(0,0,0));
 
+void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
+void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
+
+void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
+void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar& color);
 
 std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int number = 50, float minQualityLevel = .03, float minDistance = 0.1);
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
-void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
-void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
-void drawOptFlowMap (const cv::Mat& flow, cv::Mat& cflowmap, int step, const cv::Scalar& color);
-
 
 void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
 void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2);
@@ -68,7 +69,6 @@ void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2
 
 int main() {
     int frame=1;
-
 	while(true)
     {
         //stereo1
@@ -85,14 +85,15 @@ int main() {
         if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)
         {
             cout <<  "Could not open or find the image: "  << std::endl ;
-            break;
+            frame=1;
+            continue;
         }
 
         vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 150,0.01,5);
         drawPoints(mat_image11, features1, "1_left_features", cv::Scalar(0,0,0));
 
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image12, features1);
-        drawPoints(mat_image12, corresPoints1.second, "corres points in Frame12", cv::Scalar(0,0,0));
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image21, features1);
+        //drawPoints(mat_image12, corresPoints1.second, "1_corres points in right image", cv::Scalar(0,0,0));
         std::cout << "Frame: "<< frame << " found " << features1.size() << " features and " << corresPoints1.first.size() << "  corres Points " << std::endl;
 
         //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
@@ -102,21 +103,21 @@ int main() {
         //drawPoints(mat_image12, corresPoints3.second, "corresPoints in Frame22", cv::Scalar(0,255,255));
 
         vector<cv::Point2f> inliersM1, inliersM2;
-        getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
+        //getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
         std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
-        drawPoints(mat_image12, inliersM2, "inliers by mean in Frame12", cv::Scalar(0,255,0));
+        //drawPoints(mat_image12, inliersM2, "1_inliers by mean in right image", cv::Scalar(0,255,0));
 
-        drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
+        //drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
+
 
         vector<cv::Point2f> inliersF1, inliersF2;
         getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2);
         std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
-        drawPoints(mat_image12, inliersF2, "inliers by fundamental in Frame12", cv::Scalar(255,255,0));
+        //drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
 
+        drawCorresPoints(mat_image11, inliersF1, inliersF2, cv::Scalar(255,0,0) );
 
-        drawCorresPoints(mat_image11, inliersM1, inliersM1, cv::Scalar(255,0,0) );
-
-                // Motion Estimation
+        // Motion Estimation
         // Get Matrix K
         // calculate EssentialMatrix
         // for bundle adjustment use SSBA
@@ -124,20 +125,21 @@ int main() {
         // recover Pose (need newer version of calib3d)
 
 
-        cv::Mat flow, cflow;
-        cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
-        cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
-        drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
-        cv::imshow("optical Flow", cflow);
+
+        //cv::Mat flow, cflow;
+        //cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+        //cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
+        //drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
+        //cv::imshow("optical flow field", cflow);
 
 
         ++frame;
-        cvWaitKey();
+        cvWaitKey(1);
 	}
 	return 0;
 }
 
-void drawOptFlowMap (const cv::Mat& flow, cv::Mat& cflowmap, int step, const cv::Scalar& color) {
+void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar& color) {
     for(int y = 0; y < cflowmap.rows; y += step) {
         for(int x = 0; x < cflowmap.cols; x += step)
         {
@@ -295,6 +297,61 @@ void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2
     }
 }
 
+void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2){
+    cv::Mat mat_color1;
+    cv::Mat mat_color2;
+
+    cv::cvtColor(frame1, mat_color1, CV_GRAY2RGB);
+    cv::cvtColor(frame2, mat_color2, CV_GRAY2RGB);
+
+    std::vector<uchar> inliers_homographie(points1.size(),0);
+    cv::findHomography(cv::Mat(points1),cv::Mat(points2),inliers_homographie,CV_RANSAC,1.);
+    // Draw the homography inlier points
+
+    std::vector<cv::Point2f>::const_iterator itPts= points1.begin();
+    std::vector<uchar>::const_iterator itIn= inliers_homographie.begin();
+
+    cout << "Homography:  " << points1.size() << " " << points1.size() << endl;
+    while (itPts!=points1.end()){
+
+        // draw a circle at each inlier location
+        if (*itIn)
+            cv::circle(mat_color1,*itPts,3,cv::Scalar(0,255,0),2);
+        else {
+            cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
+        }
+
+        ++itPts;
+        ++itIn;
+    }
+
+    itPts= points2.begin();
+    itIn= inliers_homographie.begin();
+    while (itPts!=points2.end()) {
+
+        // draw a circle at each inlier location
+        if (*itIn)
+            cv::circle(mat_color2,*itPts,3,cv::Scalar(0,255,0),2);
+        else {
+            cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
+        }
+
+        ++itPts;
+        ++itIn;
+    }
+
+    // Display the images with points
+    cv::namedWindow("Right Image Homography (RANSAC)", cv::WINDOW_NORMAL);
+    cv::imshow("Right Image Homography (RANSAC)",mat_color1);
+    cv::namedWindow("Left Image Homography (RANSAC)", cv::WINDOW_NORMAL);
+    cv::imshow("Left Image Homography (RANSAC)",mat_color2);
+
+    // SAVE IMAGEs
+    //string path = "data/image/epipoles/current"+(to_string(frame))+".png";
+    //imwrite(path.c_str(), mat_image1);
+    //cv::waitKey();
+}
+
 void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2) {
     cv::Mat mat_color1;
     cv::Mat mat_color2;
@@ -362,64 +419,12 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
         }
 
         // Display the images with points
-        cv::namedWindow("Right Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
         cv::imshow("Right Image Epilines (RANSAC)",frame1);
-        cv::namedWindow("Left Image Epilines (RANSAC)", cv::WINDOW_NORMAL);
         cv::imshow("Left Image Epilines (RANSAC)",frame2);
-
-
-        std::vector<uchar> inliers_homographie(points1.size(),0);
-        cv::findHomography(cv::Mat(points1In),cv::Mat(points2In),inliers_homographie,CV_RANSAC,1.);
-        // Draw the homography inlier points
-        itPts= points1In.begin();
-        itIn= inliers_homographie.begin();
-        cout << "Homography:  " << points1In.size() << " " << points2In.size() << endl;
-        while (itPts!=points1In.end()) {
-
-            // draw a circle at each inlier location
-            if (*itIn)
-                cv::circle(mat_color1,*itPts,3,cv::Scalar(0,255,0),2);
-            else {
-                cv::circle(mat_color1,*itPts,3,cv::Scalar(0,0,255),2);
-            }
-
-            ++itPts;
-            ++itIn;
-        }
-
-        itPts= points2In.begin();
-        itIn= inliers_homographie.begin();
-        while (itPts!=points2In.end()) {
-
-            // draw a circle at each inlier location
-            if (*itIn)
-                cv::circle(mat_color2,*itPts,3,cv::Scalar(0,255,0),2);
-            else {
-                cv::circle(mat_color2,*itPts,3,cv::Scalar(0,0,255),2);
-            }
-
-            ++itPts;
-            ++itIn;
-        }
-
-        if (inliers_homographie.size() > inliers_fundamental.size()){
-            cout << "skip frame because points are on one plane" << endl;
-        }
-
-        // Display the images with points
-        cv::namedWindow("Right Image Homography (RANSAC)", cv::WINDOW_NORMAL);
-        cv::imshow("Right Image Homography (RANSAC)",mat_color1);
-        cv::namedWindow("Left Image Homography (RANSAC)", cv::WINDOW_NORMAL);
-        cv::imshow("Left Image Homography (RANSAC)",mat_color2);
-
-        // SAVE IMAGEs
-        //string path = "data/image/epipoles/current"+(to_string(frame))+".png";
-        //imwrite(path.c_str(), mat_image1);
-        //cv::waitKey();
     }
 }
 
-void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color) {
+void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color) {
     // convert grayscale to color image
     cv::Mat color_image;
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
@@ -436,11 +441,10 @@ void drawCorresPoints(cv::Mat const& image, vector<cv::Point2f> inliers1, vector
         drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
     }
 
-
     /* Now display the image we drew on.  Recall that "Optical Flow" is the name of
      * the window we created above.
      */
-    cv::imshow("OpticalFlow", color_image);
+    cv::imshow("OpticalFlow vectors", color_image);
 }
 
 void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
@@ -483,7 +487,7 @@ void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, const c
     cvLine( ref, p, q, color, line_thickness, CV_AA, 0 );
 }
 
-void drawPoints (cv::Mat const& image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color) {
+void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color) {
     cv::Mat colorImg;
     cv::cvtColor(image, colorImg, CV_GRAY2RGB);
     for (auto i : points) {

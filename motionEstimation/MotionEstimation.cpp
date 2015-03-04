@@ -106,14 +106,17 @@ int main() {
         std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
         drawPoints(mat_image12, inliersM2, "inliers by mean in Frame12", cv::Scalar(0,255,0));
 
-        //drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
+        drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
 
         vector<cv::Point2f> inliersF1, inliersF2;
         getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2);
         std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
         drawPoints(mat_image12, inliersF2, "inliers by fundamental in Frame12", cv::Scalar(255,255,0));
 
-        // Motion Estimation
+
+        drawCorresPoints(mat_image11, inliersM1, inliersM1, cv::Scalar(255,0,0) );
+
+                // Motion Estimation
         // Get Matrix K
         // calculate EssentialMatrix
         // for bundle adjustment use SSBA
@@ -124,7 +127,7 @@ int main() {
         cv::Mat flow, cflow;
         cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
         cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
-        drawOptFlowMap(flow, cflow, 32, 50, CV_RGB(0, 255, 0));
+        drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
         cv::imshow("optical Flow", cflow);
 
 
@@ -412,7 +415,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
         // SAVE IMAGEs
         //string path = "data/image/epipoles/current"+(to_string(frame))+".png";
         //imwrite(path.c_str(), mat_image1);
-        cv::waitKey();
+        //cv::waitKey();
     }
 }
 

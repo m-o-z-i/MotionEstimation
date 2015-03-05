@@ -3,7 +3,7 @@
 #include "line/MyLine.h"
 
 #include <cmath>
-#include <math.h> 
+#include <math.h>
 #include <vector>
 #include <utility>
 
@@ -23,7 +23,7 @@ static const double pi = 3.14159265358979323846;
 
 inline static double square(int a)
 {
-	return a * a;
+    return a * a;
 }
 
 char key;
@@ -38,15 +38,23 @@ void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> co
 void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color);
 void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar& color);
 
+void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21, cv::Mat mat_image22, int frame);
+
 std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int number = 50, float minQualityLevel = .03, float minDistance = 0.1);
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
 
 void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
-void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2);
+void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F);
 
+bool CheckCoherentRotation(const cv::Mat& R);
+bool findPoseEstimation(cv::Mat_<double>& rvec, cv::Mat_<double>& t, cv::Mat_<double>& R, std::vector<cv::Point3f> ppcloud, std::vector<cv::Point2f> imgPoints, cv::Mat K, cv::Mat distortion_coeff);
+cv::Mat_<double> LinearLSTriangulation(cv::Point3d u,cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1);
+double TriangulatePoints(const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, const cv::Mat& K, const cv::Mat&Kinv, const cv::Matx34d& P, const cv::Matx34d& P1, vector<cv::Point3d>& pointcloud);
 
-
-//TODO: calcOpticalFlowFarneback
+//TODO:
+// other meothod do decompose essential mat;
+//      http://www.morethantechnical.com/2012/08/09/decomposing-the-essential-matrix-using-horn-and-eigen-wcode/
+//
 /* STEP BY STEP:
  * 1.  capture stereo calibrated images in frame 1
  * 2.1 find feature points in image 1.1
@@ -69,75 +77,347 @@ void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2
 
 int main() {
     int frame=1;
-	while(true)
+    while(true)
     {
         //stereo1
-        cv::Mat mat_image11 = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
-        cv::Mat mat_image12 = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
+        cv::Mat frame1L = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
+        cv::Mat frame1R = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
 
         //stereo2
-        cv::Mat mat_image21 = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
-        cv::Mat mat_image22 = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
-
-        //cv::namedWindow("OpticalFlow", cv::WINDOW_AUTOSIZE);
+        cv::Mat frame2L = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
+        cv::Mat frame2R = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
 
         // Check for invalid input
-        if(! mat_image11.data || !mat_image12.data || !mat_image22.data || !mat_image21.data)
+        if(! frame1L.data || !frame1R.data || !frame2R.data || !frame2L.data)
         {
             cout <<  "Could not open or find the image: "  << std::endl ;
             frame=1;
             continue;
         }
 
-        vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 150,0.01,5);
-        drawPoints(mat_image11, features1, "1_left_features", cv::Scalar(0,0,0));
+        //drawAllStuff(mat_image11, mat_image12, mat_image21, mat_image22, frame);
 
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image21, features1);
-        //drawPoints(mat_image12, corresPoints1.second, "1_corres points in right image", cv::Scalar(0,0,0));
-        std::cout << "Frame: "<< frame << " found " << features1.size() << " features and " << corresPoints1.first.size() << "  corres Points " << std::endl;
+        // ************************************
+        // ******* Motion Estimation **********
+        // ************************************
+        // 1- Get Matrix K
+        // 2. calculate EssentialMatrix
+        // 3. for bundle adjustment use SSBA
+        // 4. or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
+        // 5. recover Pose (need newer version of calib3d)
 
-        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
-        //drawPoints(mat_image12, corresPoints2.second, "corresPoints in Frame21", cv::Scalar(0,255,255));
+        // find corresponding points
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,5);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsLtoR = refindFeaturePoints(frame1L, frame1R, features);
 
-        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
-        //drawPoints(mat_image12, corresPoints3.second, "corresPoints in Frame22", cv::Scalar(0,255,255));
-
-        vector<cv::Point2f> inliersM1, inliersM2;
-        //getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
-        std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
-        //drawPoints(mat_image12, inliersM2, "1_inliers by mean in right image", cv::Scalar(0,255,0));
-
-        //drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
-
-
+        // compute fundemental matrix F
         vector<cv::Point2f> inliersF1, inliersF2;
-        getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2);
-        std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
-        //drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
-
-        drawCorresPoints(mat_image11, inliersF1, inliersF2, cv::Scalar(255,0,0) );
-
-        // Motion Estimation
-        // Get Matrix K
-        // calculate EssentialMatrix
-        // for bundle adjustment use SSBA
-        // or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
-        // recover Pose (need newer version of calib3d)
+        cv::Mat F;
+        getInliersFromFundamentalMatrix(corresPoints1to2, &inliersF1, &inliersF2, F);
 
 
+        // get calibration Matrix K
+        cv::Mat K;
+        cv::FileStorage fs("data/calibration/left.yml", cv::FileStorage::READ);
+        fs["cameraMatrix"] >> K;
+        fs.release();
 
-        //cv::Mat flow, cflow;
-        //cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
-        //cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
-        //drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
-        //cv::imshow("optical flow field", cflow);
+        // calculate Essential Mat
+        cv::Mat_<double> E = K.t() * F * K; //according to HZ (9.12)
 
 
+#if 0
+        //decompose E to P' , HZ (9.19)
+        cv::SVD svd(E,cv::SVD::MODIFY_A);
+
+        cv::Matx33d W(0,-1,0,   //HZ 9.13
+                      1, 0,0,
+                      0, 0,1);
+        cv::Matx33d Wt(0,1,0,    //HZ 9.13
+                     -1,0,0,
+                      0,0,1);
+
+        cv::Mat R1 = svd.u * cv::Mat(W) * svd.vt; //HZ 9.19
+        cv::Mat R2 = svd.u * cv::Mat(Wt) * svd.vt; //HZ 9.19
+        cv::Mat t1 = svd.u.col(2); //u3
+        cv::Mat t2 = -svd.u.col(2); //u3
+
+        cv::Matx34d P1;
+
+        if (!CheckCoherentRotation(R1) || !!CheckCoherentRotation(R2)) {
+            cout<<"resulting rotation is not coherent\n" << std::endl;
+            P1 = 0;
+            return 0;
+        }
+#endif
+
+        // decompose the essential matrix to P', HZ 9.19
+        cv::SVD svd(E, cv::SVD::MODIFY_A);
+        cv::Mat svd_u = svd.u;
+        cv::Mat svd_vt = svd.vt;
+
+        // HZ 9.13
+        cv::Matx33d w(0, -1, 0,
+                      1, 0, 0,
+                      0, 0, 1);
+
+        cv::Mat_<double> R = svd_u * cv::Mat(w) * svd_vt; // HZ 9.19
+        cv::Mat_<double> T = svd_u.col(2); // u3
+
+        if (!CheckCoherentRotation(R)) {
+            std::cout << "resulting rotation is not coherent" << std::endl;
+            return 0;
+        }
+
+        // P' the second camera matrix, in the form of R|t
+        // (rotation & translation)
+        cv::Matx34d P1;
+        P1 = cv::Matx34d(R(0, 0), R(0, 1), R(0, 2), T(0),
+                              R(1, 0), R(1, 1), R(1, 2), T(1),
+                              R(2, 0), R(2, 1), R(2, 2), T(2));
+
+
+        std::cout << frame << ": found t = " << T << "\nR = \n"<<R << "\n\n" <<std::endl;
+
+        // no rotation or translation for the projection matrix
+        cv::Matx34d P0(1,0,0,0,
+                       0,1,0,0,
+                       0,0,1,0);
+
+        // triangulate the points
+        // compute fundemental matrix F
+        vector<cv::Point2f> inliersF1T, inliersF2T;
+        cv::Mat FT;
+        getInliersFromFundamentalMatrix(corresPointsLtoR, &inliersF1T, &inliersF2T, FT);
+
+        cv::Mat KInv;
+        cv::invert(K, KInv);
+        std::vector<cv::Point3d> pointCloud;
+        double reprojectionError = TriangulatePoints(inliersF1, inliersF2,
+                                                     K, KInv,
+                                                     P0,
+                                                     P1,
+                                                     pointCloud);
+
+        std::cout << "reprojection error: " << reprojectionError << std::endl;
+        std::cout << "############################################################################" << std::endl;
         ++frame;
-        cvWaitKey(1);
-	}
-	return 0;
+        cvWaitKey(1000);
+    }
+    return 0;
 }
+
+/*One more thing we can think of adding to our method is error checking.
+ * Many a times the calculation of the fundamental matrix from the point matching is erroneous,
+ * and this affects the camera matrices.
+ * Continuing triangulation with faulty camera matrices is pointless.
+ * We can install a check to see if the rotation element is a valid rotation matrix.
+ * Keeping in mind that rotation matrices must have a determinant of 1 (or -1),
+ * we can simply do the following:
+ */
+bool CheckCoherentRotation(cv::Mat const& R) {
+if(fabsf(determinant(R))-1.0 > 1e-07) {
+    cerr<<"det(R) != +-1.0, this is not a rotation matrix"<<endl;
+    return false;
+    }
+return true;
+}
+
+cv::Mat_<double> LinearLSTriangulation(
+        cv::Point3d u,//homogenous image point (u,v,1)
+        cv::Matx34d P,//camera 1 matrix
+        cv::Point3d u1,//homogenous image point in 2nd camera
+        cv::Matx34d P1//camera 2 matrix
+        )
+{
+    //build A matrix
+    cv::Matx43d A(u.x*P(2,0)-P(0,0),u.x*P(2,1)-P(0,1),u.x*P(2,2)-P(0,2),
+              u.y*P(2,0)-P(1,0),u.y*P(2,1)-P(1,1),u.y*P(2,2)-P(1,2),
+              u1.x*P1(2,0)-P1(0,0), u1.x*P1(2,1)-P1(0,1),u1.x*P1(2,2)-P1(0,2),
+              u1.y*P1(2,0)-P1(1,0), u1.y*P1(2,1)-P1(1,1),u1.y*P1(2,2)-P1(1,2)
+              );
+    //build B vector
+    cv::Matx41d B(-(u.x*P(2,3)-P(0,3)),
+              -(u.y*P(2,3)-P(1,3)),
+              -(u1.x*P1(2,3)-P1(0,3)),
+              -(u1.y*P1(2,3)-P1(1,3)));
+
+    //solve for X
+    cv::Mat_<double> X;
+    cv::solve(A,B,X,cv::DECOMP_SVD);
+
+    // convert to homogenious 3D point
+    cv::Mat_<double> XX(4, 1);
+    XX(0) = X(0);
+    XX(1) = X(1);
+    XX(2) = X(2);
+    XX(3) = 1.0;
+
+    return XX;
+}
+
+//http://pastebin.com/UE6YW39J
+double TriangulatePoints(
+        const vector<cv::Point2f>& points1,
+        const vector<cv::Point2f>& points2,
+        const cv::Mat& K,
+        const cv::Mat& Kinv,
+        const cv::Matx34d& P,
+        const cv::Matx34d& P1,
+        vector<cv::Point3d>& pointcloud)
+{
+    vector<double> reproj_error;
+    cv::Mat MP1 = cv::Mat(P1);
+    cv::Mat_<double> KP1 = K * MP1;
+
+    for (unsigned int i=0; i < points1.size(); i++) {
+        //convert to normalized homogeneous coordinates
+        cv::Point3d u(points1[i].x, points1[i].y, 1.0);
+        cv::Mat_<double> um = Kinv * cv::Mat_<double>(u);
+        u = um.at<cv::Point3d>(0);
+
+        cv::Point3d u1(points2[i].x, points2[i].y, 1.0);
+        cv::Mat_<double> um1 = Kinv * cv::Mat_<double>(u1);
+        u1 = um1.at<cv::Point3d>(0);
+
+        //triangulate
+        cv::Mat_<double> X = LinearLSTriangulation(u, P, u1, P1);
+
+        //calculate reprojection error
+        cv::Mat_<double> xPt_img = KP1 * X;
+        cv::Point2f xPt_img_(xPt_img(0) / xPt_img(2), xPt_img(1) / xPt_img(2));
+        reproj_error.push_back(norm(xPt_img_ - points2[i]));
+
+#if 0
+        std::cout << "K: " << K << std::endl;
+        std::cout << "P: " << cv::Mat(P) << std::endl;
+        std::cout << "P1: " << cv::Mat(P1) << std::endl;
+        std::cout << "X: " << X << std::endl;
+
+        // reproject for camera 0:
+        cv::Mat_<double> xP0t_img = K * cv::Mat(P) * X;
+        cv::Point2f xP0t_img_(xP0t_img(0) / xP0t_img(2), xP0t_img(1) / xP0t_img(2));
+        std::cout << "repr0: " << points1[i] << ", " << xP0t_img_ << ", "
+            << cv::norm(xP0t_img_ - points1[i]) << std::endl;
+        std::cout << "repr1: " << points2[i] << ", " << xPt_img_ << ", "
+            << cv::norm(xPt_img_ - points2[i]) << std::endl;
+#endif
+
+        //store 3D point
+        pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
+    }
+
+    //return mean reprojection error
+    cv::Scalar me = cv::mean(reproj_error);
+    return me[0];
+}
+
+// find pose estimation using orientation of pointcloud
+bool findPoseEstimation(
+        cv::Mat_<double>& rvec,
+        cv::Mat_<double>& t,
+        cv::Mat_<double>& R,
+        std::vector<cv::Point3f> ppcloud,
+        std::vector<cv::Point2f> imgPoints,
+        cv::Mat K,
+        cv::Mat distortion_coeff
+        )
+{
+    if(ppcloud.size() <= 7 || imgPoints.size() <= 7 || ppcloud.size() != imgPoints.size()) {
+        //something went wrong aligning 3D to 2D points..
+        cerr << "couldn't find [enough] corresponding cloud points... (only " << ppcloud.size() << ")" <<endl;
+        return false;
+    }
+    vector<int> inliers;
+//    if(!cv::use_gpu) {
+        //use CPU
+    double minVal,maxVal;
+    cv::minMaxIdx(imgPoints,&minVal,&maxVal);
+    cv::solvePnPRansac(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
+                //CV_PROFILE("solvePnP",cv::solvePnP(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, CV_EPNP);)
+//    } else {
+//        //use GPU ransac
+//        //make sure datatstructures are cv::gpu compatible
+//        cv::Mat ppcloud_m(ppcloud); ppcloud_m = ppcloud_m.t();
+//        cv::Mat imgPoints_m(imgPoints); imgPoints_m = imgPoints_m.t();
+//        cv::Mat rvec_,t_;
+//        cv::gpu::solvePnPRansac(ppcloud_m,imgPoints_m,K_32f,distcoeff_32f,rvec_,t_,false);
+//        rvec_.convertTo(rvec,CV_64FC1);
+//        t_.convertTo(t,CV_64FC1);
+//    }
+    vector<cv::Point2f> projected3D;
+    cv::projectPoints(ppcloud, rvec, t, K, distortion_coeff, projected3D);
+    if(inliers.size()==0) { //get inliers
+        for(int i=0;i<projected3D.size();i++) {
+            if(norm(projected3D[i]-imgPoints[i]) < 10.0)
+                inliers.push_back(i);
+        }
+    }
+
+    //cv::Rodrigues(rvec, R);
+    //visualizerShowCamera(R,t,0,255,0,0.1);
+    if(inliers.size() < (double)(imgPoints.size())/5.0) {
+        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
+        return false;
+    }
+    if(cv::norm(t) > 200.0) {
+        // this is bad...
+        cerr << "estimated camera movement is too big, skip this camera\r\n";
+        return false;
+    }
+    cv::Rodrigues(rvec, R);
+    if(!CheckCoherentRotation(R)) {
+        cerr << "rotation is incoherent. we should try a different base view..." << endl;
+        return false;
+    }
+    std::cout << "found t = " << t << "\nR = \n"<<R<<std::endl;
+    return true;
+}
+
+
+void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21, cv::Mat mat_image22, int frame){
+    vector<cv::Point2f> features1 = getStrongFeaturePoints(mat_image11, 150,0.01,5);
+    drawPoints(mat_image11, features1, "1_left_features", cv::Scalar(0,0,0));
+
+    pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1 = refindFeaturePoints(mat_image11, mat_image21, features1);
+    drawPoints(mat_image12, corresPoints1.second, "1_corres points in right image", cv::Scalar(0,0,0));
+    std::cout << "Frame: "<< frame << " found " << features1.size() << " features and " << corresPoints1.first.size() << "  corres Points " << std::endl;
+
+    //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints2 = refindFeaturePoints(mat_image11, mat_image21, features1);
+    //drawPoints(mat_image12, corresPoints2.second, "corresPoints in Frame21", cv::Scalar(0,255,255));
+
+    //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints3 = refindFeaturePoints(mat_image11, mat_image22, features1);
+    //drawPoints(mat_image12, corresPoints3.second, "corresPoints in Frame22", cv::Scalar(0,255,255));
+
+    // get inliers from mean value
+    vector<cv::Point2f> inliersM1, inliersM2;
+    getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
+    std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
+    drawPoints(mat_image12, inliersM2, "1_inliers by mean in right image", cv::Scalar(0,255,0));
+
+
+    drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
+
+    // get inliers from fundamental mat
+    vector<cv::Point2f> inliersF1, inliersF2;
+    cv::Mat F;
+    getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2, F);
+    std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
+    drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
+
+    //draw arrows
+    drawCorresPoints(mat_image11, inliersF1, inliersF2, cv::Scalar(255,0,0) );
+
+
+    cv::Mat flow, cflow;
+    cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+    cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
+    drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
+    cv::imshow("optical flow field", cflow);
+    cvWaitKey(0);
+}
+
 
 void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar& color) {
     for(int y = 0; y < cflowmap.rows; y += step) {
@@ -273,28 +553,43 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     }
 }
 
-void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2) {
+void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
     // Compute F matrix using RANSAC
     if(points.first.size() != points.second.size()){
         return;
     }
+
+    //vector<cv::Point2f> p1;
+    //vector<cv::Point2f> p2;
+
     std::vector<uchar> inliers_fundamental(points.first.size(),0);
-    cv::Mat fundemental = cv::findFundamentalMat(
+    F = cv::findFundamentalMat(
                           cv::Mat(points.first), cv::Mat(points.second),   // matching points
                           inliers_fundamental,                             // match status (inlier ou outlier)
                           cv::FM_RANSAC,                                   // RANSAC method
-                          1,                                               // distance to epipolar line
-                          0.98);                                           // confidence probability
+                          0.1,                                             // distance to epipolar line
+                          0.99);                                           // confidence probability
 
     //get Inlier
-    std::vector<uchar>::const_iterator itIn = inliers_fundamental.begin();
     for(unsigned i = 0; i<points.first.size(); ++i){
-        // draw a circle at each inlier location
         if (inliers_fundamental[i] == 1) {
             inliers1->push_back(points.first[i]);
             inliers2->push_back(points.second[i]);
+            //p1.push_back(points.first[i]);
+            //p2.push_back(points.second[i]);
         }
     }
+    // check x' * F * x = 0 ??
+//    vector<cv::Point3f> homogenouse1;
+//    vector<cv::Point3f> homogenouse2;
+//    cv::convertPointsToHomogeneous(p1, homogenouse1);
+//    cv::convertPointsToHomogeneous(p2, homogenouse2);
+
+//    for(unsigned i = 0; i<homogenouse1.size(); ++i){
+
+//        std::cout <<  cv::norm((homogenouse2[i].dot(F)).dot(homogenouse1[i])) << std::endl;
+//    }
+
 }
 
 void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2){

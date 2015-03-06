@@ -44,12 +44,25 @@ std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int numbe
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
 
 void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
-void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F);
+void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F);
 
 bool CheckCoherentRotation(const cv::Mat& R);
+
 bool findPoseEstimation(cv::Mat_<double>& rvec, cv::Mat_<double>& t, cv::Mat_<double>& R, std::vector<cv::Point3f> ppcloud, std::vector<cv::Point2f> imgPoints, cv::Mat K, cv::Mat distortion_coeff);
+
+
 cv::Mat_<double> LinearLSTriangulation(cv::Point3d u,cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1);
-double TriangulatePoints(const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, const cv::Mat& K, const cv::Mat&Kinv, const cv::Matx34d& P, const cv::Matx34d& P1, vector<cv::Point3d>& pointcloud);
+double TriangulatePoints(const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, const cv::Mat& K, const cv::Mat&Kinv, const cv::Matx34f& P, const cv::Matx34f& P1, vector<cv::Point3f>& pointcloud);
+
+
+bool getRightRTValues(cv::Mat& E, const cv::Mat& K, const cv::Mat& KInv, const vector<cv::Point2f>& inliersF1, const vector<cv::Point2f>& inliersF2, cv::Matx34f& P1, std::vector<cv::Point3f>& outCloud);
+bool TestTriangulation(const std::vector<cv::Point3f>& pcloud_pt3d, const cv::Matx34f& P);
+bool DecomposeEtoRandT(cv::Mat E, cv::Mat_<double>& R1, cv::Mat_<double>& R2, cv::Mat_<double>& t1, cv::Mat_<double>& t2);
+
+
+
+
+
 
 //TODO:
 // other meothod do decompose essential mat;
@@ -109,13 +122,14 @@ int main() {
         // find corresponding points
         vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,5);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsLtoR = refindFeaturePoints(frame1L, frame1R, features);
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsLtoR = refindFeaturePoints(frame1L, frame1R, features);
+
+
 
         // compute fundemental matrix F
         vector<cv::Point2f> inliersF1, inliersF2;
         cv::Mat F;
-        getInliersFromFundamentalMatrix(corresPoints1to2, &inliersF1, &inliersF2, F);
-
+        getFundamentalMatrix(corresPoints1to2, &inliersF1, &inliersF2, F);
 
         // get calibration Matrix K
         cv::Mat K;
@@ -123,89 +137,227 @@ int main() {
         fs["cameraMatrix"] >> K;
         fs.release();
 
-        // calculate Essential Mat
-        cv::Mat_<double> E = K.t() * F * K; //according to HZ (9.12)
-
-
-#if 0
-        //decompose E to P' , HZ (9.19)
-        cv::SVD svd(E,cv::SVD::MODIFY_A);
-
-        cv::Matx33d W(0,-1,0,   //HZ 9.13
-                      1, 0,0,
-                      0, 0,1);
-        cv::Matx33d Wt(0,1,0,    //HZ 9.13
-                     -1,0,0,
-                      0,0,1);
-
-        cv::Mat R1 = svd.u * cv::Mat(W) * svd.vt; //HZ 9.19
-        cv::Mat R2 = svd.u * cv::Mat(Wt) * svd.vt; //HZ 9.19
-        cv::Mat t1 = svd.u.col(2); //u3
-        cv::Mat t2 = -svd.u.col(2); //u3
-
-        cv::Matx34d P1;
-
-        if (!CheckCoherentRotation(R1) || !!CheckCoherentRotation(R2)) {
-            cout<<"resulting rotation is not coherent\n" << std::endl;
-            P1 = 0;
-            return 0;
-        }
-#endif
-
-        // decompose the essential matrix to P', HZ 9.19
-        cv::SVD svd(E, cv::SVD::MODIFY_A);
-        cv::Mat svd_u = svd.u;
-        cv::Mat svd_vt = svd.vt;
-
-        // HZ 9.13
-        cv::Matx33d w(0, -1, 0,
-                      1, 0, 0,
-                      0, 0, 1);
-
-        cv::Mat_<double> R = svd_u * cv::Mat(w) * svd_vt; // HZ 9.19
-        cv::Mat_<double> T = svd_u.col(2); // u3
-
-        if (!CheckCoherentRotation(R)) {
-            std::cout << "resulting rotation is not coherent" << std::endl;
-            return 0;
-        }
-
-        // P' the second camera matrix, in the form of R|t
-        // (rotation & translation)
-        cv::Matx34d P1;
-        P1 = cv::Matx34d(R(0, 0), R(0, 1), R(0, 2), T(0),
-                              R(1, 0), R(1, 1), R(1, 2), T(1),
-                              R(2, 0), R(2, 1), R(2, 2), T(2));
-
-
-        std::cout << frame << ": found t = " << T << "\nR = \n"<<R << "\n\n" <<std::endl;
-
-        // no rotation or translation for the projection matrix
-        cv::Matx34d P0(1,0,0,0,
-                       0,1,0,0,
-                       0,0,1,0);
-
-        // triangulate the points
-        // compute fundemental matrix F
-        vector<cv::Point2f> inliersF1T, inliersF2T;
-        cv::Mat FT;
-        getInliersFromFundamentalMatrix(corresPointsLtoR, &inliersF1T, &inliersF2T, FT);
-
+        // get inverse K
         cv::Mat KInv;
         cv::invert(K, KInv);
-        std::vector<cv::Point3d> pointCloud;
-        double reprojectionError = TriangulatePoints(inliersF1, inliersF2,
-                                                     K, KInv,
-                                                     P0,
-                                                     P1,
-                                                     pointCloud);
 
-        std::cout << "reprojection error: " << reprojectionError << std::endl;
-        std::cout << "############################################################################" << std::endl;
+
+        // calculate essential mat
+        cv::Mat E = K.t() * F * K; //according to HZ (9.12)
+
+        // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
+        cv::Matx34f P1;
+        std::vector<cv::Point3f> pointCloud;
+        bool goodPFound = getRightRTValues(E, K, KInv, inliersF1, inliersF2, P1, pointCloud);
+
+        if (goodPFound) {
+            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
+            std::cout << P1 << std::endl;
+            std::cout << "############################################################" << std::endl;
+        }
+
+        cvNamedWindow("test" , CV_WINDOW_NORMAL);
         ++frame;
-        cvWaitKey(1000);
+        cvWaitKey(0);
     }
     return 0;
+}
+
+bool getRightRTValues(  cv::Mat& E,
+                        const cv::Mat& K,
+                        const cv::Mat& KInv,
+                        const vector<cv::Point2f>& inliersF1,
+                        const vector<cv::Point2f>& inliersF2,
+                        cv::Matx34f& P1,
+                        std::vector<cv::Point3f>& outCloud)
+{
+    // extract cameras [R|t]
+
+    // no rotation or translation for the left projection matrix
+    cv::Matx34f P0(1,0,0,0,
+                   0,1,0,0,
+                   0,0,1,0);
+
+    //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
+    if(fabsf(determinant(E)) > 1e-03) {
+        cout << "det(E) != 0 : " << determinant(E) << "\n";
+        P1 = 0;
+        return false;
+    }
+
+    cv::Mat_<double> R1(3,3);
+    cv::Mat_<double> R2(3,3);
+    cv::Mat_<double> t1(1,3);
+    cv::Mat_<double> t2(1,3);
+
+    //decompose E to P1 , HZ (9.19)
+    {
+        // validation of E
+        bool ValidationOfE = DecomposeEtoRandT(E,R1,R2,t1,t2);
+        if (!ValidationOfE) return false;
+        //            if(determinant(R1)+1.0 < 1e-05) {
+        //                //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
+        //                cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
+        //                E = -E;
+        //                DecomposeEtoRandT(E,R1,R2,t1,t2);
+        //            }
+        if (!CheckCoherentRotation(R1) && !CheckCoherentRotation(R2)) {
+            cout << "resulting rotations are not coherent\n";
+            return false;
+        }
+
+        std::vector<cv::Mat_<double>> Rotations{R1,R2};
+        std::vector<cv::Mat_<double>> Translations{t1,t2};
+
+        int counter = 0;
+        std::vector<cv::Point3f> pcloud, pcloud1;
+        double reproj_error1, reproj_error2;
+
+        // find right solution of 4 possible translations and rotations
+        for (unsigned int i = 0; i < 2; ++i) {
+            cv::Mat_<double> R = Rotations[i];
+            if (!CheckCoherentRotation(R)) {
+                cout << "resulting rotation R is not coherent\n";
+                counter += 2;
+                continue;
+            }
+
+            for (unsigned int j = 0; j < 2; ++j) {
+                pcloud.clear(); pcloud1.clear();
+                cv::Mat_<double> T = Translations[j];
+
+                P1 = cv::Matx34f( R(0,0),	R(0,1),	R(0,2),	T(0),
+                                  R(1,0),	R(1,1),	R(1,2),	T(1),
+                                  R(2,0),	R(2,1),	R(2,2),	T(2));
+
+                cout << "Testing P" << i << j << endl << cv::Mat(P1) << endl;
+
+
+                reproj_error1 = TriangulatePoints(inliersF1, inliersF2,
+                                                  K, KInv,
+                                                  P0,
+                                                  P1,
+                                                  pcloud);
+
+//                reproj_error2 = TriangulatePoints(inliersF1, inliersF2,
+//                                                  K, KInv,
+//                                                  P1,
+//                                                  P0,
+//                                                  pcloud1);
+
+                cout << "projection ERROR:  " << reproj_error1 << std::endl;
+
+                //check if pointa are triangulated --in front-- of both cameras. If yes break loop
+                if (TestTriangulation(pcloud,P1) && reproj_error1 < 100.0) {
+                    break;
+                }
+                ++counter;
+            }
+        }
+
+        cout << "counter:  " << counter << std::endl;
+
+        if (4 == counter) {
+            cout << "Shit." << endl;
+            return false;
+        }
+
+        for (unsigned int i=0; i<pcloud.size(); i++) {
+            outCloud.push_back(pcloud[i]);
+        }
+    }
+
+    return true;
+}
+
+
+bool TestTriangulation(const std::vector<cv::Point3f>& pcloud_pt3d, const cv::Matx34f& P) {
+    vector<cv::Point3f> pcloud_pt3d_projected(pcloud_pt3d.size());
+
+    cv::Matx44f P4x4 = cv::Matx44f::eye();
+    for(int i=0;i<12;i++) P4x4.val[i] = P.val[i];
+
+    cv::perspectiveTransform(pcloud_pt3d, pcloud_pt3d_projected, P4x4);
+
+    // status of 3d points..infront=1 or behind=0
+    vector<uchar> status;
+    for (unsigned int i=0; i<pcloud_pt3d.size(); i++) {
+        status.push_back((pcloud_pt3d_projected[i].z > 0) ? 1 : 0);
+    }
+    int count = cv::countNonZero(status);
+
+    double percentage = ((double)count / (double)pcloud_pt3d.size());
+    std::cout << count << "/" << pcloud_pt3d.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    if(percentage < 0.75)
+        return false; //less than 75% of the points are in front of the camera
+
+    return true;
+}
+
+
+
+bool DecomposeEtoRandT(cv::Mat E,
+        cv::Mat_<double>& R1,
+        cv::Mat_<double>& R2,
+        cv::Mat_<double>& t1,
+        cv::Mat_<double>& t2)
+{
+#if 0
+    // decompose the essential matrix to P', HZ 9.19
+    cv::SVD svd(E, cv::SVD::MODIFY_A);
+    cv::Mat svd_u = svd.u;
+    cv::Mat svd_vt = svd.vt;
+
+    // HZ 9.13
+    cv::Matx33d w(0, -1, 0,
+                  1, 0, 0,
+                  0, 0, 1);
+
+    cv::Mat_<double> R = svd_u * cv::Mat(w) * svd_vt; // HZ 9.19
+    cv::Mat_<double> T = svd_u.col(2); // u3
+
+    if (!CheckCoherentRotation(R)) {
+        std::cout << "resulting rotation is not coherent" << std::endl;
+        return 0;
+    }
+
+    // P' the second camera matrix, in the form of R|t
+    // (rotation & translation)
+    cv::Matx34d P1;
+    P1 = cv::Matx34d(R(0, 0), R(0, 1), R(0, 2), T(0),
+                          R(1, 0), R(1, 1), R(1, 2), T(1),
+                          R(2, 0), R(2, 1), R(2, 2), T(2));
+#endif
+
+    //Using HZ E decomposition
+    cv::SVD svd(E, cv::SVD::MODIFY_A);
+    cv::Mat svd_u = svd.u;
+    cv::Mat svd_vt = svd.vt;
+    cv::Mat svd_w = svd.w;
+
+    //check if first and second singular values are the same (as they should be)
+    double singular_values_ratio = fabsf(svd_w.at<double>(0) / svd_w.at<double>(1));
+    if(singular_values_ratio>1.0) singular_values_ratio = 1.0/singular_values_ratio; // flip ratio to keep it [0,1]
+    if (singular_values_ratio < 0.7) {
+        cout << "singular values are too far apart\n";
+        return false;
+    }
+
+    //HZ 9.13
+    cv::Matx33d W(0,-1,0,
+                  1,0,0,
+                  0,0,1);
+
+    cv::Matx33d Wt(0,1,0,
+                  -1,0,0,
+                   0,0,1);
+
+    R1 = svd_u * cv::Mat(W) * svd_vt; //HZ 9.19
+    R2 = svd_u * cv::Mat(Wt) * svd_vt; //HZ 9.19
+    t1 = svd_u.col(2); //u3
+    t2 = -svd_u.col(2); //u3
+
+    return true;
 }
 
 /*One more thing we can think of adding to our method is error checking.
@@ -263,23 +415,24 @@ double TriangulatePoints(
         const vector<cv::Point2f>& points2,
         const cv::Mat& K,
         const cv::Mat& Kinv,
-        const cv::Matx34d& P,
-        const cv::Matx34d& P1,
-        vector<cv::Point3d>& pointcloud)
+        const cv::Matx34f& P,
+        const cv::Matx34f& P1,
+        vector<cv::Point3f>& pointcloud)
 {
     vector<double> reproj_error;
     cv::Mat MP1 = cv::Mat(P1);
+    MP1.convertTo(MP1, CV_64F);
     cv::Mat_<double> KP1 = K * MP1;
 
     for (unsigned int i=0; i < points1.size(); i++) {
         //convert to normalized homogeneous coordinates
-        cv::Point3d u(points1[i].x, points1[i].y, 1.0);
+        cv::Point3f u(points1[i].x, points1[i].y, 1.0);
         cv::Mat_<double> um = Kinv * cv::Mat_<double>(u);
-        u = um.at<cv::Point3d>(0);
+        u = um.at<cv::Point3f>(0);
 
-        cv::Point3d u1(points2[i].x, points2[i].y, 1.0);
+        cv::Point3f u1(points2[i].x, points2[i].y, 1.0);
         cv::Mat_<double> um1 = Kinv * cv::Mat_<double>(u1);
-        u1 = um1.at<cv::Point3d>(0);
+        u1 = um1.at<cv::Point3f>(0);
 
         //triangulate
         cv::Mat_<double> X = LinearLSTriangulation(u, P, u1, P1);
@@ -289,23 +442,8 @@ double TriangulatePoints(
         cv::Point2f xPt_img_(xPt_img(0) / xPt_img(2), xPt_img(1) / xPt_img(2));
         reproj_error.push_back(norm(xPt_img_ - points2[i]));
 
-#if 0
-        std::cout << "K: " << K << std::endl;
-        std::cout << "P: " << cv::Mat(P) << std::endl;
-        std::cout << "P1: " << cv::Mat(P1) << std::endl;
-        std::cout << "X: " << X << std::endl;
-
-        // reproject for camera 0:
-        cv::Mat_<double> xP0t_img = K * cv::Mat(P) * X;
-        cv::Point2f xP0t_img_(xP0t_img(0) / xP0t_img(2), xP0t_img(1) / xP0t_img(2));
-        std::cout << "repr0: " << points1[i] << ", " << xP0t_img_ << ", "
-            << cv::norm(xP0t_img_ - points1[i]) << std::endl;
-        std::cout << "repr1: " << points2[i] << ", " << xPt_img_ << ", "
-            << cv::norm(xPt_img_ - points2[i]) << std::endl;
-#endif
-
         //store 3D point
-        pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
+        pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
     }
 
     //return mean reprojection error
@@ -349,7 +487,7 @@ bool findPoseEstimation(
     vector<cv::Point2f> projected3D;
     cv::projectPoints(ppcloud, rvec, t, K, distortion_coeff, projected3D);
     if(inliers.size()==0) { //get inliers
-        for(int i=0;i<projected3D.size();i++) {
+        for(unsigned int i=0;i<projected3D.size();i++) {
             if(norm(projected3D[i]-imgPoints[i]) < 10.0)
                 inliers.push_back(i);
         }
@@ -402,7 +540,7 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
     // get inliers from fundamental mat
     vector<cv::Point2f> inliersF1, inliersF2;
     cv::Mat F;
-    getInliersFromFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2, F);
+    getFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2, F);
     std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
     drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
 
@@ -413,7 +551,7 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
     cv::Mat flow, cflow;
     cv::calcOpticalFlowFarneback(mat_image11, mat_image21, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
     cv::cvtColor(mat_image11, cflow, CV_GRAY2BGR);
-    drawOptFlowMap(flow, cflow, 50, CV_RGB(0, 255, 0));
+    drawOptFlowMap(flow, cflow, 200, CV_RGB(0, 255, 0));
     cv::imshow("optical flow field", cflow);
     cvWaitKey(0);
 }
@@ -553,7 +691,7 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     }
 }
 
-void getInliersFromFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
+void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
     // Compute F matrix using RANSAC
     if(points.first.size() != points.second.size()){
         return;

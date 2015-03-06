@@ -24,6 +24,9 @@ using namespace std;
 
 char key;
 
+
+
+
 //TODO:
 // other meothod do decompose essential mat;
 //      http://www.morethantechnical.com/2012/08/09/decomposing-the-essential-matrix-using-horn-and-eigen-wcode/

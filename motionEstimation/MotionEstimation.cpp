@@ -82,8 +82,6 @@ int main() {
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsLtoR = refindFeaturePoints(frame1L, frame1R, features);
 
-
-
         // compute fundemental matrix F
         vector<cv::Point2f> inliersF1, inliersF2;
         cv::Mat F;
@@ -119,17 +117,17 @@ int main() {
 //        cvWaitKey(0);
 
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
-        cv::Matx34f P1;
+        cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
         bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, inliersF1, inliersF2, P1, pointCloud);
 
-        if (goodPFound) {
-            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
-            std::cout << P1 << std::endl;
-            std::cout << "############################################################" << std::endl;
-        }
+//        if (goodPFound) {
+//            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
+//            std::cout << P1 << std::endl;
+//            std::cout << "############################################################" << std::endl;
+//        }
 
-#if 0
+
         cv::Mat PNew, RNew, TNew;
         cv::decomposeProjectionMatrix(P1, PNew, RNew, TNew);
         double n = TNew.at<double>(3,0);
@@ -138,7 +136,7 @@ int main() {
         double z = TNew.at<double>(2,0);
 
         cout << "3D Points:  w: " << n << "  coords: [" << x << ", " << y << ", " << z << "]"<< endl;
-#endif
+
 
         ++frame;
         cvWaitKey(0);

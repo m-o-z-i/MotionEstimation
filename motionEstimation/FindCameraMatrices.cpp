@@ -6,15 +6,21 @@ bool getRightProjectionMat(  cv::Mat& E,
                              const cv::Mat K,
                              const cv::Mat KInv,
                              const cv::Mat distCoeff,
-                             const vector<cv::Point2f>& inliersF1,
-                             const vector<cv::Point2f>& inliersF2,
-                             cv::Matx34f& P1,
+                             vector<cv::Point2f>& inliersF1,
+                             vector<cv::Point2f>& inliersF2,
+                             cv::Mat& P1,
                              std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
-    cv::Matx34f P0(1,0,0,0,
-                   0,1,0,0,
-                   0,0,1,0);
+    //projection matrix of first camera P0 = K[I|0]
+    cv::Mat P0 = (cv::Mat_<double>(3,4) <<
+                  1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0 );
+    P0 = K * P0;
+
+    //projection matrix of second camera: P1  = K[R|t]
+
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
     if(fabsf(determinant(E)) > 1e-03) {
@@ -32,12 +38,12 @@ bool getRightProjectionMat(  cv::Mat& E,
         // validation of E
         bool ValidationOfE = DecomposeEtoRandT(E,R1,R2,t1,t2);     // extract cameras [R|t]
         if (!ValidationOfE) return false;
-//        if(determinant(R1)+1.0 < 1e-05) {
-//            //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
-//            cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
-//            E = -E;
-//            DecomposeEtoRandT(E,R1,R2,t1,t2);
-//        }
+        //        if(determinant(R1)+1.0 < 1e-05) {
+        //            //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
+        //            cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
+        //            E = -E;
+        //            DecomposeEtoRandT(E,R1,R2,t1,t2);
+        //        }
         if (!CheckCoherentRotation(R1) && !CheckCoherentRotation(R2)) {
             cout << "resulting rotations are not coherent\n";
             return false;
@@ -47,7 +53,7 @@ bool getRightProjectionMat(  cv::Mat& E,
         std::vector<cv::Mat_<double>> Translations{t1,t2};
 
         int counter = 0;
-        std::vector<cv::Point3f> pcloud, pcloud1;
+        std::vector<cv::Point3f> pcloud, pcloud1, worldCoordinates;
         double reproj_error1, reproj_error2;
 
         // find right solution of 4 possible translations and rotations
@@ -60,19 +66,56 @@ bool getRightProjectionMat(  cv::Mat& E,
             }
 
             for (unsigned int j = 0; j < 2; ++j) {
-                pcloud.clear(); pcloud1.clear();
+                pcloud.clear(); pcloud1.clear(); worldCoordinates.clear();
                 cv::Mat_<double> T = Translations[j];
+                cout << "Testing P"<< i<<j<< endl;
 
-                reproj_error1 = TriangulateOpenCV(K, distCoeff, inliersF1, inliersF2, P0, P1, pcloud);
+                P1 = (cv::Mat_<double>(3,4) <<
+                      R(0,0),	R(0,1),	R(0,2),	T(0),
+                      R(1,0),	R(1,1),	R(1,2),	T(1),
+                      R(2,0),	R(2,1),	R(2,2),	T(2));
 
-                reproj_error2 = TriangulatePoints(inliersF1, inliersF2,K, KInv,P0,P1,pcloud);
+                //triangulate
+                cv::Mat P1_Mat(P1);
+                triangulate(P0, P1_Mat, inliersF1, inliersF2, worldCoordinates);
 
-                cout << "projection ERROR: CV:  " << reproj_error1 << "  other: " << reproj_error2 << std::endl;
+//                reproj_error1 = TriangulateOpenCV(K, distCoeff, inliersF1, inliersF2, P0, P1, pcloud);
+//                reproj_error2 = TriangulatePoints(inliersF1, inliersF2,K, KInv, P0, P1, pcloud1);
 
-                //check if pointa are triangulated --in front-- of both cameras. If yes break loop
-                if (TestTriangulation(pcloud,P1) && reproj_error1 < 100.0) {
+                //calculate reprojection error
+                vector<cv::Point3f> p0_r, p1_r;        //reprojected cartesian image coordinate with depth value
+                vector<cv::Point2f> p0_err, p1_err;     //difference between original and reprojected 2D coordinates
+                cv::Point2f avgReprojectionError;
+                computeReprojectionError(P0, inliersF1, worldCoordinates, p0_r, p0_err, avgReprojectionError);
+                computeReprojectionError(P1, inliersF2, worldCoordinates, p1_r, p1_err, avgReprojectionError);
+
+                //cout << "projection ERROR: CV:  " << reproj_error1 << "  other: " << reproj_error2  << "  stereo " << cv::norm(avgReprojectionError) << std::endl;
+
+                //determine if points are in front of both cameras
+                uint pointsInFront = 0;
+                for(uint i = 0; i < inliersF1.size(); i++) {
+                    //cout << "Point " << i << ":\n";
+                    //cout << "Original 2D coordinate: p: " << p0[i].x << ", " << p0[i].y << "  and  p': " << p1[i].x << ", " << p1[i].y << endl;
+                    //cout << "3D coordinate:  X: " << worldCoordinates[i].x << ", " << worldCoordinates[i].y << ", " << worldCoordinates[i].z <<  endl;
+                    //cout << "Reprojected 2D coordinates: x: " << p0_r[i].x << ", " << p0_r[i].y << "  and  x': " << p1_r[i].x << ", " << p1_r[i].y << "  depth0: " << p0_r[i].z << ", depth1: " << p1_r[i].z << endl;
+                    //cout << "Reprojection error: " << p0_err[i].x << ", " << p0_err[i].y <<  "  and  x': " << p1_err[i].x << ", " << p1_err[i].y << endl;
+
+                    double depth0 = p0_r[i].z; //depth information from homogeneous coordinate w (z-buffer style)
+                    double depth1 = p1_r[i].z;
+                    if (depth0 > 0 && depth1 > 0) { //valid camera configuration
+                        pointsInFront++;;
+                    }
+                }
+
+                std::cout << "points in front " << pointsInFront << std::endl;
+                if (pointsInFront > (inliersF1.size()/4)) {
                     break;
                 }
+
+                //check if pointa are triangulated --in front-- of both cameras. If yes break loop
+                //if (TestTriangulation(pcloud,P1) && reproj_error1 < 100.0) {
+                //    break;
+                //}
                 ++counter;
             }
         }
@@ -82,8 +125,8 @@ bool getRightProjectionMat(  cv::Mat& E,
             return false;
         }
 
-        for (unsigned int i=0; i<pcloud.size(); i++) {
-            outCloud.push_back(pcloud[i]);
+        for (unsigned int i=0; i<worldCoordinates.size(); i++) {
+            outCloud.push_back(worldCoordinates[i]);
         }
     }
 
@@ -114,10 +157,10 @@ bool TestTriangulation(const std::vector<cv::Point3f>& pcloud_pt3d, const cv::Ma
 }
 
 bool DecomposeEtoRandT(cv::Mat E,
-        cv::Mat_<double>& R1,
-        cv::Mat_<double>& R2,
-        cv::Mat_<double>& t1,
-        cv::Mat_<double>& t2)
+                       cv::Mat_<double>& R1,
+                       cv::Mat_<double>& R2,
+                       cv::Mat_<double>& t1,
+                       cv::Mat_<double>& t2)
 {
 #if 0
     // decompose the essential matrix to P', HZ 9.19
@@ -142,8 +185,8 @@ bool DecomposeEtoRandT(cv::Mat E,
     // (rotation & translation)
     cv::Matx34d P1;
     P1 = cv::Matx34d(R(0, 0), R(0, 1), R(0, 2), T(0),
-                          R(1, 0), R(1, 1), R(1, 2), T(1),
-                          R(2, 0), R(2, 1), R(2, 2), T(2));
+                     R(1, 0), R(1, 1), R(1, 2), T(1),
+                     R(2, 0), R(2, 1), R(2, 2), T(2));
 #endif
 
     //Using HZ E decomposition
@@ -166,7 +209,7 @@ bool DecomposeEtoRandT(cv::Mat E,
                   0,0,1);
 
     cv::Matx33d Wt(0,1,0,
-                  -1,0,0,
+                   -1,0,0,
                    0,0,1);
 
     R1 = svd_u * cv::Mat(W) * svd_vt; //HZ 9.19
@@ -186,11 +229,11 @@ bool DecomposeEtoRandT(cv::Mat E,
  * we can simply do the following:
  */
 bool CheckCoherentRotation(cv::Mat const& R) {
-if(fabsf(determinant(R))-1.0 > 1e-07) {
-    cerr<<"det(R) != +-1.0, this is not a rotation matrix"<<endl;
-    return false;
+    if(fabsf(determinant(R))-1.0 > 1e-07) {
+        cerr<<"det(R) != +-1.0, this is not a rotation matrix"<<endl;
+        return false;
     }
-return true;
+    return true;
 }
 
 void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
@@ -204,11 +247,11 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
 
     std::vector<uchar> inliers_fundamental(points.first.size(),0);
     F = cv::findFundamentalMat(
-                          cv::Mat(points.first), cv::Mat(points.second),   // matching points
-                          inliers_fundamental,                             // match status (inlier ou outlier)
-                          cv::FM_RANSAC,                                   // RANSAC method
-                          0.1,                                             // distance to epipolar line
-                          0.99);                                           // confidence probability
+            cv::Mat(points.first), cv::Mat(points.second),   // matching points
+            inliers_fundamental,                             // match status (inlier ou outlier)
+            cv::FM_RANSAC,                                   // RANSAC method
+            0.1,                                             // distance to epipolar line
+            0.99);                                           // confidence probability
 
     //get Inlier
     for(unsigned i = 0; i<points.first.size(); ++i){
@@ -220,14 +263,14 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
         }
     }
     // check x' * F * x = 0 ??
-//    vector<cv::Point3f> homogenouse1;
-//    vector<cv::Point3f> homogenouse2;
-//    cv::convertPointsToHomogeneous(p1, homogenouse1);
-//    cv::convertPointsToHomogeneous(p2, homogenouse2);
+    //    vector<cv::Point3f> homogenouse1;
+    //    vector<cv::Point3f> homogenouse2;
+    //    cv::convertPointsToHomogeneous(p1, homogenouse1);
+    //    cv::convertPointsToHomogeneous(p2, homogenouse2);
 
-//    for(unsigned i = 0; i<homogenouse1.size(); ++i){
+    //    for(unsigned i = 0; i<homogenouse1.size(); ++i){
 
-//        std::cout <<  cv::norm((homogenouse2[i].dot(F)).dot(homogenouse1[i])) << std::endl;
-//    }
+    //        std::cout <<  cv::norm((homogenouse2[i].dot(F)).dot(homogenouse1[i])) << std::endl;
+    //    }
 
 }

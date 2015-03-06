@@ -4,8 +4,8 @@ double TriangulateOpenCV(const cv::Mat K,
                          const cv::Mat distCoeff,
                          const vector<cv::Point2f>& inliersF1,
                          const vector<cv::Point2f>& inliersF2,
-                         cv::Matx34f& P0,
-                         cv::Matx34f& P1,
+                         cv::Mat& P0,
+                         cv::Mat& P1,
                          std::vector<cv::Point3f>& outCloud)
 {
     vector<double> reproj_error;
@@ -19,10 +19,14 @@ double TriangulateOpenCV(const cv::Mat K,
     //calculate reprojection
     vector<cv::Point3f> points3D;
     cv::convertPointsFromHomogeneous(points3D_h.reshape(4,1), points3D);
-    cv::Mat_<double> R = (cv::Mat_<double>(3,3) << P1(0,0),P1(0,1),P1(0,2), P1(1,0),P1(1,1),P1(1,2), P1(2,0),P1(2,1),P1(2,2));
+    cv::Matx34f P1_34(P1);
+    cv::Mat_<double> R = (cv::Mat_<double>(3,3) <<
+                          P1_34(0,0),P1_34(0,1),P1_34(0,2),
+                          P1_34(1,0),P1_34(1,1),P1_34(1,2),
+                          P1_34(2,0),P1_34(2,1),P1_34(2,2));
     cv::Vec3d rvec;
     cv::Rodrigues(R ,rvec);
-    cv::Vec3d tvec(P1(0,3),P1(1,3),P1(2,3));
+    cv::Vec3d tvec(P1_34(0,3),P1_34(1,3),P1_34(2,3));
     vector<cv::Point2f> reprojected_points1;
     cv::projectPoints(points3D, rvec, tvec, K, distCoeff, reprojected_points1);
 
@@ -156,3 +160,90 @@ double TriangulatePoints(
     return me[0];
 }
 
+
+void triangulate(cv::Mat& P0, cv::Mat& P1, vector<cv::Point2f>& x0, vector<cv::Point2f>& x1, vector<cv::Point3f>& result3D) {
+    assert(x0.size() == x1.size());
+    result3D.clear();
+
+    for(uint i = 0; i < x0.size(); i++) {
+        //set up a system of linear equations from x = PX and x' = P'X
+        cv::Mat A(4, 4, CV_64FC1);
+        A.row(0) = x0[i].x * P0.row(2) - P0.row(0);
+        A.row(1) = x0[i].y * P0.row(2) - P0.row(1);
+        A.row(2) = x1[i].x * P1.row(2) - P1.row(0);
+        A.row(3) = x1[i].y * P1.row(2) - P1.row(1);
+        //Utils::printMatrix(A, "A:");
+
+        //normalize each row of A with its L2 norm, i.e. |row| = sqrt(sum_j(row[j]^2)) to improve condition of the system
+        for (int i = 0; i < A.rows; i++) {
+            double dsquared = 0;
+            for(int j = 0; j < 4; j++) {
+                dsquared = dsquared + pow(A.at<double>(i, j), 2);
+            }
+            A.row(i) = A.row(i) * (1 / sqrt(dsquared));
+        }
+
+        double detA = cv::determinant(A);
+        //cout << setprecision(3) << "det(A): " << detA << endl;
+        if(detA < 0.0) {
+            //workaround SVD ambiguity if det < 0
+            A = A * -1.0;
+        }
+
+        //solve A x = 0 using Singular Value Decomposition
+        cv::SVD decomposition(A);
+
+        //homogeneous least-square solution corresponds to least singular vector of A, that is the last column of V or last row of V^T
+        //i.e. [x,y,z,w] = V^T.row(3)
+        float x = static_cast<float>(decomposition.vt.at<double>(3, 0));
+        float y = static_cast<float>(decomposition.vt.at<double>(3, 1));
+        float z = static_cast<float>(decomposition.vt.at<double>(3, 2));
+        float w = static_cast<float>(decomposition.vt.at<double>(3, 3));
+        //convert homogeneous to cartesian coordinates
+        result3D.push_back(cv::Point3f(x/w, y/w, z/w));
+
+        //cout << "2D Coordinates x: " << x0[i].x << ", " << x0[i].y << "  and  x': " << x1[i].x << ", " << x1[i].y << endl;
+        //cout << "3D Coordinate  X: " << x/w << ", " << y/w << ", " << z/w <<  endl;
+        //cout << "Homogeneous 3D Coordinate X : " << x << ", " << y << ", " << z << ", " << w << endl;
+
+    }
+}
+
+void computeReprojectionError(cv::Mat& P, vector<cv::Point2f>& p, vector<cv::Point3f>& worldCoordinates, vector<cv::Point3f>& pReprojected, vector<cv::Point2f>& reprojectionErrors, cv::Point2f& avgReprojectionError) {
+    assert(p.size() == worldCoordinates.size());
+
+    //for all points...
+    for(uint i = 0; i < p.size(); i++) {
+
+        //build homogeneous coordinate for projection
+        cv::Mat WorldCoordinate_h = cv::Mat(4, 1, CV_64FC1);
+        WorldCoordinate_h.at<double>(0,0) = worldCoordinates[i].x;
+        WorldCoordinate_h.at<double>(1,0) = worldCoordinates[i].y;
+        WorldCoordinate_h.at<double>(2,0) = worldCoordinates[i].z;
+        WorldCoordinate_h.at<double>(3,0) = 1.0;
+
+        //perform simple reprojection by multiplication with projection matrix
+        cv::Mat pReprojected_h = P * WorldCoordinate_h; //homogeneous image coordinates 3x1
+
+        //convert reprojected image point to carthesian coordinates
+        float w = static_cast<float>(pReprojected_h.at<double>(2,0));
+        float x_r = static_cast<float>(pReprojected_h.at<double>(0,0) / w); //x = x/w
+        float y_r = static_cast<float>(pReprojected_h.at<double>(1,0) / w); //y = y/w
+
+        pReprojected.push_back(cv::Point3f(x_r, y_r, w)); //reprojected cartesian image coordinate with depth value
+
+        //calculate actual reprojection error
+        float deltaX = (float)fabs(p[i].x - x_r);
+        float deltaY = (float)fabs(p[i].y - y_r);
+        reprojectionErrors.push_back(cv::Point2f(deltaX, deltaY));
+    }
+
+    //average reprojection error
+    avgReprojectionError.x = avgReprojectionError.y = 0.0;
+    for(uint i = 0; i < reprojectionErrors.size(); i++) {
+        avgReprojectionError.x += reprojectionErrors[i].x;
+        avgReprojectionError.y += reprojectionErrors[i].y;
+    }
+    avgReprojectionError.x /= reprojectionErrors.size();
+    avgReprojectionError.y /= reprojectionErrors.size();
+}

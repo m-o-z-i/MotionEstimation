@@ -2,6 +2,7 @@
 *~
 *.tmp
 *.swp
+*.autosave
 
 # Vim session files
 *.vim

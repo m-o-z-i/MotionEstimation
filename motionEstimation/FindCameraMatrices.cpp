@@ -43,6 +43,7 @@ bool getRightProjectionMat(  cv::Mat& E,
         //            E = -E;
         //            DecomposeEtoRandT(E,R1,R2,t1,t2);
         //        }
+        cout << "R1 " <<  R1 << endl << "R2 " << R2  << endl << "t1 " << t1 << endl << "t2" << t2 << endl;
         if (!CheckCoherentRotation(R1) && !CheckCoherentRotation(R2)) {
             cout << "resulting rotations are not coherent\n";
             return false;
@@ -75,34 +76,45 @@ bool getRightProjectionMat(  cv::Mat& E,
                       R(1,0),	R(1,1),	R(1,2),	T(1),
                       R(2,0),	R(2,1),	R(2,2),	T(2));
 
-                //triangulate
-                triangulate(P0, cv::Mat(P1), inliersF1, inliersF2, worldCoordinates);
-
-                reproj_error1 = TriangulateOpenCV( P0, P1, inliersF1, inliersF2, K, distCoeff, pcloud);
-                reproj_error2 = TriangulatePoints( P0, P1, inliersF1, inliersF2, K, KInv, pcloud1);
-
+                //triangulate Stereo
+                triangulate(P0, P1, inliersF1, inliersF2, worldCoordinates);
                 //calculate reprojection error
                 vector<cv::Point3f> p0_r, p1_r;         //reprojected cartesian image coordinate with depth value
                 vector<cv::Point2f> p0_err, p1_err;     //difference between original and reprojected 2D coordinates
                 cv::Point2f avgReprojectionError;
                 computeReprojectionError(P0, inliersF1, worldCoordinates, p0_r, p0_err, avgReprojectionError);
-                cout << "STEREO: LEFT: reprojectionError1: " << cv::norm(avgReprojectionError) << endl;
-
                 cv::Point2f avgReprojectionError1;
                 computeReprojectionError(P1, inliersF2, worldCoordinates, p1_r, p1_err, avgReprojectionError1);
-                cout << "STEREO: RIGHT: reprojectionError2: " << cv::norm(avgReprojectionError1) << endl;
+                cout << "STEREO: reprojection ERROR:  left:  " << cv::norm(avgReprojectionError) << "  right  " << cv::norm(avgReprojectionError1) << endl;
 
-                cv::Point2f avgReprojectionErrorOpenCV;
-                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
-                computeReprojectionError(P0, inliersF1, pcloud, p0_r, p0_err, avgReprojectionErrorOpenCV);
-                computeReprojectionError(P1, inliersF2, pcloud, p1_r, p1_err, avgReprojectionErrorOpenCV);
-                cout << "OPENCV: reprojection ERROR: " << reproj_error1 << "  NORM: " <<  cv::norm(avgReprojectionErrorOpenCV) << endl;
 
-                cv::Point2f avgReprojectionErrorHZ;
+                //triangulate OpenCV
+                TriangulateOpenCV( P0, P1, inliersF1, inliersF2, pcloud);
+                cv::Point2f avgReprojectionErrorOpenCV1;
                 p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
-                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ);
-                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ);
-                cout << "H.Z: reprojection ERROR: " << reproj_error2 << "  NORM: " <<  cv::norm(avgReprojectionErrorHZ) << endl;
+                computeReprojectionError(P0, inliersF1, pcloud, p0_r, p0_err, avgReprojectionErrorOpenCV1);
+                cv::Point2f avgReprojectionErrorOpenCV2;
+                computeReprojectionError(P1, inliersF2, pcloud, p1_r, p1_err, avgReprojectionErrorOpenCV2);
+                double reproj_err_L = calculateReprojectionErrorOpenCV(P0, K, distCoeff,inliersF1, pcloud);
+                double reproj_err_R = calculateReprojectionErrorOpenCV(P1, K, distCoeff,inliersF2, pcloud);
+                cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorOpenCV1) << " or " << reproj_err_L << "  right  " << cv::norm(avgReprojectionErrorOpenCV2) << " or " << reproj_err_R << endl;
+
+
+
+                //triangulate Richard Hartley and Andrew Zisserman
+                TriangulatePointsHZ( P0, P1, inliersF1, inliersF2, KInv, pcloud1);
+                cv::Point2f avgReprojectionErrorHZ1;
+                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
+                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ1);
+                cv::Point2f avgReprojectionErrorHZ2;
+                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ2);
+
+                double reproj_error_L = calculateReprojectionErrorHZ(P0, K, inliersF1, pcloud1);
+                double reproj_error_R = calculateReprojectionErrorHZ(P1, K, inliersF2, pcloud1);
+                cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorHZ1) << " or " << reproj_error_L << "  right  " << cv::norm(avgReprojectionErrorHZ2) << " or " << reproj_error_R << endl;
+
+
+
 
                 //cout << "projection ERROR: CV:  " << reproj_error1 << "  other: " << reproj_error2  << "  stereo " << cv::norm(avgReprojectionError) << std::endl;
 
@@ -171,7 +183,7 @@ bool TestTriangulation(const std::vector<cv::Point3f>& pcloud_pt3d, const cv::Ma
     return true;
 }
 
-bool DecomposeEtoRandT(cv::Mat E,
+bool DecomposeEtoRandT(const cv::Mat& E,
                        cv::Mat_<double>& R1,
                        cv::Mat_<double>& R2,
                        cv::Mat_<double>& t1,

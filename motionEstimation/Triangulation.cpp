@@ -1,46 +1,25 @@
 #include "Triangulation.h"
 
-double TriangulateOpenCV(cv::Mat& P0,
-                         cv::Mat& P1,
+void TriangulateOpenCV(const cv::Mat& P0,
+                         const cv::Mat& P1,
                          const vector<cv::Point2f>& inliersF1,
                          const vector<cv::Point2f>& inliersF2,
-                         const cv::Mat K,
-                         const cv::Mat distCoeff,
                          std::vector<cv::Point3f>& outCloud)
 {
-    vector<double> reproj_error;
-
     //triangulate Points:
     cv::Mat points1 = cv::Mat(inliersF1).reshape(1, 2);
     cv::Mat points2 = cv::Mat(inliersF2).reshape(1, 2);
     cv::Mat points3D_h = cv::Mat(1,inliersF1.size(), CV_32FC4);
     cv::triangulatePoints(P0, P1, points1, points2, points3D_h);
 
-    //calculate reprojection
+    // get cartesian coordinates
     vector<cv::Point3f> points3D;
     cv::convertPointsFromHomogeneous(points3D_h.reshape(4,1), points3D);
-    cv::Matx34f P1_34(P1);
-    cv::Mat_<double> R = (cv::Mat_<double>(3,3) <<
-                          P1_34(0,0),P1_34(0,1),P1_34(0,2),
-                          P1_34(1,0),P1_34(1,1),P1_34(1,2),
-                          P1_34(2,0),P1_34(2,1),P1_34(2,2));
-    cv::Vec3d rvec;
-    cv::Rodrigues(R ,rvec);
-    cv::Vec3d tvec(P1_34(0,3),P1_34(1,3),P1_34(2,3));
-    vector<cv::Point2f> reprojected_points1;
-    cv::projectPoints(points3D, rvec, tvec, K, distCoeff, reprojected_points1);
 
     for (unsigned int i=0; i<points3D.size(); i++) {
         outCloud.push_back(points3D[i]);
-        reproj_error.push_back(norm(inliersF1[i]-reprojected_points1[i]));
     }
-
-    cv::Scalar mse = cv::mean(reproj_error);
-
-    //cout << "TRIANGULATE CV: Done. ("<<outCloud.size()<<"points, mean reproj err = " << mse[0] << ")"<< endl;
-    return mse[0];
 }
-
 
 /**
  From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997
@@ -118,48 +97,33 @@ cv::Mat_<double> LinearLSTriangulation(
 }
 
 //http://pastebin.com/UE6YW39J
-double TriangulatePoints(
+void TriangulatePointsHZ(
         const cv::Matx34f& P0,
         const cv::Matx34f& P1,
         const vector<cv::Point2f>& points1,
         const vector<cv::Point2f>& points2,
-        const cv::Mat& K,
         const cv::Mat& Kinv,
         vector<cv::Point3f>& pointcloud)
 {
-    vector<double> reproj_error;
-    cv::Mat MP1 = cv::Mat(P1);
-    MP1.convertTo(MP1, CV_64F);
-    cv::Mat_<double> KP1 = K * MP1;
-
     for (unsigned int i=0; i < points1.size(); i++) {
         //convert to normalized homogeneous coordinates
-        cv::Point3f point2D1_h(points1[i].x, points1[i].y, 1.0);
-        cv::Mat_<double> um = Kinv * cv::Mat_<double>(point2D1_h);
-        point2D1_h = um.at<cv::Point3f>(0);
+        cv::Point3f point1_h(points1[i].x, points1[i].y, 1.0);
+        cv::Mat_<double> um = Kinv * cv::Mat_<double>(point1_h);
+        point1_h = um.at<cv::Point3f>(0);
 
-        cv::Point3f point2D2_h(points2[i].x, points2[i].y, 1.0);
-        cv::Mat_<double> um1 = Kinv * cv::Mat_<double>(point2D2_h);
-        point2D2_h = um1.at<cv::Point3f>(0);
+        cv::Point3f point2_h(points2[i].x, points2[i].y, 1.0);
+        cv::Mat_<double> um1 = Kinv * cv::Mat_<double>(point2_h);
+        point2_h = um1.at<cv::Point3f>(0);
 
         //triangulate
-        //cv::Mat_<double> X = LinearLSTriangulation(point2D1_h, P0, point2D2_h, P1);
-        cv::Mat_<double> X = IterativeLinearLSTriangulation(point2D1_h, P0, point2D2_h, P1);
-
-        //calculate reprojection error
-        cv::Mat_<double> xPt_img = KP1 * X;
-        cv::Point2f xPt_img_(xPt_img(0) / xPt_img(2), xPt_img(1) / xPt_img(2));
-        reproj_error.push_back(norm(xPt_img_ - points2[i]));
+        //cv::Mat_<double> X = LinearLSTriangulation(point1_h, P0, point2_h, P1);
+        cv::Mat_<double> X = IterativeLinearLSTriangulation(point1_h, P0, point2_h, P1);
 
         //store 3D point
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
     }
 
-    //return mean reprojection error
-    cv::Scalar me = cv::mean(reproj_error);
-    return me[0];
 }
-
 
 void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>& x0, const vector<cv::Point2f>& x1, vector<cv::Point3f>& result3D) {
     assert(x0.size() == x1.size());
@@ -252,4 +216,68 @@ void computeReprojectionError(const cv::Mat& P,
     }
     avgReprojectionError.x /= reprojectionErrors.size();
     avgReprojectionError.y /= reprojectionErrors.size();
+}
+
+double calculateReprojectionErrorOpenCV(const cv::Mat& P,
+                                        const cv::Mat& K,
+                                        const cv::Mat distCoeff,
+                                        const vector<cv::Point2f>& points2D,
+                                        const std::vector<cv::Point3f>& points3D)
+{
+    vector<double> reproj_error;
+
+    cv::Matx34f P_(P);
+    cv::Mat_<double> R = (cv::Mat_<double>(3,3) <<
+                          P_(0,0),P_(0,1),P_(0,2),
+                          P_(1,0),P_(1,1),P_(1,2),
+                          P_(2,0),P_(2,1),P_(2,2));
+    cv::Mat_<double> T = (cv::Mat_<double>(1,3) << P_(0,3),P_(1,3),P_(2,3));
+
+    //calculate reprojection
+    cv::Vec3d rvec;
+    cv::Rodrigues(R ,rvec);
+    cv::Vec3d tvec(T);
+
+    vector<cv::Point2f> reprojected_points2D;
+    vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
+    cv::projectPoints(points3D, rvec, tvec, K, distCoeff, reprojected_points2D);
+
+    for (unsigned int i=0; i<points3D.size(); i++) {
+        reproj_error.push_back(cv::norm(points2D[i]-reprojected_points2D[i]));
+    }
+
+    cv::Scalar mse = cv::mean(reproj_error);
+
+    return mse[0];
+}
+
+double calculateReprojectionErrorHZ(const cv::Mat& P,
+                                    const cv::Mat& K,
+                                    const vector<cv::Point2f>& points2D,
+                                    const std::vector<cv::Point3f>& points3D)
+{
+    vector<double> reproj_error;
+//    cv::Mat P_(P);
+//    P_.convertTo(P_, CV_64F);
+//    cv::Mat_<double> KP = K * P_;
+
+    for (unsigned int i=0; i < points2D.size(); i++) {
+        // convert to homogenious 3D point
+        cv::Mat_<double> point3D_h(4, 1);
+        point3D_h(0) = points3D[i].x;
+        point3D_h(1) = points3D[i].y;
+        point3D_h(2) = points3D[i].z;
+        point3D_h(3) = 1.0;
+
+        //calculate reprojection error ((( KP * points3D[i] ???)))
+        cv::Mat_<double> reprojectedPoint = P * point3D_h;
+
+        //convert reprojected image point to carthesian coordinates
+        cv::Point2f reprojectedPoint_(reprojectedPoint(0) / reprojectedPoint(2), reprojectedPoint(1) / reprojectedPoint(2));
+        reproj_error.push_back(cv::norm(reprojectedPoint_ - points2D[i]));
+    }
+
+    //return mean reprojection error
+    cv::Scalar me = cv::mean(reproj_error);
+    return me[0];
 }

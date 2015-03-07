@@ -145,9 +145,6 @@ int main() {
             // cout << "no motion found" << endl;
         }
 
-
-
-
         ++frame;
         cvWaitKey(0);
     }

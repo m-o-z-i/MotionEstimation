@@ -99,8 +99,8 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     vector<double> directions;
     vector<double> lengths;
 
-    for (unsigned i = 0; i < features.first.size(); ++i){
-        double direction = atan2( (double) features.first[i].y - features.second[i].y, (double) features.second[i].x - features.second[i].x );
+    for (unsigned int i = 0; i < features.first.size(); ++i){
+        double direction = atan2( (double) (features.first[i].y - features.second[i].y) , (double) (features.first[i].x - features.second[i].x) );
         directions.push_back(direction);
 
         double length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
@@ -113,15 +113,15 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     sort(lengths.begin(),lengths.end());
     double median_lenght = lengths[(int)(lengths.size()/2)];
 
-    for(unsigned i = 0; i < features.first.size(); ++i)
-    {
-        double direction = atan2( (double) features.first[i].y - features.second[i].y, (double) features.second[i].x - features.second[i].x );
-        double length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
 
-        if (direction < median_direction + 1 && direction > median_direction - 1 ) {
+    for(unsigned int j = 0; j < features.first.size(); ++j)
+    {
+        double direction = atan2( (double) (features.first[j].y - features.second[j].y) , (double) (features.first[j].x - features.second[j].x) );
+        double length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
+        if (direction < median_direction + 0.05 && direction > median_direction - 0.05 ) {
             if (length < (median_lenght * 2) && length > (median_lenght * 0.5)) {
-                inliers1->push_back(features.first[i]);
-                inliers2->push_back(features.second[i]);
+                inliers1->push_back(features.first[j]);
+                inliers2->push_back(features.second[j]);
             }
         }
     }

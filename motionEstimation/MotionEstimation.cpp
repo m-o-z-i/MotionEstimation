@@ -122,19 +122,22 @@ int main() {
 //        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
 //        cvWaitKey(0);
 
+        std::vector<cv::Point2f> testPoints2D1 = {cv::Point2f(0.5,0.2), cv::Point2f(0.7,0.1), cv::Point2f(0.45,0.26), cv::Point2f(0.12,0.185)};
+        std::vector<cv::Point2f> testPoints2D2 = {cv::Point2f(0.6,0.2), cv::Point2f(0.8,0.1), cv::Point2f(0.55,0.26), cv::Point2f(0.22,0.185)};
+
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        cout << "############### 2D POINTS SIZE: " << meanInliers1.size()  << "  ##################" << endl;
-        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, meanInliers1, meanInliers2, pointCloud);
+
+        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, testPoints2D1, testPoints2D2, pointCloud);
 
         if (goodPFound) {
 //            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
 //            std::cout << P1 << std::endl;
 //            std::cout << "############################################################" << std::endl;
 
-            cv::Mat PNew, RNew, TNew;
-            cv::decomposeProjectionMatrix(P1, PNew, RNew, TNew);
+            cv::Mat KNew, RNew, TNew;
+            cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew);
             double n = TNew.at<double>(3,0);
             double x = TNew.at<double>(0,0)/n;
             double y = TNew.at<double>(1,0)/n;

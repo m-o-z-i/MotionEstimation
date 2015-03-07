@@ -62,7 +62,9 @@ cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h,         
     return X;
 }
 
-
+/**
+ From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997
+ */
 cv::Mat_<double> LinearLSTriangulation(
         cv::Point3d u,//homogenous image point (u,v,1)
         cv::Matx34d P,//camera 1 matrix
@@ -116,13 +118,12 @@ void TriangulatePointsHZ(
         point2_h = um1.at<cv::Point3f>(0);
 
         //triangulate
-        //cv::Mat_<double> X = LinearLSTriangulation(point1_h, P0, point2_h, P1);
-        cv::Mat_<double> X = IterativeLinearLSTriangulation(point1_h, P0, point2_h, P1);
+        cv::Mat_<double> X = LinearLSTriangulation(point1_h, P0, point2_h, P1);
+        //cv::Mat_<double> X = IterativeLinearLSTriangulation(point1_h, P0, point2_h, P1);
 
         //store 3D point
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
     }
-
 }
 
 void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>& x0, const vector<cv::Point2f>& x1, vector<cv::Point3f>& result3D) {
@@ -169,7 +170,6 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>
         //cout << "2D Coordinates x: " << x0[i].x << ", " << x0[i].y << "  and  x': " << x1[i].x << ", " << x1[i].y << endl;
         //cout << "3D Coordinate  X: " << x/w << ", " << y/w << ", " << z/w <<  endl;
         //cout << "Homogeneous 3D Coordinate X : " << x << ", " << y << ", " << z << ", " << w << endl;
-
     }
 }
 

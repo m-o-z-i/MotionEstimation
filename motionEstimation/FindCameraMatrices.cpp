@@ -54,9 +54,15 @@ bool getRightProjectionMat(  cv::Mat& E,
         int counter = 0;
         std::vector<cv::Point3f> pcloud, pcloud1, worldCoordinates;
         double reproj_error1, reproj_error2;
+        bool foundPerspectiveMatrix = false;
 
         // find right solution of 4 possible translations and rotations
         for (unsigned int i = 0; i < 2; ++i) {
+
+            if (foundPerspectiveMatrix){
+                break;
+            }
+
             cv::Mat_<double> R = Rotations[i];
             if (!CheckCoherentRotation(R)) {
                 cout << "resulting rotation R is not coherent\n";
@@ -87,7 +93,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                 cv::Point2f avgReprojectionError1;
                 computeReprojectionError(P1, inliersF2, worldCoordinates, p1_r, p1_err, avgReprojectionError1);
                 cout << "STEREO: reprojection ERROR:  left:  " << cv::norm(avgReprojectionError) << "  right  " << cv::norm(avgReprojectionError1) << endl;
-                TestTriangulation(worldCoordinates,P1);
 
                 //triangulate OpenCV
                 TriangulateOpenCV( P0, P1, inliersF1, inliersF2, pcloud);
@@ -99,7 +104,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                 double reproj_err_L = calculateReprojectionErrorOpenCV(P0, K, distCoeff,inliersF1, pcloud);
                 double reproj_err_R = calculateReprojectionErrorOpenCV(P1, K, distCoeff,inliersF2, pcloud);
                 cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorOpenCV1) << " or " << reproj_err_L << "  right  " << cv::norm(avgReprojectionErrorOpenCV2) << " or " << reproj_err_R << endl;
-                TestTriangulation(pcloud,P1);
 
 
                 //triangulate Richard Hartley and Andrew Zisserman
@@ -112,11 +116,7 @@ bool getRightProjectionMat(  cv::Mat& E,
                 double reproj_error_L = calculateReprojectionErrorHZ(P0, K, inliersF1, pcloud1);
                 double reproj_error_R = calculateReprojectionErrorHZ(P1, K, inliersF2, pcloud1);
                 cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorHZ1) << " or " << reproj_error_L << "  right  " << cv::norm(avgReprojectionErrorHZ2) << " or " << reproj_error_R << endl;
-                TestTriangulation(pcloud1,P1);
 
-
-
-                //cout << "projection ERROR: CV:  " << reproj_error1 << "  other: " << reproj_error2  << "  stereo " << cv::norm(avgReprojectionError) << std::endl;
 
                 //determine if points are in front of both cameras
                 uint pointsInFront = 0;
@@ -134,52 +134,51 @@ bool getRightProjectionMat(  cv::Mat& E,
                     }
                 }
 
-                std::cout << "3D points in front " << pointsInFront << "   total 2D Points: " << inliersF1.size() << std::endl;
-                if (pointsInFront > (inliersF1.size()/2)) {
-                    // break;
-                }
-
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
-//                if (TestTriangulation(pcloud,P1) && reproj_error1 < 100.0) {
-//                    break;
-//                }
+                if (TestTriangulation(P0, pcloud1) && TestTriangulation(P1, pcloud1) && pointsInFront > (inliersF1.size()/2)) {
+                    cout << "############## use this perspective Matrix ################" << endl;
+                    std::cout << "3D points in front " << pointsInFront << " / " << inliersF1.size() << std::endl;
+                    foundPerspectiveMatrix = true;
+                    break;
+                }
                 ++counter;
             }
         }
 
         if (4 == counter) {
-            cout << "Shit." << endl;
+            cout << "Shit. Can't found any right perspective Mat" << endl;
             return false;
         }
 
-        for (unsigned int i=0; i<worldCoordinates.size(); i++) {
-            outCloud.push_back(worldCoordinates[i]);
+        for (unsigned int i=0; i<pcloud1.size(); i++) {
+            outCloud.push_back(pcloud1[i]);
         }
     }
 
     return true;
 }
 
-bool TestTriangulation(const std::vector<cv::Point3f>& pcloud_pt3d, const cv::Matx34f& P) {
-    vector<cv::Point3f> pcloud_pt3d_projected(pcloud_pt3d.size());
+bool TestTriangulation(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3D) {
+    vector<cv::Point3f> pcloud_pt3d_projected(points3D.size());
 
     cv::Matx44f P4x4 = cv::Matx44f::eye();
     for(int i=0;i<12;i++) P4x4.val[i] = P.val[i];
 
-    cv::perspectiveTransform(pcloud_pt3d, pcloud_pt3d_projected, P4x4);
+    cv::perspectiveTransform(points3D, pcloud_pt3d_projected, P4x4);
 
     // status of 3d points..infront=1 or behind=0
     vector<uchar> status;
-    for (unsigned int i=0; i<pcloud_pt3d.size(); i++) {
+    for (unsigned int i=0; i<points3D.size(); i++) {
         status.push_back((pcloud_pt3d_projected[i].z > 0) ? 1 : 0);
     }
     int count = cv::countNonZero(status);
 
-    double percentage = ((double)count / (double)pcloud_pt3d.size());
-    std::cout << count << "/" << pcloud_pt3d.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
-    if(percentage < 0.75)
-        return false; //less than 75% of the points are in front of the camera
-
+    double percentage = ((double)count / (double)points3D.size());
+    std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    if(percentage < 0.75){
+        //less than 75% of the points are in front of the camera
+        return false;
+    }
     return true;
 }
 

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-bool TestTriangulation(const vector<cv::Point3f>& pcloud_pt3d, const cv::Matx34f& P);
+bool TestTriangulation(const cv::Matx34f& P, const vector<cv::Point3f>& points3D);
 void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F);
 bool CheckCoherentRotation(const cv::Mat& R);
 bool DecomposeEtoRandT(const cv::Mat& E, cv::Mat_<double>& R1, cv::Mat_<double>& R2, cv::Mat_<double>& t1, cv::Mat_<double>& t2);

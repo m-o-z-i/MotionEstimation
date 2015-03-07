@@ -108,7 +108,7 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     }
 
     sort(directions.begin(), directions.end());
-    double median_angle = directions[(int)(directions.size()/2)];
+    double median_direction = directions[(int)(directions.size()/2)];
 
     sort(lengths.begin(),lengths.end());
     double median_lenght = lengths[(int)(lengths.size()/2)];
@@ -118,8 +118,8 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
         double direction = atan2( (double) features.first[i].y - features.second[i].y, (double) features.second[i].x - features.second[i].x );
         double length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
 
-        if (direction < median_angle + 2 && direction > median_angle - 2 ) {
-            if (length < (median_lenght*3) && length > 1.5 && length > median_lenght*0.1) {
+        if (direction < median_direction + 1 && direction > median_direction - 1 ) {
+            if (length < (median_lenght * 2) && length > (median_lenght * 0.5)) {
                 inliers1->push_back(features.first[i]);
                 inliers2->push_back(features.second[i]);
             }

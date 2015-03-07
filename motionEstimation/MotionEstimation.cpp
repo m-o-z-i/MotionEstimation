@@ -90,7 +90,10 @@ int main() {
         cv::Mat F;
         getFundamentalMatrix(corresPointsLtoR, &inliersF1, &inliersF2, F);
 
-        drawCorresPoints(frame1L, inliersF1, inliersF2, CV_RGB(255, 0, 0));
+        vector<cv::Point2f> meanInliers1, meanInliers2;
+        getInliersFromMeanValue(corresPointsLtoR, &meanInliers1, &meanInliers2);
+
+        drawCorresPoints(frame1L, meanInliers1, meanInliers2, CV_RGB(255, 0, 0));
 
         // get calibration Matrix K
         cv::Mat K, distCoeff;
@@ -122,23 +125,27 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, inliersF1, inliersF2, P1, pointCloud);
+        cout << "############### 2D POINTS SIZE: " << meanInliers1.size()  << "  ##################" << endl;
+        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, meanInliers1, meanInliers2, pointCloud);
 
-//        if (goodPFound) {
+        if (goodPFound) {
 //            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
 //            std::cout << P1 << std::endl;
 //            std::cout << "############################################################" << std::endl;
-//        }
+
+            cv::Mat PNew, RNew, TNew;
+            cv::decomposeProjectionMatrix(P1, PNew, RNew, TNew);
+            double n = TNew.at<double>(3,0);
+            double x = TNew.at<double>(0,0)/n;
+            double y = TNew.at<double>(1,0)/n;
+            double z = TNew.at<double>(2,0)/n;
+
+            // cout << "cameraPos: [" << x << ", " << y << ", " << z << "]"<< endl;
+        } else {
+            // cout << "no motion found" << endl;
+        }
 
 
-        cv::Mat PNew, RNew, TNew;
-        cv::decomposeProjectionMatrix(P1, PNew, RNew, TNew);
-        double n = TNew.at<double>(3,0);
-        double x = TNew.at<double>(0,0);
-        double y = TNew.at<double>(1,0);
-        double z = TNew.at<double>(2,0);
-
-        cout << "3D Points:  w: " << n << "  coords: [" << x << ", " << y << ", " << z << "]"<< endl;
 
 
         ++frame;

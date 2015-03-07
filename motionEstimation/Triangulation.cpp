@@ -1,11 +1,11 @@
 #include "Triangulation.h"
 
-double TriangulateOpenCV(const cv::Mat K,
-                         const cv::Mat distCoeff,
+double TriangulateOpenCV(cv::Mat& P0,
+                         cv::Mat& P1,
                          const vector<cv::Point2f>& inliersF1,
                          const vector<cv::Point2f>& inliersF2,
-                         cv::Mat& P0,
-                         cv::Mat& P1,
+                         const cv::Mat K,
+                         const cv::Mat distCoeff,
                          std::vector<cv::Point3f>& outCloud)
 {
     vector<double> reproj_error;
@@ -119,12 +119,12 @@ cv::Mat_<double> LinearLSTriangulation(
 
 //http://pastebin.com/UE6YW39J
 double TriangulatePoints(
+        const cv::Matx34f& P0,
+        const cv::Matx34f& P1,
         const vector<cv::Point2f>& points1,
         const vector<cv::Point2f>& points2,
         const cv::Mat& K,
         const cv::Mat& Kinv,
-        const cv::Matx34f& P0,
-        const cv::Matx34f& P1,
         vector<cv::Point3f>& pointcloud)
 {
     vector<double> reproj_error;
@@ -161,7 +161,7 @@ double TriangulatePoints(
 }
 
 
-void triangulate(cv::Mat& P0, cv::Mat& P1, vector<cv::Point2f>& x0, vector<cv::Point2f>& x1, vector<cv::Point3f>& result3D) {
+void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>& x0, const vector<cv::Point2f>& x1, vector<cv::Point3f>& result3D) {
     assert(x0.size() == x1.size());
     result3D.clear();
 
@@ -209,11 +209,17 @@ void triangulate(cv::Mat& P0, cv::Mat& P1, vector<cv::Point2f>& x0, vector<cv::P
     }
 }
 
-void computeReprojectionError(cv::Mat& P, vector<cv::Point2f>& p, vector<cv::Point3f>& worldCoordinates, vector<cv::Point3f>& pReprojected, vector<cv::Point2f>& reprojectionErrors, cv::Point2f& avgReprojectionError) {
-    assert(p.size() == worldCoordinates.size());
+void computeReprojectionError(const cv::Mat& P,
+                              const vector<cv::Point2f>& points,
+                              const vector<cv::Point3f>& worldCoordinates,
+                              vector<cv::Point3f>& pReprojected,
+                              vector<cv::Point2f>& reprojectionErrors,
+                              cv::Point2f& avgReprojectionError)
+{
+    assert(points.size() == worldCoordinates.size());
 
     //for all points...
-    for(uint i = 0; i < p.size(); i++) {
+    for(uint i = 0; i < points.size(); i++) {
 
         //build homogeneous coordinate for projection
         cv::Mat WorldCoordinate_h = cv::Mat(4, 1, CV_64FC1);
@@ -233,8 +239,8 @@ void computeReprojectionError(cv::Mat& P, vector<cv::Point2f>& p, vector<cv::Poi
         pReprojected.push_back(cv::Point3f(x_r, y_r, w)); //reprojected cartesian image coordinate with depth value
 
         //calculate actual reprojection error
-        float deltaX = (float)fabs(p[i].x - x_r);
-        float deltaY = (float)fabs(p[i].y - y_r);
+        float deltaX = (float)fabs(points[i].x - x_r);
+        float deltaY = (float)fabs(points[i].y - y_r);
         reprojectionErrors.push_back(cv::Point2f(deltaX, deltaY));
     }
 

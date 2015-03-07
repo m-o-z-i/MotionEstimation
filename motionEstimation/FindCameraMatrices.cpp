@@ -6,9 +6,9 @@ bool getRightProjectionMat(  cv::Mat& E,
                              const cv::Mat K,
                              const cv::Mat KInv,
                              const cv::Mat distCoeff,
-                             vector<cv::Point2f>& inliersF1,
-                             vector<cv::Point2f>& inliersF2,
                              cv::Mat& P1,
+                             const vector<cv::Point2f>& inliersF1,
+                             const vector<cv::Point2f>& inliersF2,
                              std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
@@ -19,7 +19,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                   0.0, 0.0, 1.0, 0.0 );
     P0 = K * P0;
 
-    //projection matrix of second camera: P1  = K[R|t]
 
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
@@ -68,26 +67,42 @@ bool getRightProjectionMat(  cv::Mat& E,
             for (unsigned int j = 0; j < 2; ++j) {
                 pcloud.clear(); pcloud1.clear(); worldCoordinates.clear();
                 cv::Mat_<double> T = Translations[j];
-                cout << "Testing P"<< i<<j<< endl;
+                cout << "************ Testing P"<< i<<j<< " **************" << endl;
 
+                //projection matrix of second camera: P1  = K[R|t]
                 P1 = (cv::Mat_<double>(3,4) <<
                       R(0,0),	R(0,1),	R(0,2),	T(0),
                       R(1,0),	R(1,1),	R(1,2),	T(1),
                       R(2,0),	R(2,1),	R(2,2),	T(2));
 
                 //triangulate
-                cv::Mat P1_Mat(P1);
-                triangulate(P0, P1_Mat, inliersF1, inliersF2, worldCoordinates);
+                triangulate(P0, cv::Mat(P1), inliersF1, inliersF2, worldCoordinates);
 
-//                reproj_error1 = TriangulateOpenCV(K, distCoeff, inliersF1, inliersF2, P0, P1, pcloud);
-//                reproj_error2 = TriangulatePoints(inliersF1, inliersF2,K, KInv, P0, P1, pcloud1);
+                reproj_error1 = TriangulateOpenCV( P0, P1, inliersF1, inliersF2, K, distCoeff, pcloud);
+                reproj_error2 = TriangulatePoints( P0, P1, inliersF1, inliersF2, K, KInv, pcloud1);
 
                 //calculate reprojection error
-                vector<cv::Point3f> p0_r, p1_r;        //reprojected cartesian image coordinate with depth value
+                vector<cv::Point3f> p0_r, p1_r;         //reprojected cartesian image coordinate with depth value
                 vector<cv::Point2f> p0_err, p1_err;     //difference between original and reprojected 2D coordinates
                 cv::Point2f avgReprojectionError;
                 computeReprojectionError(P0, inliersF1, worldCoordinates, p0_r, p0_err, avgReprojectionError);
-                computeReprojectionError(P1, inliersF2, worldCoordinates, p1_r, p1_err, avgReprojectionError);
+                cout << "STEREO: LEFT: reprojectionError1: " << cv::norm(avgReprojectionError) << endl;
+
+                cv::Point2f avgReprojectionError1;
+                computeReprojectionError(P1, inliersF2, worldCoordinates, p1_r, p1_err, avgReprojectionError1);
+                cout << "STEREO: RIGHT: reprojectionError2: " << cv::norm(avgReprojectionError1) << endl;
+
+                cv::Point2f avgReprojectionErrorOpenCV;
+                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
+                computeReprojectionError(P0, inliersF1, pcloud, p0_r, p0_err, avgReprojectionErrorOpenCV);
+                computeReprojectionError(P1, inliersF2, pcloud, p1_r, p1_err, avgReprojectionErrorOpenCV);
+                cout << "OPENCV: reprojection ERROR: " << reproj_error1 << "  NORM: " <<  cv::norm(avgReprojectionErrorOpenCV) << endl;
+
+                cv::Point2f avgReprojectionErrorHZ;
+                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
+                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ);
+                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ);
+                cout << "H.Z: reprojection ERROR: " << reproj_error2 << "  NORM: " <<  cv::norm(avgReprojectionErrorHZ) << endl;
 
                 //cout << "projection ERROR: CV:  " << reproj_error1 << "  other: " << reproj_error2  << "  stereo " << cv::norm(avgReprojectionError) << std::endl;
 
@@ -107,9 +122,9 @@ bool getRightProjectionMat(  cv::Mat& E,
                     }
                 }
 
-                std::cout << "points in front " << pointsInFront << std::endl;
-                if (pointsInFront > (inliersF1.size()/4)) {
-                    break;
+                std::cout << "3D points in front " << pointsInFront << "   total 2D Points: " << inliersF1.size() << std::endl;
+                if (pointsInFront > (inliersF1.size()/2)) {
+                    // break;
                 }
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop

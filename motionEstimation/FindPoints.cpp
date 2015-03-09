@@ -84,8 +84,8 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat
     vector<cv::Point2f>::iterator iter_f2 = frame2_features.begin();
     for (unsigned i = 0; i < frame1_features.size(); ++i){
         if ( optical_flow_found_feature[i] == 0 ){
-            frame1_features.erase(iter_f1);
-            frame2_features.erase(iter_f2);
+            frame1_features[i] = cv::Point2f(0,0);
+            frame2_features[i] = cv::Point2f(0,0);
         }
         ++iter_f1;
         ++iter_f2;
@@ -122,8 +122,65 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
             inliers1->push_back(features.first[j]);
             inliers2->push_back(features.second[j]);
         } else {
-            //inliers1->push_back(cv::Point2f(0,0));
-            //inliers2->push_back(cv::Point2f(0,0));
+            inliers1->push_back(cv::Point2f(0,0));
+            inliers2->push_back(cv::Point2f(0,0));
         }
     }
 }
+
+
+void deleteZeroLines(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2 ){
+    int size = corresPoints1to2.first.size();
+    // iterate over all points and delete points, that are not in all frames;
+    vector<cv::Point2f>::iterator iter_c1a = corresPoints1to2.first.begin();
+    vector<cv::Point2f>::iterator iter_c1b = corresPoints1to2.second.begin();
+    vector<cv::Point2f>::iterator iter_c2a = corresPointsL1toR1.first.begin();
+    vector<cv::Point2f>::iterator iter_c2b = corresPointsL1toR1.second.begin();
+    vector<cv::Point2f>::iterator iter_c3a = corresPointsL2toR2.first.begin();
+    vector<cv::Point2f>::iterator iter_c3b = corresPointsL2toR2.second.begin();
+    for (unsigned int i = 0; i < size ; ++i ) {
+        if (0 == corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   && 0 == corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
+            0 == corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x && 0 == corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
+            0 == corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x && 0 == corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
+            0 == corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   && 0 == corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
+            0 == corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x && 0 == corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
+            0 == corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x && 0 == corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ) {
+            corresPoints1to2.first.erase(iter_c1a);
+            corresPoints1to2.second.erase(iter_c1b);
+            corresPointsL1toR1.first.erase(iter_c2a);
+            corresPointsL1toR1.second.erase(iter_c2b);
+            corresPointsL2toR2.first.erase(iter_c3a);
+            corresPointsL2toR2.second.erase(iter_c3b);
+        } else {
+            ++iter_c1a;
+            ++iter_c1b;
+            ++iter_c2a;
+            ++iter_c2b;
+            ++iter_c3a;
+            ++iter_c3b;
+        }
+    }
+}
+
+void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2){
+    int size = points1.size();
+    vector<cv::Point2f>::iterator iter_p1 = points1.begin();
+    vector<cv::Point2f>::iterator iter_p2 = points2.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if ((0 == points1[iter_p1-points1.begin()].x && 0 == points1[iter_p1-points1.begin()].y) ||
+            (0 == points2[iter_p2-points2.begin()].x && 0 == points2[iter_p2-points2.begin()].y)){
+            std::cout <<"delete: " << i << "   size: " << points1.size() << endl;
+            points1.erase(iter_p1);
+            points2.erase(iter_p2);
+        } else {
+            ++iter_p1;
+            ++iter_p2;
+        }
+    }
+}
+
+
+
+
+
+

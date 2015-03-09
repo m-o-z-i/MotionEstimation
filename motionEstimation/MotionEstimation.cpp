@@ -69,6 +69,7 @@ int main() {
             continue;
         }
 
+
         //drawAllStuff(mat_image11, mat_image12, mat_image21, mat_image22, frame);
 
         // ************************************
@@ -83,17 +84,22 @@ int main() {
         // find corresponding points
         vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,5);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsLtoR = refindFeaturePoints(frame1L, frame1R, features);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
+
+        deleteZeroLines(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2);
 
         // compute fundemental matrix F
-        vector<cv::Point2f> inliersF1, inliersF2;
+        vector<cv::Point2f> inliersFL1, inliersFR1;
         cv::Mat F;
-        getFundamentalMatrix(corresPointsLtoR, &inliersF1, &inliersF2, F);
+        getFundamentalMatrix(corresPointsL1toR1, &inliersFL1, &inliersFR1, F);
 
-        vector<cv::Point2f> meanInliers1, meanInliers2;
-        getInliersFromMeanValue(corresPointsLtoR, &meanInliers1, &meanInliers2);
+        vector<cv::Point2f> medianInliersL1, medianInliersR1;
+        getInliersFromMeanValue(corresPointsL1toR1, &medianInliersL1, &medianInliersR1);
 
-        drawCorresPoints(frame1L, meanInliers1, meanInliers2, CV_RGB(255, 0, 0));
+        deleteZeroLines(medianInliersL1, medianInliersR1);
+
+        drawCorresPoints(frame1L, medianInliersL1, medianInliersR1, CV_RGB(255, 0, 0));
 
         // get calibration Matrix K
         cv::Mat K, distCoeff;
@@ -109,11 +115,14 @@ int main() {
           fs2["F"] >> FTest;
           fs2.release();
 
+         drawEpipolarLines(frame1L, frame1R, medianInliersL1, medianInliersR1, F);
+
         // get inverse K
         cv::Mat KInv;
         cv::invert(K, KInv);
 
         // calculate essential mat
+        // E = K_l.t() * F * K_r
         cv::Mat E = K.t() * F * K; //according to HZ (9.12)
 
 //        std::cout << "EssentialMat \n" << E << std::endl;
@@ -128,7 +137,7 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, meanInliers1, meanInliers2, pointCloud);
+        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, medianInliersL1, medianInliersR1, pointCloud);
 
         if (goodPFound) {
 //            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
@@ -148,7 +157,7 @@ int main() {
         }
 
         cv::Mat_<double> rvec, t, R;
-        findPoseEstimation(rvec,t,R,pointCloud,meanInliers2, K, distCoeff);
+        //findPoseEstimation(rvec,t,R,pointCloud,medianInliersR2, K, distCoeff);
 
         ++frame;
         cvWaitKey(0);

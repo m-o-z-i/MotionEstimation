@@ -51,6 +51,9 @@ char key;
 
 int main() {
     int frame=1;
+
+    int resX = 752;
+    int resY = 480;
     while(true)
     {
         //stereo1
@@ -82,24 +85,23 @@ int main() {
         // 5. recover Pose (need newer version of calib3d)
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,5);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.1,0.1);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
 
-        deleteZeroLines(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2);
+        deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2, resX, resY);
+
+        vector<cv::Point2f> medianInliersL1, medianInliersR1;
+        getInliersFromMeanValue(corresPointsL1toR1, &medianInliersL1, &medianInliersR1);
+        deleteUnvisiblePoints(medianInliersL1, medianInliersR1, resX, resY);
 
         // compute fundemental matrix F
         vector<cv::Point2f> inliersFL1, inliersFR1;
         cv::Mat F;
-        getFundamentalMatrix(corresPointsL1toR1, &inliersFL1, &inliersFR1, F);
+        getFundamentalMatrix(make_pair(medianInliersL1,medianInliersR1), &inliersFL1, &inliersFR1, F);
 
-        vector<cv::Point2f> medianInliersL1, medianInliersR1;
-        getInliersFromMeanValue(corresPointsL1toR1, &medianInliersL1, &medianInliersR1);
-
-        deleteZeroLines(medianInliersL1, medianInliersR1);
-
-        drawCorresPoints(frame1L, medianInliersL1, medianInliersR1, CV_RGB(255, 0, 0));
+        drawCorresPoints(frame1L, corresPointsL1toR1.first, corresPointsL1toR1.second, CV_RGB(255, 0, 0));
 
         // get calibration Matrix K
         cv::Mat K, distCoeff;
@@ -115,7 +117,7 @@ int main() {
           fs2["F"] >> FTest;
           fs2.release();
 
-         drawEpipolarLines(frame1L, frame1R, medianInliersL1, medianInliersR1, F);
+        drawEpipolarLines(frame1L, frame1R, medianInliersL1, medianInliersR1, F);
 
         // get inverse K
         cv::Mat KInv;

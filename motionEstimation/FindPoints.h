@@ -14,6 +14,6 @@ std::vector<cv::Point2f> getStrongFeaturePoints (cv::Mat const& image, int numbe
 pair<vector<cv::Point2f>, vector<cv::Point2f> > refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features);
 
 void getInliersFromMeanValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> const& features, vector<cv::Point2f> *inliers2, vector<cv::Point2f> *inliers1);
-void deleteZeroLines(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2 );
-void deleteZeroLines(vector<cv::Point2f> &points1, vector<cv::Point2f> &points2);
+void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2, int resX, int resY);
+void deleteUnvisiblePoints(vector<cv::Point2f> &points1, vector<cv::Point2f> &points2, int resX, int resY);
 #endif // FINDPOINTS_H

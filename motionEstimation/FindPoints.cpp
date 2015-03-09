@@ -129,9 +129,9 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
 }
 
 
-void deleteZeroLines(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2 ){
+void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2, int resX, int resY ){
     int size = corresPoints1to2.first.size();
-    // iterate over all points and delete points, that are not in all frames;
+    // iterate over all points and delete points, that are not in all frames visible;
     vector<cv::Point2f>::iterator iter_c1a = corresPoints1to2.first.begin();
     vector<cv::Point2f>::iterator iter_c1b = corresPoints1to2.second.begin();
     vector<cv::Point2f>::iterator iter_c2a = corresPointsL1toR1.first.begin();
@@ -139,12 +139,31 @@ void deleteZeroLines(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoint
     vector<cv::Point2f>::iterator iter_c3a = corresPointsL2toR2.first.begin();
     vector<cv::Point2f>::iterator iter_c3b = corresPointsL2toR2.second.begin();
     for (unsigned int i = 0; i < size ; ++i ) {
-        if (0 == corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   && 0 == corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
-            0 == corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x && 0 == corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
-            0 == corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x && 0 == corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
-            0 == corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   && 0 == corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
-            0 == corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x && 0 == corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
-            0 == corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x && 0 == corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ) {
+        if (0 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
+            0 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
+            0 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
+            0 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
+            0 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
+            0 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
+            0 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
+            0 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
+            0 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
+            0 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
+            0 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
+            0 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ||
+
+            resX <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
+            resY <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
+            resX <= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
+            resY <= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
+            resX <= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
+            resY <= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
+            resX <= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
+            resY <= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
+            resX <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
+            resY <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
+            resX <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
+            resY <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ) {
             corresPoints1to2.first.erase(iter_c1a);
             corresPoints1to2.second.erase(iter_c1b);
             corresPointsL1toR1.first.erase(iter_c2a);
@@ -162,14 +181,13 @@ void deleteZeroLines(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoint
     }
 }
 
-void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2){
+void deleteUnvisiblePoints(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2, int resX, int resY){
     int size = points1.size();
     vector<cv::Point2f>::iterator iter_p1 = points1.begin();
     vector<cv::Point2f>::iterator iter_p2 = points2.begin();
     for (unsigned int i = 0; i < size; ++i) {
         if ((0 == points1[iter_p1-points1.begin()].x && 0 == points1[iter_p1-points1.begin()].y) ||
             (0 == points2[iter_p2-points2.begin()].x && 0 == points2[iter_p2-points2.begin()].y)){
-            std::cout <<"delete: " << i << "   size: " << points1.size() << endl;
             points1.erase(iter_p1);
             points2.erase(iter_p2);
         } else {

@@ -28,12 +28,12 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
     drawPoints(mat_image12, inliersM2, "1_inliers by mean in right image", cv::Scalar(0,255,0));
 
 
-    drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2);
 
     // get inliers from fundamental mat
     vector<cv::Point2f> inliersF1, inliersF2;
     cv::Mat F;
     getFundamentalMatrix(corresPoints1, &inliersF1, &inliersF2, F);
+    drawEpipolarLines(mat_image11, mat_image12, inliersM1, inliersM2, F );
     std::cout << "deltete  " << corresPoints1.first.size() - inliersF1.size() << " outliers Points from fumdamentalmatrix " << std::endl;
     drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
 
@@ -56,7 +56,7 @@ void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar
         {
             const cv::Point2f& fxy = flow.at<cv::Point2f>(y, x);
             cv::line(cflowmap, cv::Point(x,y), cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)),
-                 color);
+                     color);
             cv::circle(cflowmap, cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), 1, color, -1);
         }
     }
@@ -117,77 +117,61 @@ void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> co
     //cv::waitKey();
 }
 
-void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2) {
-    cv::Mat mat_color1;
-    cv::Mat mat_color2;
+void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, cv::Mat F) {
+    std::vector<uchar> inliers_fundamental(points1.size(),0);
+    std::vector<cv::Vec3f> lines1;
+    cv::computeCorrespondEpilines(cv::Mat(points1),1,F,lines1);
+    for (vector<cv::Vec3f>::const_iterator it= lines1.begin();
+         it!=lines1.end(); ++it) {
 
-    cv::cvtColor(frame1, mat_color1, CV_GRAY2RGB);
-    cv::cvtColor(frame2, mat_color2, CV_GRAY2RGB);
-
-    // Compute F matrix using RANSAC
-    if (points1.size()>10 && points2.size()>10){
-        std::cout << "fundamental: " << points1.size() << " " << points2.size() << " " << cv::Mat(points1).rows << std::endl;
-        std::vector<uchar> inliers_fundamental(points1.size(),0);
-        cv::Mat fundemental = cv::findFundamentalMat(
-                              cv::Mat(points1), cv::Mat(points2),   // matching points
-                              inliers_fundamental,                  // match status (inlier ou outlier)
-                              cv::FM_RANSAC,                          // RANSAC method
-                              1,                                    // distance to epipolar line
-                              0.98);                                // confidence probability
-
-        std::vector<cv::Vec3f> lines1;
-        cv::computeCorrespondEpilines(cv::Mat(points1),1,fundemental,lines1);
-        for (vector<cv::Vec3f>::const_iterator it= lines1.begin();
-             it!=lines1.end(); ++it) {
-
-                 cv::line(frame2,cv::Point(0,-(*it)[2]/(*it)[1]),
-                                 cv::Point(frame2.cols,-((*it)[2]+(*it)[0]*frame2.cols)/(*it)[1]),
-                                 cv::Scalar(255,255,255));
-        }
-
-        std::vector<cv::Vec3f> lines2;
-        cv::computeCorrespondEpilines(cv::Mat(points2),2,fundemental,lines2);
-        for (vector<cv::Vec3f>::const_iterator it= lines2.begin();
-             it!=lines2.end(); ++it) {
-
-                 cv::line(frame1,cv::Point(0,-(*it)[2]/(*it)[1]),
-                                 cv::Point(frame1.cols,-((*it)[2]+(*it)[0]*frame1.cols)/(*it)[1]),
-                                 cv::Scalar(255,255,255));
-        }
-
-        // Draw the inlier points
-        std::vector<cv::Point2f> points1In, points2In;
-        std::vector<cv::Point2f>::const_iterator itPts= points1.begin();
-        std::vector<uchar>::const_iterator itIn= inliers_fundamental.begin();
-        while (itPts!=points1.end()) {
-
-            // draw a circle at each inlier location
-            if (*itIn ) {
-                cv::circle(frame1,*itPts,3,cv::Scalar(0,255,0),2);
-                points1In.push_back(*itPts);
-            }
-            ++itPts;
-            ++itIn;
-        }
-
-        itPts= points2.begin();
-        itIn= inliers_fundamental.begin();
-        while (itPts!=points2.end()) {
-
-            // draw a circle at each inlier location
-            if (*itIn) {
-                cv::circle(frame2,*itPts,3,cv::Scalar(0,255,0),2);
-                points2In.push_back(*itPts);
-            }
-            ++itPts;
-            ++itIn;
-        }
-
-        // Display the images with points
-        cv::imshow("Right Image Epilines (RANSAC)",frame1);
-        cv::imshow("Left Image Epilines (RANSAC)",frame2);
+        cv::line(frame2,cv::Point(0,-(*it)[2]/(*it)[1]),
+                cv::Point(frame2.cols,-((*it)[2]+(*it)[0]*frame2.cols)/(*it)[1]),
+                cv::Scalar(255,255,255));
     }
+
+    std::vector<cv::Vec3f> lines2;
+    cv::computeCorrespondEpilines(cv::Mat(points2),2,F,lines2);
+    for (vector<cv::Vec3f>::const_iterator it= lines2.begin();
+         it!=lines2.end(); ++it) {
+
+        cv::line(frame1,cv::Point(0,-(*it)[2]/(*it)[1]),
+                cv::Point(frame1.cols,-((*it)[2]+(*it)[0]*frame1.cols)/(*it)[1]),
+                cv::Scalar(255,255,255));
+    }
+
+    // Draw the inlier points
+    std::vector<cv::Point2f> points1In, points2In;
+    std::vector<cv::Point2f>::const_iterator itPts= points1.begin();
+    std::vector<uchar>::const_iterator itIn= inliers_fundamental.begin();
+    while (itPts!=points1.end()) {
+
+        // draw a circle at each inlier location
+        if (*itIn ) {
+            cv::circle(frame1,*itPts,3,cv::Scalar(0,255,0),2);
+            points1In.push_back(*itPts);
+        }
+        ++itPts;
+        ++itIn;
+    }
+
+    itPts= points2.begin();
+    itIn= inliers_fundamental.begin();
+    while (itPts!=points2.end()) {
+
+        // draw a circle at each inlier location
+        if (*itIn) {
+            cv::circle(frame2,*itPts,3,cv::Scalar(0,255,0),2);
+            points2In.push_back(*itPts);
+        }
+        ++itPts;
+        ++itIn;
+    }
+
+    // Display the images with points
+    cv::imshow("Right Image Epilines (RANSAC)",frame1);
+    cv::imshow("Left Image Epilines (RANSAC)",frame2);
 }
+
 
 void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color) {
     // convert grayscale to color image

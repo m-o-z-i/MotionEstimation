@@ -132,6 +132,11 @@ void TriangulatePointsHZ(
         cv::Mat_<double> X = IterativeLinearLSTriangulation(u,P0,u1,P1);
 
         pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
+        if (0 == points1[i].x && 0 == points1[i].y && 0 == points2[i].x && 0 == points2[i].y){
+            // for outlier push empty zero points in pointcloud
+            //pointcloud.push_back(cv::Point3f(0,0,0));
+        } else {
+        }
     }
 }
 

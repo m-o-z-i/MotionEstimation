@@ -19,8 +19,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                   0.0, 0.0, 1.0, 0.0 );
     P0 = K * P0;
 
-
-
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
     if(fabsf(determinant(E)) > 1e-03) {
         cout << "det(E) != 0 : " << determinant(E) << "\n";
@@ -83,6 +81,7 @@ bool getRightProjectionMat(  cv::Mat& E,
 
                 P1 = K*P1;
 
+#if 0 //triangulations methods
                 //triangulate Stereo
                 triangulate(P0, P1, inliersF1, inliersF2, worldCoordinates);
                 //calculate reprojection error
@@ -104,40 +103,39 @@ bool getRightProjectionMat(  cv::Mat& E,
                 double reproj_err_L = calculateReprojectionErrorOpenCV(P0, K, distCoeff,inliersF1, pcloud);
                 double reproj_err_R = calculateReprojectionErrorOpenCV(P1, K, distCoeff,inliersF2, pcloud);
                 cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorOpenCV1) << " or " << reproj_err_L << "  right  " << cv::norm(avgReprojectionErrorOpenCV2) << " or " << reproj_err_R << endl;
-
+#endif
 
                 //triangulate Richard Hartley and Andrew Zisserman
                 TriangulatePointsHZ( P0, P1, inliersF1, inliersF2, KInv, pcloud1);
-                cv::Point2f avgReprojectionErrorHZ1;
-                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
-                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ1);
-                cv::Point2f avgReprojectionErrorHZ2;
-                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ2);
+//                cv::Point2f avgReprojectionErrorHZ1;
+//                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
+//                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ1);
+//                cv::Point2f avgReprojectionErrorHZ2;
+//                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ2);
                 double reproj_error_L = calculateReprojectionErrorHZ(P0, K, inliersF1, pcloud1);
                 double reproj_error_R = calculateReprojectionErrorHZ(P1, K, inliersF2, pcloud1);
-                cout << "OPENCV: reprojection ERROR:  left:  " <<  cv::norm(avgReprojectionErrorHZ1) << " or " << reproj_error_L << "  right  " << cv::norm(avgReprojectionErrorHZ2) << " or " << reproj_error_R << endl;
+                cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
 
 
                 //determine if points are in front of both cameras
-                uint pointsInFront = 0;
-                for(uint i = 0; i < inliersF1.size(); i++) {
-                    //cout << "Point " << i << ":\n";
-                    //cout << "Original 2D coordinate: p: " << p0[i].x << ", " << p0[i].y << "  and  p': " << p1[i].x << ", " << p1[i].y << endl;
-                    //cout << "3D coordinate:  X: " << worldCoordinates[i].x << ", " << worldCoordinates[i].y << ", " << worldCoordinates[i].z <<  endl;
-                    //cout << "Reprojected 2D coordinates: x: " << p0_r[i].x << ", " << p0_r[i].y << "  and  x': " << p1_r[i].x << ", " << p1_r[i].y << "  depth0: " << p0_r[i].z << ", depth1: " << p1_r[i].z << endl;
-                    //cout << "Reprojection error: " << p0_err[i].x << ", " << p0_err[i].y <<  "  and  x': " << p1_err[i].x << ", " << p1_err[i].y << endl;
+//                uint pointsInFront = 0;
+//                for(uint i = 0; i < inliersF1.size(); i++) {
+//                    //cout << "Point " << i << ":\n";
+//                    //cout << "Original 2D coordinate: p: " << p0[i].x << ", " << p0[i].y << "  and  p': " << p1[i].x << ", " << p1[i].y << endl;
+//                    //cout << "3D coordinate:  X: " << worldCoordinates[i].x << ", " << worldCoordinates[i].y << ", " << worldCoordinates[i].z <<  endl;
+//                    //cout << "Reprojected 2D coordinates: x: " << p0_r[i].x << ", " << p0_r[i].y << "  and  x': " << p1_r[i].x << ", " << p1_r[i].y << "  depth0: " << p0_r[i].z << ", depth1: " << p1_r[i].z << endl;
+//                    //cout << "Reprojection error: " << p0_err[i].x << ", " << p0_err[i].y <<  "  and  x': " << p1_err[i].x << ", " << p1_err[i].y << endl;
 
-                    double depth0 = p0_r[i].z; //depth information from homogeneous coordinate w (z-buffer style)
-                    double depth1 = p1_r[i].z;
-                    if (depth0 > 0 && depth1 > 0) { //valid camera configuration
-                        pointsInFront++;;
-                    }
-                }
+//                    double depth0 = p0_r[i].z; //depth information from homogeneous coordinate w (z-buffer style)
+//                    double depth1 = p1_r[i].z;
+//                    if (depth0 > 0 && depth1 > 0) { //valid camera configuration
+//                        pointsInFront++;;
+//                    }
+//                }
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
-                if (TestTriangulation(P0, pcloud1) && TestTriangulation(P1, pcloud1) && pointsInFront > (inliersF1.size()/2)) {
+                if (TestTriangulation(P0, pcloud1) && TestTriangulation(P1, pcloud1)) {
                     cout << "############## use this perspective Matrix ################" << endl;
-                    std::cout << "3D points in front " << pointsInFront << " / " << inliersF1.size() << std::endl;
                     foundPerspectiveMatrix = true;
                     break;
                 }
@@ -175,7 +173,7 @@ bool TestTriangulation(const cv::Matx34f& P, const std::vector<cv::Point3f>& poi
 
     double percentage = ((double)count / (double)points3D.size());
     std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
-    if(percentage < 0.75){
+    if(percentage < 0.55){
         //less than 75% of the points are in front of the camera
         return false;
     }
@@ -284,8 +282,9 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
         if (inliers_fundamental[i] == 1) {
             inliers1->push_back(points.first[i]);
             inliers2->push_back(points.second[i]);
-            //p1.push_back(points.first[i]);
-            //p2.push_back(points.second[i]);
+        } else {
+            //inliers1->push_back(cv::Point2f(0,0));
+            //inliers2->push_back(cv::Point2f(0,0));
         }
     }
     // check x' * F * x = 0 ??

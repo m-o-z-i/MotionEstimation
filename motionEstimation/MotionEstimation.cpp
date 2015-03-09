@@ -128,7 +128,6 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-
         bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, meanInliers1, meanInliers2, pointCloud);
 
         if (goodPFound) {
@@ -136,17 +135,20 @@ int main() {
 //            std::cout << P1 << std::endl;
 //            std::cout << "############################################################" << std::endl;
 
-            cv::Mat KNew, RNew, TNew;
-            cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew);
+            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
+            cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
             double n = TNew.at<double>(3,0);
             double x = TNew.at<double>(0,0)/n;
             double y = TNew.at<double>(1,0)/n;
             double z = TNew.at<double>(2,0)/n;
 
-            // cout << "cameraPos: [" << x << ", " << y << ", " << z << "]"<< endl;
+            //cout << "cameraPos: [" << x << ", " << y << ", " << z << "]   rotation: " << EulerRot << endl;
         } else {
             // cout << "no motion found" << endl;
         }
+
+        cv::Mat_<double> rvec, t, R;
+        findPoseEstimation(rvec,t,R,pointCloud,meanInliers2, K, distCoeff);
 
         ++frame;
         cvWaitKey(0);

@@ -59,7 +59,7 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat
      * work pretty well in many situations.
      */
     cv::TermCriteria optical_flow_termination_criteria
-        = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, .3 );
+            = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, .3 );
 
     /* Actually run Pyramidal Lucas Kanade Optical Flow!!
      * "prev_image" is the first frame with the known features. pyramid constructed by buildOpticalFlowPyramid()
@@ -118,11 +118,12 @@ void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f
     {
         double direction = atan2( (double) (features.first[j].y - features.second[j].y) , (double) (features.first[j].x - features.second[j].x) );
         double length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
-        if (direction < median_direction + 0.05 && direction > median_direction - 0.05 ) {
-            if (length < (median_lenght * 2) && length > (median_lenght * 0.5)) {
-                inliers1->push_back(features.first[j]);
-                inliers2->push_back(features.second[j]);
-            }
+        if (direction < median_direction + 0.05 && direction > median_direction - 0.05 && length < (median_lenght * 2) && length > (median_lenght * 0.5) ) {
+            inliers1->push_back(features.first[j]);
+            inliers2->push_back(features.second[j]);
+        } else {
+            //inliers1->push_back(cv::Point2f(0,0));
+            //inliers2->push_back(cv::Point2f(0,0));
         }
     }
 }

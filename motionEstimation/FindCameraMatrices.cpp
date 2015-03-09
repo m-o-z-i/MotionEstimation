@@ -7,8 +7,8 @@ bool getRightProjectionMat(  cv::Mat& E,
                              const cv::Mat KInv,
                              const cv::Mat distCoeff,
                              cv::Mat& P1,
-                             const vector<cv::Point2f>& inliersF1,
-                             const vector<cv::Point2f>& inliersF2,
+                             const vector<cv::Point2f>& points2D_1,
+                             const vector<cv::Point2f>& points2D_2,
                              std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
@@ -71,7 +71,7 @@ bool getRightProjectionMat(  cv::Mat& E,
             for (unsigned int j = 0; j < 2; ++j) {
                 pcloud.clear(); pcloud1.clear(); worldCoordinates.clear();
                 cv::Mat_<double> T = Translations[j];
-                cout << "\n************ Testing P"<< i<<j<< " **************" << endl;
+                //cout << "\n************ Testing P"<< i<<j<< " **************" << endl;
 
                 //projection matrix of second camera: P1  = K[R|t]
                 P1 = (cv::Mat_<double>(3,4) <<
@@ -79,7 +79,7 @@ bool getRightProjectionMat(  cv::Mat& E,
                       R(1,0),	R(1,1),	R(1,2),	T(1),
                       R(2,0),	R(2,1),	R(2,2),	T(2));
 
-                P1 = K*P1;
+
 
 #if 0 //triangulations methods
                 //triangulate Stereo
@@ -106,15 +106,15 @@ bool getRightProjectionMat(  cv::Mat& E,
 #endif
 
                 //triangulate Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ( P0, P1, inliersF1, inliersF2, KInv, pcloud1);
+                TriangulatePointsHZ( P0, P1, points2D_1, points2D_2, KInv, pcloud1);
 //                cv::Point2f avgReprojectionErrorHZ1;
 //                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
 //                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ1);
 //                cv::Point2f avgReprojectionErrorHZ2;
 //                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ2);
-                double reproj_error_L = calculateReprojectionErrorHZ(P0, K, inliersF1, pcloud1);
-                double reproj_error_R = calculateReprojectionErrorHZ(P1, K, inliersF2, pcloud1);
-                cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
+                double reproj_error_L = calculateReprojectionErrorHZ(P0, K, points2D_1, pcloud1);
+                double reproj_error_R = calculateReprojectionErrorHZ(P1, K, points2D_2, pcloud1);
+                //cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
 
 
                 //determine if points are in front of both cameras
@@ -172,7 +172,7 @@ bool TestTriangulation(const cv::Matx34f& P, const std::vector<cv::Point3f>& poi
     int count = cv::countNonZero(status);
 
     double percentage = ((double)count / (double)points3D.size());
-    std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    //std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
         //less than 75% of the points are in front of the camera
         return false;
@@ -283,8 +283,8 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             inliers1->push_back(points.first[i]);
             inliers2->push_back(points.second[i]);
         } else {
-            //inliers1->push_back(cv::Point2f(0,0));
-            //inliers2->push_back(cv::Point2f(0,0));
+            inliers1->push_back(cv::Point2f(0,0));
+            inliers2->push_back(cv::Point2f(0,0));
         }
     }
     // check x' * F * x = 0 ??

@@ -260,10 +260,10 @@ bool CheckCoherentRotation(cv::Mat const& R) {
     return true;
 }
 
-void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
+bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
     // Compute F matrix using RANSAC
     if(points.first.size() != points.second.size()){
-        return;
+        return false;
     }
 
     //vector<cv::Point2f> p1;
@@ -276,6 +276,11 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             cv::FM_8POINT,                                   // RANSAC method
             5.,                                              // distance to epipolar line
             .01);                                            // confidence probability
+
+    if(countNonZero(F) < 1) {
+        cout << "can't find F" << endl;
+        return false;
+    }
 
     //check x' * F * x = 0 ??
     vector<cv::Point3f> homogenouse1;
@@ -305,6 +310,7 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             inliers2->push_back(cv::Point2f(0,0));
         }
     }
+    return true;
 }
 
 

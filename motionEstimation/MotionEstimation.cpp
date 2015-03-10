@@ -97,13 +97,19 @@ int main() {
         }
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 10,0.01,5);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 250,0.01,5);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
 
         // delete in all frames points, that are not visible in each frames
         deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2, resX, resY);
+
+        if (8 > corresPoints1to2.first.size()) {
+            cout << "to less points found" << endl;
+            ++frame;
+            continue;
+        }
 
         // find inliers with median value
         vector<cv::Point2f> inliersMedianL1, inliersMedianR1;
@@ -113,8 +119,16 @@ int main() {
 
         // compute fundemental matrix F
         cv::Mat F;
+        bool foundF;
         vector<cv::Point2f> inliersFL1, inliersFR1;
-        getFundamentalMatrix(make_pair(inliersMedianL1, inliersMedianR1), &inliersFL1, &inliersFR1, F);
+        foundF = getFundamentalMatrix(make_pair(inliersMedianL1, inliersMedianR1), &inliersFL1, &inliersFR1, F);
+
+        // can't find fundamental Mat
+        if (!foundF){
+            cout << "can't find F" << endl;
+            ++frame;
+            continue;
+        }
 
         // make sure that there are this inlier in all frames. If not delete this inlier in all frames
         deleteZeroLines(inliersFL1, inliersFR1);

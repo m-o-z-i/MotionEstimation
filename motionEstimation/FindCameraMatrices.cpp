@@ -7,7 +7,7 @@ bool getRightProjectionMat(  cv::Mat& E,
                              const cv::Mat KInv,
                              const cv::Mat distCoeff,
                              cv::Mat& P1,
-                             const vector<cv::Point2f>& points2D_1,
+                             const vector<cv::Point2f>& points2D_1, //normalisiert inv(K)*x
                              const vector<cv::Point2f>& points2D_2,
                              std::vector<cv::Point3f>& outCloud)
 {
@@ -17,7 +17,7 @@ bool getRightProjectionMat(  cv::Mat& E,
                   1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0 );
-    P0 = K * P0;
+    //P0 = K * P0;
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
     if(fabsf(determinant(E)) > 1e-03) {
@@ -275,7 +275,7 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             inliers_fundamental,                             // match status (inlier ou outlier)
             cv::FM_RANSAC,                                   // RANSAC method
             0.1,                                             // distance to epipolar line
-            0.99);                                           // confidence probability
+            1);                                           // confidence probability
 
     //check x' * F * x = 0 ??
     vector<cv::Point3f> homogenouse1;
@@ -292,7 +292,7 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             point1.convertTo(point1, CV_64F);
             point2.convertTo(point2, CV_64F);
 
-            if (cv::norm(point2 * F * point1) <= 0.1){
+            if ((point2 * F * point1).s[0] <= 0.1){
                 inliers1->push_back(points.first[i]);
                 inliers2->push_back(points.second[i]);
             } else {
@@ -306,3 +306,26 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
         }
     }
 }
+
+
+//-----------------------------------------------------------------------------
+void loadIntrinsic(std::string name, cv::Mat& K, cv::Mat& distCoeff) {
+//-----------------------------------------------------------------------------
+  cv::FileStorage fs("data/calibration/" + name + ".yml", cv::FileStorage::READ);
+  fs["cameraMatrix"] >> K;
+  fs["distCoeff"] >> distCoeff;
+  fs.release();
+}
+
+
+//-----------------------------------------------------------------------------
+void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
+//-----------------------------------------------------------------------------
+  cv::FileStorage fs("data/calibration/extrinsic.yml", cv::FileStorage::READ);
+  fs["R"] >> R;
+  fs["T"] >> T;
+  fs["E"] >> E;
+  fs["F"] >> F;
+  fs.release();
+}
+

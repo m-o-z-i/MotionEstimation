@@ -95,7 +95,7 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat
     return make_pair(frame1_features, frame2_features);
 }
 
-void getInliersFromMeanValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
+void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
     vector<double> directions;
     vector<double> lengths;
 
@@ -139,18 +139,18 @@ void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corre
     vector<cv::Point2f>::iterator iter_c3a = corresPointsL2toR2.first.begin();
     vector<cv::Point2f>::iterator iter_c3b = corresPointsL2toR2.second.begin();
     for (unsigned int i = 0; i < size ; ++i ) {
-        if (0 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
-            0 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
-            0 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
-            0 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
-            0 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
-            0 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
-            0 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
-            0 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
-            0 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
-            0 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
-            0 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
-            0 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ||
+        if (1 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
+            1 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
+            1 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
+            1 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
+            1 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
+            1 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
+            1 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
+            1 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
+            1 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
+            1 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
+            1 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
+            1 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ||
 
             resX <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
             resY <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
@@ -163,14 +163,16 @@ void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corre
             resX <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
             resY <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
             resX <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
-            resY <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ) {
+            resY <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y )
+        {
             corresPoints1to2.first.erase(iter_c1a);
             corresPoints1to2.second.erase(iter_c1b);
             corresPointsL1toR1.first.erase(iter_c2a);
             corresPointsL1toR1.second.erase(iter_c2b);
             corresPointsL2toR2.first.erase(iter_c3a);
             corresPointsL2toR2.second.erase(iter_c3b);
-        } else {
+        } else
+        {
             ++iter_c1a;
             ++iter_c1b;
             ++iter_c2a;
@@ -181,7 +183,7 @@ void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corre
     }
 }
 
-void deleteUnvisiblePoints(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2, int resX, int resY){
+void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2){
     int size = points1.size();
     vector<cv::Point2f>::iterator iter_p1 = points1.begin();
     vector<cv::Point2f>::iterator iter_p2 = points2.begin();

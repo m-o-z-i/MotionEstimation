@@ -52,29 +52,26 @@ char key;
 int main() {
     int frame=1;
 
+    // get calibration Matrix K
+    cv::Mat KL, distCoeffL, KR, distCoeffR;
+    loadIntrinsic("left", KL, distCoeffL);
+    loadIntrinsic("right", KR, distCoeffR);
+
+    // get extrinsic test parameter
+    cv::Mat ETest, FTest, RTest, TTest;
+    loadExtrinsic(RTest, TTest, ETest, FTest);
+
+    // calculate inverse K
+    cv::Mat KLInv, KRInv;
+    cv::invert(KL, KLInv);
+    cv::invert(KL, KRInv);
+
+    // define image size
     int resX = 752;
     int resY = 480;
+
     while(true)
     {
-        //stereo1
-        cv::Mat frame1L = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
-        cv::Mat frame1R = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
-
-        //stereo2
-        cv::Mat frame2L = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
-        cv::Mat frame2R = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
-
-        // Check for invalid input
-        if(! frame1L.data || !frame1R.data || !frame2R.data || !frame2L.data)
-        {
-            cout <<  "Could not open or find the image: "  << std::endl ;
-            frame=1;
-            continue;
-        }
-
-
-        //drawAllStuff(mat_image11, mat_image12, mat_image21, mat_image22, frame);
-
         // ************************************
         // ******* Motion Estimation **********
         // ************************************
@@ -84,69 +81,67 @@ int main() {
         // 4. or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
         // 5. recover Pose (need newer version of calib3d)
 
+        //stereo1
+        cv::Mat frame1L = cv::imread("data/stereoImages/left/"+(std::to_string(frame))+"_l.jpg",0);
+        cv::Mat frame1R = cv::imread("data/stereoImages/right/"+(std::to_string(frame))+"_r.jpg",0);
+
+        //stereo2
+        cv::Mat frame2L = cv::imread("data/stereoImages/left/"+(std::to_string(frame+1))+"_l.jpg",0);
+        cv::Mat frame2R = cv::imread("data/stereoImages/right/"+(std::to_string(frame+1))+"_r.jpg",0);
+
+        // Check for invalid input
+        if(! frame1L.data || !frame1R.data || !frame2R.data || !frame2L.data) {
+            cout <<  "Could not open or find the image: "  << std::endl ;
+            frame=1;
+            continue;
+        }
+
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.1,0.1);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,2);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
 
+        // delete in all frames points, that are not visible in each frames
         deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2, resX, resY);
 
-        vector<cv::Point2f> medianInliersL1, medianInliersR1;
-        getInliersFromMeanValue(corresPointsL1toR1, &medianInliersL1, &medianInliersR1);
-
-        deleteUnvisiblePoints(medianInliersL1, medianInliersR1, resX, resY);
+        // find inliers with median value
+        vector<cv::Point2f> inliersMedianL1, inliersMedianR1;
+        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedianL1, &inliersMedianR1);
+        // make sure that there are this inlier in all frames. If not delete this inlier in all frames
+        deleteZeroLines(inliersMedianL1, inliersMedianR1);
 
         // compute fundemental matrix F
-        vector<cv::Point2f> inliersFL1, inliersFR1;
         cv::Mat F;
-        getFundamentalMatrix(make_pair(medianInliersL1,medianInliersR1), &inliersFL1, &inliersFR1, F);
+        vector<cv::Point2f> inliersFL1, inliersFR1;
+        getFundamentalMatrix(make_pair(inliersMedianL1, inliersMedianR1), &inliersFL1, &inliersFR1, F);
 
-        drawCorresPoints(frame1L, inliersFL1, inliersFR1, CV_RGB(255, 0, 0));
+        // make sure that there are this inlier in all frames. If not delete this inlier in all frames
+        deleteZeroLines(inliersFL1, inliersFR1);
 
-        // get calibration Matrix K
-        cv::Mat K, distCoeff;
-        cv::FileStorage fs("data/calibration/left.yml", cv::FileStorage::READ);
-        fs["cameraMatrix"] >> K;
-        fs["distCoeff"] >> distCoeff;
-        fs.release();
+        //visualisize
+        drawCorresPoints(frame1L, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(0,255,0));
+        drawCorresPoints(frame1L, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
+        drawCorresPoints(frame1L, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
+        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
 
-        //load test essential mat
-        cv::Mat ETest, FTest;
-        cv::FileStorage fs2("data/calibration/extrinsic.yml", cv::FileStorage::READ);
-          fs2["E"] >> ETest;
-          fs2["F"] >> FTest;
-          fs2.release();
-
-        drawEpipolarLines(frame1L, frame1R, medianInliersL1, medianInliersR1, F);
-
-        // get inverse K
-        cv::Mat KInv;
-        cv::invert(K, KInv);
+        // normalisize all Points
 
         // calculate essential mat
-        // E = K_l.t() * F * K_r
-        cv::Mat E = K.t() * F * K; //according to HZ (9.12)
+        cv::Mat E = KR.t() * F * KL; //according to HZ (9.12)
 
+//        std::cout << "\n\n FundamentalMat \n" << F << std::endl;
+//        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
 //        std::cout << "EssentialMat \n" << E << std::endl;
 //        std::cout << "\n\n EssentialMat TEST \n" << ETest << std::endl;
-//        std::cout << "\n\n EssentialMat \n" << F << std::endl;
-//        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
 //        cvWaitKey(0);
-
-//        std::vector<cv::Point2f> testPoints2D1 = {cv::Point2f(0.5,0.2), cv::Point2f(0.7,0.1), cv::Point2f(0.45,0.26), cv::Point2f(0.12,0.185)};
-//        std::vector<cv::Point2f> testPoints2D2 = {cv::Point2f(0.6,0.2), cv::Point2f(0.8,0.1), cv::Point2f(0.55,0.26), cv::Point2f(0.22,0.185)};
 
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, K, KInv, distCoeff, P1, medianInliersL1, medianInliersR1, pointCloud);
+        bool goodPFound = getRightProjectionMat(E, KL, KLInv, distCoeffL, P1, inliersFL1, inliersFR1, pointCloud);
 
         if (goodPFound) {
-//            std::cout << "#########################  " << frame  << "  ##############################" << std::endl;
-//            std::cout << P1 << std::endl;
-//            std::cout << "############################################################" << std::endl;
-
             cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
             cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
             double n = TNew.at<double>(3,0);
@@ -159,8 +154,8 @@ int main() {
             // cout << "no motion found" << endl;
         }
 
-        cv::Mat_<double> rvec, t, R;
-        //findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
+        // cv::Mat_<double> rvec, t, R;
+        // findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
 
         ++frame;
         cvWaitKey(0);

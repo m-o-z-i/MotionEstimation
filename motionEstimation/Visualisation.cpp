@@ -23,7 +23,7 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
 
     // get inliers from mean value
     vector<cv::Point2f> inliersM1, inliersM2;
-    getInliersFromMeanValue(corresPoints1, &inliersM1, &inliersM2);
+    getInliersFromMedianValue(corresPoints1, &inliersM1, &inliersM2);
     std::cout << "deltete  " << corresPoints1.first.size() - inliersM1.size() << " outliers Points from mean value " << std::endl;
     drawPoints(mat_image12, inliersM2, "1_inliers by mean in right image", cv::Scalar(0,255,0));
 
@@ -38,7 +38,7 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
     drawPoints(mat_image12, inliersF2, "1_inliers by fundamental in right image", cv::Scalar(255,255,0));
 
     //draw arrows
-    drawCorresPoints(mat_image11, inliersF1, inliersF2, cv::Scalar(255,0,0) );
+    drawCorresPoints(mat_image11, inliersF1, inliersF2, " ",cv::Scalar(255,0,0) );
 
 
     cv::Mat flow, cflow;
@@ -173,7 +173,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
 }
 
 
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, cv::Scalar const& color) {
+void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, string name, cv::Scalar const& color) {
     // convert grayscale to color image
     cv::Mat color_image;
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
@@ -193,7 +193,7 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
     /* Now display the image we drew on.  Recall that "Optical Flow" is the name of
      * the window we created above.
      */
-    cv::imshow("OpticalFlow vectors", color_image);
+    cv::imshow(name, color_image);
 }
 
 void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {

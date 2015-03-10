@@ -278,7 +278,7 @@ bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             .01);                                            // confidence probability
 
     if(countNonZero(F) < 1) {
-        cout << "can't find F" << endl;
+        //cout << "can't find F" << endl;
         return false;
     }
 

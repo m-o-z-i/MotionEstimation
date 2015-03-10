@@ -140,6 +140,8 @@ int main() {
         drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
 
         // normalisize all Points
+        vector<cv::Point2f> normPoints1, normPoints2;
+        normalizePoints(KLInv, inliersFL1, KRInv, inliersFR1, normPoints1, normPoints2);
 
         // calculate essential mat
         cv::Mat E = KR.t() * F * KL; //according to HZ (9.12)

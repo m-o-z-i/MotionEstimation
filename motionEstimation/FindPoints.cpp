@@ -199,7 +199,28 @@ void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2)
     }
 }
 
+void normalizePoints(const cv::Mat& KLInv, const vector<cv::Point2f>& pointsL, const cv::Mat& KRInv, const vector<cv::Point2f>& pointsR, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR){
+    vector<cv::Point3f> pointsL_h, pointsR_h;
+    cv::convertPointsToHomogeneous(pointsL, pointsL_h);
+    cv::convertPointsToHomogeneous(pointsR, pointsR_h);
 
+
+    KLInv.convertTo(KLInv, CV_64F);
+    KRInv.convertTo(KRInv, CV_64F);
+
+    for(unsigned int i = 0; i < pointsL.size(); ++i){
+        cv::Mat matPointL_h(pointsL_h[i]);
+        matPointL_h.convertTo(matPointL_h, CV_64F);
+
+        cv::Mat matPointR_h(pointsR_h[i]);
+        matPointR_h.convertTo(matPointR_h, CV_64F);
+
+        pointsL_h[i] = cv::Point3f(cv::Mat(KLInv * matPointL_h));
+        pointsR_h[i] = cv::Point3f(cv::Mat(KRInv * matPointR_h));
+    }
+    cv::convertPointsFromHomogeneous(pointsL_h, normPointsL);
+    cv::convertPointsFromHomogeneous(pointsR_h, normPointsR);
+}
 
 
 

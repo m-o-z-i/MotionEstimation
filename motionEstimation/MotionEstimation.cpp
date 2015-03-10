@@ -94,6 +94,7 @@ int main() {
 
         vector<cv::Point2f> medianInliersL1, medianInliersR1;
         getInliersFromMeanValue(corresPointsL1toR1, &medianInliersL1, &medianInliersR1);
+
         deleteUnvisiblePoints(medianInliersL1, medianInliersR1, resX, resY);
 
         // compute fundemental matrix F
@@ -101,7 +102,7 @@ int main() {
         cv::Mat F;
         getFundamentalMatrix(make_pair(medianInliersL1,medianInliersR1), &inliersFL1, &inliersFR1, F);
 
-        drawCorresPoints(frame1L, corresPointsL1toR1.first, corresPointsL1toR1.second, CV_RGB(255, 0, 0));
+        drawCorresPoints(frame1L, inliersFL1, inliersFR1, CV_RGB(255, 0, 0));
 
         // get calibration Matrix K
         cv::Mat K, distCoeff;
@@ -153,13 +154,13 @@ int main() {
             double y = TNew.at<double>(1,0)/n;
             double z = TNew.at<double>(2,0)/n;
 
-            //cout << "cameraPos: [" << x << ", " << y << ", " << z << "]   rotation: " << EulerRot << endl;
+            //cout << "cameraPos: [" << x << ", " << y << ", " << z << "]  "<< endl <<" rotation: " << endl << EulerRot << endl;
         } else {
             // cout << "no motion found" << endl;
         }
 
         cv::Mat_<double> rvec, t, R;
-        //findPoseEstimation(rvec,t,R,pointCloud,medianInliersR2, K, distCoeff);
+        //findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
 
         ++frame;
         cvWaitKey(0);

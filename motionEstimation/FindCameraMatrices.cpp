@@ -277,25 +277,32 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             0.1,                                             // distance to epipolar line
             0.99);                                           // confidence probability
 
+    //check x' * F * x = 0 ??
+    vector<cv::Point3f> homogenouse1;
+    vector<cv::Point3f> homogenouse2;
+    cv::convertPointsToHomogeneous(points.first, homogenouse1);
+    cv::convertPointsToHomogeneous(points.second, homogenouse2);
+
     //get Inlier
     for(unsigned i = 0; i<points.first.size(); ++i){
         if (inliers_fundamental[i] == 1) {
-            inliers1->push_back(points.first[i]);
-            inliers2->push_back(points.second[i]);
+            cv::Mat point1 (homogenouse1[i]);
+            cv::Mat point2 (homogenouse2[i]);
+            cv::transpose(point2, point2);
+            point1.convertTo(point1, CV_64F);
+            point2.convertTo(point2, CV_64F);
+
+            if (cv::norm(point2 * F * point1) <= 0.1){
+                inliers1->push_back(points.first[i]);
+                inliers2->push_back(points.second[i]);
+            } else {
+                inliers1->push_back(cv::Point2f(0,0));
+                inliers2->push_back(cv::Point2f(0,0));
+            }
+
         } else {
             inliers1->push_back(cv::Point2f(0,0));
             inliers2->push_back(cv::Point2f(0,0));
         }
     }
-    // check x' * F * x = 0 ??
-    //    vector<cv::Point3f> homogenouse1;
-    //    vector<cv::Point3f> homogenouse2;
-    //    cv::convertPointsToHomogeneous(p1, homogenouse1);
-    //    cv::convertPointsToHomogeneous(p2, homogenouse2);
-
-    //    for(unsigned i = 0; i<homogenouse1.size(); ++i){
-
-    //        std::cout <<  cv::norm((homogenouse2[i].dot(F)).dot(homogenouse1[i])) << std::endl;
-    //    }
-
 }

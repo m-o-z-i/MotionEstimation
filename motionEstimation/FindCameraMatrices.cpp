@@ -3,12 +3,13 @@
 
 
 bool getRightProjectionMat(  cv::Mat& E,
-                             const cv::Mat K,
-                             const cv::Mat KInv,
-                             const cv::Mat distCoeff,
+                             const cv::Mat& KL,
+                             const cv::Mat& KR,
+                             const vector<cv::Point2f>& normPoints2D_L,
+                             const vector<cv::Point2f>& normPoints2D_R,
+                             const vector<cv::Point2f>& points2D_L,
+                             const vector<cv::Point2f>& points2D_R,
                              cv::Mat& P1,
-                             const vector<cv::Point2f>& points2D_1, //normalisiert inv(K)*x
-                             const vector<cv::Point2f>& points2D_2,
                              std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
@@ -17,7 +18,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                   1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0 );
-    //P0 = K * P0;
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
     if(fabsf(determinant(E)) > 1e-03) {
@@ -51,7 +51,6 @@ bool getRightProjectionMat(  cv::Mat& E,
 
         int counter = 0;
         std::vector<cv::Point3f> pcloud, pcloud1, worldCoordinates;
-        double reproj_error1, reproj_error2;
         bool foundPerspectiveMatrix = false;
 
         // find right solution of 4 possible translations and rotations
@@ -79,8 +78,6 @@ bool getRightProjectionMat(  cv::Mat& E,
                       R(1,0),	R(1,1),	R(1,2),	T(1),
                       R(2,0),	R(2,1),	R(2,2),	T(2));
 
-
-
 #if 0 //triangulations methods
                 //triangulate Stereo
                 triangulate(P0, P1, inliersF1, inliersF2, worldCoordinates);
@@ -106,14 +103,14 @@ bool getRightProjectionMat(  cv::Mat& E,
 #endif
 
                 //triangulate Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ( P0, P1, points2D_1, points2D_2, KInv, pcloud1);
+                TriangulatePointsHZ( P0, P1, normPoints2D_L, normPoints2D_R, pcloud1);
 //                cv::Point2f avgReprojectionErrorHZ1;
 //                p0_r.clear(); p1_r.clear(); p0_err.clear(), p1_err.clear();
 //                computeReprojectionError(P0, inliersF1, pcloud1, p0_r, p0_err, avgReprojectionErrorHZ1);
 //                cv::Point2f avgReprojectionErrorHZ2;
 //                computeReprojectionError(P1, inliersF2, pcloud1, p1_r, p1_err, avgReprojectionErrorHZ2);
-                double reproj_error_L = calculateReprojectionErrorHZ(P0, K, points2D_1, pcloud1);
-                double reproj_error_R = calculateReprojectionErrorHZ(P1, K, points2D_2, pcloud1);
+                double reproj_error_L = calculateReprojectionErrorHZ(P0, KL, normPoints2D_L, points2D_L, pcloud1);
+                double reproj_error_R = calculateReprojectionErrorHZ(P1, KR, normPoints2D_R, points2D_R, pcloud1);
                 //cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
 
 

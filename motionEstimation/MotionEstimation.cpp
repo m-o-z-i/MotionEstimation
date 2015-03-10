@@ -155,7 +155,7 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, KL, KLInv, distCoeffL, P1, inliersFL1, inliersFR1, pointCloud);
+        bool goodPFound = getRightProjectionMat(E, KL, KR, normPoints1, normPoints2, inliersFL1, inliersFL1, P1, pointCloud);
 
         if (goodPFound) {
             cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;

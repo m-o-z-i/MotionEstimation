@@ -111,32 +111,19 @@ cv::Mat_<double> LinearLSTriangulation(
 void TriangulatePointsHZ(
         const cv::Matx34f& P0,
         const cv::Matx34f& P1,
-        const vector<cv::Point2f>& points1,
-        const vector<cv::Point2f>& points2,
-        const cv::Mat& Kinv,
+        const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
         vector<cv::Point3f>& pointcloud)
 {
     pointcloud.clear();
+
+    vector<cv::Point3f> points1_h, points2_h;
+    cv::convertPointsToHomogeneous(points1, points1_h);
+    cv::convertPointsToHomogeneous(points2, points2_h);
+
     for (unsigned int i=0; i < points1.size(); i++) {
-        cv::Point2f kp = points1[i];
-        cv::Point3f u (kp.x, kp.y, 1.0);
-
-        cv::Mat_<double> um = Kinv * cv::Mat_<double>(u);
-        u.x = um(0); u.y = um(1); u.z = um(2);
-
-        cv::Point2f kp1 = points2[i];
-        cv::Point3d u1(kp1.x,kp1.y,1.0);
-        cv::Mat_<double> um1 = Kinv * cv::Mat_<double>(u1);
-        u1.x = um1(0); u1.y = um1(1); u1.z = um1(2);
-
-        cv::Mat_<double> X = IterativeLinearLSTriangulation(u,P0,u1,P1);
-
+        cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
         pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
-        if (0 == points1[i].x && 0 == points1[i].y && 0 == points2[i].x && 0 == points2[i].y){
-            // for outlier push empty zero points in pointcloud
-            //pointcloud.push_back(cv::Point3f(0,0,0));
-        } else {
-        }
     }
 }
 
@@ -267,6 +254,7 @@ double calculateReprojectionErrorOpenCV(const cv::Mat& P,
 
 double calculateReprojectionErrorHZ(const cv::Mat& P,
                                     const cv::Mat& K,
+                                    const vector<cv::Point2f>& NormPoints2D,
                                     const vector<cv::Point2f>& points2D,
                                     const std::vector<cv::Point3f>& points3D)
 {
@@ -283,11 +271,12 @@ double calculateReprojectionErrorHZ(const cv::Mat& P,
         point3D_h(2) = points3D[i].z;
         point3D_h(3) = 1.0;
 
-        //calculate reprojection error ((( KP * points3D[i] ???)))
-        cv::Mat_<double> reprojectedPoint = P * point3D_h;
+        // calculate reprojection error ((( KP * points3D[i] ???)))
+        cv::Mat_<double> reprojectedPoint = K * P * point3D_h;
 
-        //convert reprojected image point to carthesian coordinates
+        // convert reprojected image point to carthesian coordinates
         cv::Point2f reprojectedPoint_(reprojectedPoint(0) / reprojectedPoint(2), reprojectedPoint(1) / reprojectedPoint(2));
+
         reproj_error.push_back(cv::norm(reprojectedPoint_ - points2D[i]));
     }
 

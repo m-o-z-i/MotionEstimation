@@ -273,9 +273,9 @@ void getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
     F = cv::findFundamentalMat(
             cv::Mat(points.first), cv::Mat(points.second),   // matching points
             inliers_fundamental,                             // match status (inlier ou outlier)
-            cv::FM_RANSAC,                                   // RANSAC method
-            0.1,                                             // distance to epipolar line
-            1);                                           // confidence probability
+            cv::FM_8POINT,                                   // RANSAC method
+            5.,                                              // distance to epipolar line
+            .01);                                            // confidence probability
 
     //check x' * F * x = 0 ??
     vector<cv::Point3f> homogenouse1;

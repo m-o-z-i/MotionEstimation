@@ -50,7 +50,7 @@ char key;
  */
 
 int main() {
-    int frame=1;
+    int frame=17;
 
     // get calibration Matrix K
     cv::Mat KL, distCoeffL, KR, distCoeffR;
@@ -97,7 +97,7 @@ int main() {
         }
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 150,0.01,2);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 10,0.01,5);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);

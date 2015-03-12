@@ -199,6 +199,40 @@ void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2)
     }
 }
 
+void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb, vector<cv::Point2f>& points1Ra,
+                     vector<cv::Point2f>& points1Rb, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R){
+    int size = points1La.size();
+    vector<cv::Point2f>::iterator iter_p1La = points1La.begin();
+    vector<cv::Point2f>::iterator iter_p1Lb = points1Lb.begin();
+    vector<cv::Point2f>::iterator iter_p1Ra = points1Ra.begin();
+    vector<cv::Point2f>::iterator iter_p1Rb = points1Rb.begin();
+    vector<cv::Point2f>::iterator iter_p2L  = points2L.begin();
+    vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if ((0 == points1La[iter_p1La-points1La.begin()].x && 0 == points1La[iter_p1La-points1La.begin()].y) ||
+            (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
+            (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
+            (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
+            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
+        {
+            points1La.erase(iter_p1La);
+            points1Lb.erase(iter_p1Lb);
+            points1Ra.erase(iter_p1Ra);
+            points1Rb.erase(iter_p1Rb);
+            points2L.erase(iter_p2L);
+            points2R.erase(iter_p2R);
+        } else {
+            ++iter_p1La ;
+            ++iter_p1Lb ;
+            ++iter_p1Ra ;
+            ++iter_p1Rb ;
+            ++iter_p2L  ;
+            ++iter_p2R  ;
+        }
+    }
+}
+
 void normalizePoints(const cv::Mat& KLInv, const vector<cv::Point2f>& pointsL, const cv::Mat& KRInv, const vector<cv::Point2f>& pointsR, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR){
     vector<cv::Point3f> pointsL_h, pointsR_h;
     cv::convertPointsToHomogeneous(pointsL, pointsL_h);

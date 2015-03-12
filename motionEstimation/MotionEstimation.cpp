@@ -9,7 +9,7 @@
 #include <math.h>
 #include <vector>
 #include <utility>
-
+#include <stack>
 #include <sstream>
 #include <string.h>
 
@@ -50,6 +50,7 @@ char key;
  */
 
 int main() {
+
     int frame=90;
     // get calibration Matrix K
     cv::Mat KL, distCoeffL, KR, distCoeffR;
@@ -97,100 +98,118 @@ int main() {
         }
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 20,0.01,20);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR2 = refindFeaturePoints(frame1L, frame2R, corresPoints1to2.first);
-        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 250,0.01,5);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, features);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toL2 = refindFeaturePoints(frame1L, frame2L, corresPointsL1toR1.first);
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR2 = refindFeaturePoints(frame1L, frame2R, corresPoints1to2.first);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsR1toR2 = refindFeaturePoints(frame1R, frame2R, corresPointsL1toR1.second);
 
         // delete in all frames points, that are not visible in each frames
-        deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL1toR2, resX, resY);
+        deleteUnvisiblePoints(corresPointsL1toR1, corresPointsL1toL2, corresPointsR1toR2, resX, resY);
 
-        if (8 > corresPoints1to2.first.size()) {
+        if (8 > corresPointsL1toR1.first.size()) {
             cout << "to less points found" << endl;
             ++frame;
             continue;
         }
 
         // find inliers with median value
-        vector<cv::Point2f> inliersMedianL1, inliersMedianR1;
-        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedianL1, &inliersMedianR1);
-        // make sure that there are this inlier in all frames. If not delete this inlier in all frames
-        deleteZeroLines(inliersMedianL1, inliersMedianR1);
+        vector<cv::Point2f> inliersMedianL1a, inliersMedianR1a;
+        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedianL1a, &inliersMedianR1a);
 
-        // compute fundemental matrix F
-        cv::Mat F;
-        bool foundF;
-        vector<cv::Point2f> inliersFL1, inliersFR1;
-        foundF = getFundamentalMatrix(make_pair(inliersMedianL1, inliersMedianR1), &inliersFL1, &inliersFR1, F);
+        vector<cv::Point2f> inliersMedianL1b, inliersMedianL2;
+        getInliersFromMedianValue(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersMedianL1b, &inliersMedianL2);
 
-        // can't find fundamental Mat
-        if (!foundF){
-            cout << "can't find F" << endl;
-            ++frame;
-            continue;
-        }
+        vector<cv::Point2f> inliersMedianR1b, inliersMedianR2;
+        getInliersFromMedianValue(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersMedianR1b, &inliersMedianR2);
 
         // make sure that there are this inlier in all frames. If not delete this inlier in all frames
-        deleteZeroLines(inliersFL1, inliersFR1);
+        deleteZeroLines(inliersMedianL1a, inliersMedianR1a, inliersMedianL1b, inliersMedianL2, inliersMedianR1b, inliersMedianR2);
 
         //visualisize
         // convert grayscale to color image
         cv::Mat color_image;
         cv::cvtColor(frame1L, color_image, CV_GRAY2RGB);
-        drawCorresPoints(color_image, corresPoints1to2.first, corresPoints1to2.second, "Found CorresPoints", CV_RGB(0,255,0));
-        drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(255,0,0));
-        drawCorresPoints(color_image, corresPointsL1toR2.first, corresPointsL1toR2.second, "Found CorresPoints", CV_RGB(0,0,255));
 
-//        drawCorresPoints(color_image, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
-//        drawCorresPoints(color_image, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
-//        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
+        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianR1a, "Found CorresPoints l1a r1a", CV_RGB(0,255,0));
+        drawCorresPoints(color_image, inliersMedianL1b, inliersMedianR1b, "Found CorresPoints l1b r1b", CV_RGB(0,255,0));
 
-        // normalisize all Points
-        vector<cv::Point2f> normPointsL1, normPointsR1;
-        normalizePoints(KLInv, inliersFL1, KRInv, inliersFR1, normPointsL1, normPointsR1);
+        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
+        drawCorresPoints(color_image, inliersMedianR1b, inliersMedianR2, "Found CorresPoints R1 To R2", CV_RGB(0,0,255));
 
-        // calculate essential mat
-        cv::Mat E = KR.t() * F * KL; //according to HZ (9.12)
+//        // compute fundemental matrix F
+//        cv::Mat F;
+//        bool foundF;
+//        vector<cv::Point2f> inliersFL1, inliersFR1;
+//        foundF = getFundamentalMatrix(make_pair(inliersMedianL1, inliersMedianR1), &inliersFL1, &inliersFR1, F);
 
-//        std::cout << "\n\n FundamentalMat \n" << F << std::endl;
-//        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
-//        std::cout << "EssentialMat \n" << E << std::endl;
-//        std::cout << "\n\n EssentialMat TEST \n" << ETest << std::endl;
-//        cvWaitKey(0);
+//        // can't find fundamental Mat
+//        if (!foundF){
+//            cout << "can't find F" << endl;
+//            ++frame;
+//            continue;
+//        }
 
-        // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
-        cv::Mat P1;
-        std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, P1, normPointsL1, normPointsR1, pointCloud);
+//        // make sure that there are this inlier in all frames. If not delete this inlier in all frames
+//        deleteZeroLines(inliersFL1, inliersFR1);
 
-        if (goodPFound) {
+//        //visualisize
+//        // convert grayscale to color image
+////        cv::Mat color_image;
+////        cv::cvtColor(frame1L, color_image, CV_GRAY2RGB);
+////        drawCorresPoints(color_image, corresPoints1to2.first, corresPoints1to2.second, "Found CorresPoints", CV_RGB(0,255,0));
+////        drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(255,0,0));
+////        drawCorresPoints(color_image, corresPointsL1toR2.first, corresPointsL1toR2.second, "Found CorresPoints", CV_RGB(0,0,255));
 
-            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
-            cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
+////        drawCorresPoints(color_image, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
+////        drawCorresPoints(color_image, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
+////        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
 
-            double n = TNew.at<double>(3,0);
-            double x = TNew.at<double>(0,0)/n;
-            double y = TNew.at<double>(1,0)/n;
-            double z = TNew.at<double>(2,0)/n;
+//        // normalisize all Points
+//        vector<cv::Point2f> normPointsL1, normPointsR1;
+//        normalizePoints(KLInv, inliersFL1, KRInv, inliersFR1, normPointsL1, normPointsR1);
 
-            cv::Vec3f TVec(x, y, z);
-            cv::Vec3f TVecTest(TTest);
+//        // calculate essential mat
+//        cv::Mat E = KR.t() * F * KL; //according to HZ (9.12)
 
-//            double length1 = sqrt(TVec[0] * TVec[0] + TVec[1] * TVec[1] + TVec[2] *TVec[2] );
-//            double length2 = sqrt(TVecTest[0] * TVecTest[0] + TVecTest[1] * TVecTest[1] + TVecTest[2] *TVecTest[2] );
+////        std::cout << "\n\n FundamentalMat \n" << F << std::endl;
+////        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
+////        std::cout << "EssentialMat \n" << E << std::endl;
+////        std::cout << "\n\n EssentialMat TEST \n" << ETest << std::endl;
+////        cvWaitKey(0);
 
-//            cout << "cameraRot: owndata " << endl << EulerRot << endl;
-//            cout << "cameraPos: owndata [" << TVec[0]/length1 << ", " << TVec[1]/length1 << ", " << TVec[2]/length1 << "]"  << endl;
-//            cout << "cameraPos: hagen   [" << TVecTest[0]/length2 << ", " << TVecTest[1]/length2 << ", " << TVecTest[2]/length2 << "]"   << endl;
-//            cout << "cameraRot: hagen " << endl << RTest << endl;
+//        // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
+//        cv::Mat P1;
+//        std::vector<cv::Point3f> pointCloud;
+//        bool goodPFound = getRightProjectionMat(E, P1, normPointsL1, normPointsR1, pointCloud);
 
-        } else {
-            // cout << "no motion found" << endl;
-        }
+//        if (goodPFound) {
 
-        // cv::Mat_<double> rvec, t, R;
-        // findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
+//            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
+//            cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
+
+//            double n = TNew.at<double>(3,0);
+//            double x = TNew.at<double>(0,0)/n;
+//            double y = TNew.at<double>(1,0)/n;
+//            double z = TNew.at<double>(2,0)/n;
+
+//            cv::Vec3f TVec(x, y, z);
+//            cv::Vec3f TVecTest(TTest);
+
+////            double length1 = sqrt(TVec[0] * TVec[0] + TVec[1] * TVec[1] + TVec[2] *TVec[2] );
+////            double length2 = sqrt(TVecTest[0] * TVecTest[0] + TVecTest[1] * TVecTest[1] + TVecTest[2] *TVecTest[2] );
+
+////            cout << "cameraRot: owndata " << endl << EulerRot << endl;
+////            cout << "cameraPos: owndata [" << TVec[0]/length1 << ", " << TVec[1]/length1 << ", " << TVec[2]/length1 << "]"  << endl;
+////            cout << "cameraPos: hagen   [" << TVecTest[0]/length2 << ", " << TVecTest[1]/length2 << ", " << TVecTest[2]/length2 << "]"   << endl;
+////            cout << "cameraRot: hagen " << endl << RTest << endl;
+
+//        } else {
+//            // cout << "no motion found" << endl;
+//        }
+
+//        // cv::Mat_<double> rvec, t, R;
+//        // findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
 
         ++frame;
         cvWaitKey(0);

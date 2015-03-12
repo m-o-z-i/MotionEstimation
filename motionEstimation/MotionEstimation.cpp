@@ -97,13 +97,14 @@ int main() {
         }
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 250,0.01,5);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame1L, 20,0.01,20);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPoints1to2 = refindFeaturePoints(frame1L, frame2L, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.first);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
+        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR2 = refindFeaturePoints(frame1L, frame2R, corresPoints1to2.first);
+        //pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL2toR2 = refindFeaturePoints(frame1L, frame1R, corresPoints1to2.second);
 
         // delete in all frames points, that are not visible in each frames
-        deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL2toR2, resX, resY);
+        deleteUnvisiblePoints(corresPoints1to2, corresPointsL1toR1, corresPointsL1toR2, resX, resY);
 
         if (8 > corresPoints1to2.first.size()) {
             cout << "to less points found" << endl;
@@ -134,14 +135,20 @@ int main() {
         deleteZeroLines(inliersFL1, inliersFR1);
 
         //visualisize
-        drawCorresPoints(frame1L, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(0,255,0));
-        drawCorresPoints(frame1L, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
-        drawCorresPoints(frame1L, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
-        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
+        // convert grayscale to color image
+        cv::Mat color_image;
+        cv::cvtColor(frame1L, color_image, CV_GRAY2RGB);
+        drawCorresPoints(color_image, corresPoints1to2.first, corresPoints1to2.second, "Found CorresPoints", CV_RGB(0,255,0));
+        drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(255,0,0));
+        drawCorresPoints(color_image, corresPointsL1toR2.first, corresPointsL1toR2.second, "Found CorresPoints", CV_RGB(0,0,255));
+
+//        drawCorresPoints(color_image, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
+//        drawCorresPoints(color_image, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
+//        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
 
         // normalisize all Points
-        vector<cv::Point2f> normPoints1, normPoints2;
-        normalizePoints(KLInv, inliersFL1, KRInv, inliersFR1, normPoints1, normPoints2);
+        vector<cv::Point2f> normPointsL1, normPointsR1;
+        normalizePoints(KLInv, inliersFL1, KRInv, inliersFR1, normPointsL1, normPointsR1);
 
         // calculate essential mat
         cv::Mat E = KR.t() * F * KL; //according to HZ (9.12)
@@ -155,9 +162,10 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, P1, normPoints1, normPoints2, pointCloud);
+        bool goodPFound = getRightProjectionMat(E, P1, normPointsL1, normPointsR1, pointCloud);
 
         if (goodPFound) {
+
             cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
             cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
 

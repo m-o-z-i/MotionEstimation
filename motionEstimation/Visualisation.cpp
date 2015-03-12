@@ -173,20 +173,10 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
 }
 
 
-void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Point2f> inliers2, string name, cv::Scalar const& color) {
-    // convert grayscale to color image
-    cv::Mat color_image;
-    cv::cvtColor(image, color_image, CV_GRAY2RGB);
-
+void drawCorresPoints(cv::Mat& color_image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
     for(unsigned int i = 0; i < inliers1.size(); i++)
     {
         double angle;		angle = atan2( (double) inliers1[i].y - inliers2[i].y, (double) inliers1[i].x - inliers2[i].x );
-        double hypotenuse;	hypotenuse = sqrt( square(inliers1[i].y - inliers2[i].y) + square(inliers1[i].x - inliers2[i].x) );
-
-        /* Here we lengthen the arrow by a factor of three. */
-        inliers2[i].x = (int) (inliers1[i].x - hypotenuse * cos(angle));
-        inliers2[i].y = (int) (inliers1[i].y - hypotenuse * sin(angle));
-
         drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
     }
 
@@ -196,7 +186,7 @@ void drawCorresPoints(cv::Mat image, vector<cv::Point2f> inliers1, vector<cv::Po
     cv::imshow(name, color_image);
 }
 
-void drawLine (cv::Mat ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
+void drawLine (cv::Mat &ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
     /* Now we draw the main line of the arrow. */
     /* "frame1" is the frame to draw on.
      * "p" is the point where the line begins.

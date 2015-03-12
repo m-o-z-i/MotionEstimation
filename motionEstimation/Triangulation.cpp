@@ -113,15 +113,20 @@ void TriangulatePointsHZ(
         const cv::Matx34f& P1,
         const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
         const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
+        int numberOfTriangulations,
         vector<cv::Point3f>& pointcloud)
 {
+    // if parameter is 0 triangulate all points
+    if (0 == numberOfTriangulations) {
+        numberOfTriangulations = points1.size();
+    }
     pointcloud.clear();
 
     vector<cv::Point3f> points1_h, points2_h;
     cv::convertPointsToHomogeneous(points1, points1_h);
     cv::convertPointsToHomogeneous(points2, points2_h);
 
-    for (unsigned int i=0; i < points1.size(); i++) {
+    for (unsigned int i=0; i < numberOfTriangulations; ++i ){
         cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
         pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
     }
@@ -253,9 +258,7 @@ double calculateReprojectionErrorOpenCV(const cv::Mat& P,
 }
 
 double calculateReprojectionErrorHZ(const cv::Mat& P,
-                                    const cv::Mat& K,
                                     const vector<cv::Point2f>& NormPoints2D,
-                                    const vector<cv::Point2f>& points2D,
                                     const std::vector<cv::Point3f>& points3D)
 {
     vector<double> reproj_error;
@@ -263,7 +266,7 @@ double calculateReprojectionErrorHZ(const cv::Mat& P,
 //    P_.convertTo(P_, CV_64F);
 //    cv::Mat_<double> KP = K * P_;
 
-    for (unsigned int i=0; i < points2D.size(); i++) {
+    for (unsigned int i=0; i < points3D.size(); i++) {
         // convert to homogenious 3D point
         cv::Mat_<double> point3D_h(4, 1);
         point3D_h(0) = points3D[i].x;
@@ -272,12 +275,12 @@ double calculateReprojectionErrorHZ(const cv::Mat& P,
         point3D_h(3) = 1.0;
 
         // calculate reprojection error ((( KP * points3D[i] ???)))
-        cv::Mat_<double> reprojectedPoint = K * P * point3D_h;
+        cv::Mat_<double> reprojectedPoint_h = P * point3D_h;
 
         // convert reprojected image point to carthesian coordinates
-        cv::Point2f reprojectedPoint_(reprojectedPoint(0) / reprojectedPoint(2), reprojectedPoint(1) / reprojectedPoint(2));
+        cv::Point2f reprojectedPoint(reprojectedPoint_h(0) / reprojectedPoint_h(2), reprojectedPoint_h(1) / reprojectedPoint_h(2));
 
-        reproj_error.push_back(cv::norm(reprojectedPoint_ - points2D[i]));
+        reproj_error.push_back(cv::norm(NormPoints2D[i] - reprojectedPoint));
     }
 
     //return mean reprojection error

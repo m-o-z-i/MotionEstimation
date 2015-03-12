@@ -50,8 +50,7 @@ char key;
  */
 
 int main() {
-    int frame=17;
-
+    int frame=90;
     // get calibration Matrix K
     cv::Mat KL, distCoeffL, KR, distCoeffR;
     loadIntrinsic("left", KL, distCoeffL);
@@ -72,6 +71,7 @@ int main() {
 
     while(true)
     {
+        cout << "FRAME" <<  frame << endl;
         // ************************************
         // ******* Motion Estimation **********
         // ************************************
@@ -155,17 +155,28 @@ int main() {
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P1;
         std::vector<cv::Point3f> pointCloud;
-        bool goodPFound = getRightProjectionMat(E, KL, KR, normPoints1, normPoints2, inliersFL1, inliersFL1, P1, pointCloud);
+        bool goodPFound = getRightProjectionMat(E, P1, normPoints1, normPoints2, pointCloud);
 
         if (goodPFound) {
             cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
             cv::decomposeProjectionMatrix(P1, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
+
             double n = TNew.at<double>(3,0);
             double x = TNew.at<double>(0,0)/n;
             double y = TNew.at<double>(1,0)/n;
             double z = TNew.at<double>(2,0)/n;
 
-            //cout << "cameraPos: [" << x << ", " << y << ", " << z << "]  "<< endl <<" rotation: " << endl << EulerRot << endl;
+            cv::Vec3f TVec(x, y, z);
+            cv::Vec3f TVecTest(TTest);
+
+//            double length1 = sqrt(TVec[0] * TVec[0] + TVec[1] * TVec[1] + TVec[2] *TVec[2] );
+//            double length2 = sqrt(TVecTest[0] * TVecTest[0] + TVecTest[1] * TVecTest[1] + TVecTest[2] *TVecTest[2] );
+
+//            cout << "cameraRot: owndata " << endl << EulerRot << endl;
+//            cout << "cameraPos: owndata [" << TVec[0]/length1 << ", " << TVec[1]/length1 << ", " << TVec[2]/length1 << "]"  << endl;
+//            cout << "cameraPos: hagen   [" << TVecTest[0]/length2 << ", " << TVecTest[1]/length2 << ", " << TVecTest[2]/length2 << "]"   << endl;
+//            cout << "cameraRot: hagen " << endl << RTest << endl;
+
         } else {
             // cout << "no motion found" << endl;
         }

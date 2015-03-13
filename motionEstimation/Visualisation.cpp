@@ -235,3 +235,12 @@ void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, c
     }
     cv::imshow(windowName, colorImg);
 }
+
+cv::Point2f drawCameraPath(cv::Mat& img, const cv::Point2f prevPos, const cv::Mat& T, string name, cv::Scalar const& color){
+    cv::Point3f pos3D(T);
+    cv::Point2f Pos2D(prevPos.x + pos3D.x, prevPos.y + pos3D.y);
+    cv::line(img, prevPos, Pos2D, color);
+    cv::imshow(name, img);
+
+    return Pos2D;
+}

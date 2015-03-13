@@ -21,5 +21,6 @@ void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar
 
 void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21, cv::Mat mat_image22, int frame);
 
+cv::Point2f drawCameraPath(cv::Mat& img, const cv::Point2f prevPos, const cv::Mat& T, string name, cv::Scalar const& color);
 
 #endif // VISUALISATION_H

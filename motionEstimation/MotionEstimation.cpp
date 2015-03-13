@@ -250,45 +250,10 @@ int main() {
             cout << "u rechts 2: " << u_R2 << endl;
 
             //visualisize
-            cv::Point3f pos_L1(T_L);
-            cv::Point3f pos_R1(T_R);
-
-            pos_L1 = pos_L1 * (u_L/100.0);
-            pos_R1 = pos_R1 * (u_R/100.0);
-
-            cv::Point2f nextPos_L1(currentPos_L1.x + pos_L1.x, currentPos_L1.y + pos_L1.y);
-            cv::Point2f nextPos_R1(currentPos_R1.x + pos_R1.x, currentPos_R1.x + pos_R1.y);
-            cv::line(path1, currentPos_L1, nextPos_L1, cv::Scalar(255,0,0));
-            cv::line(path1, currentPos_R1, nextPos_R1, cv::Scalar(0,255,0));
-            currentPos_L1 = nextPos_L1;
-            currentPos_R1 = nextPos_R1;
-
-
-            cv::Point3f pos_L2(T_L);
-            cv::Point3f pos_R2(T_R);
-
-            pos_L2 = pos_L2 * (u_L2 /100.0);
-            pos_R2 = pos_R2 * (u_R2 /100.0);
-
-            cv::Point2f nextPos_L2(currentPos_L2.x + pos_L2.x, currentPos_L2.x + pos_L2.y);
-            cv::Point2f nextPos_R2(currentPos_R2.x + pos_R2.x, currentPos_R2.x + pos_R2.y);
-            cv::line(path2, currentPos_L2, nextPos_L2, cv::Scalar(255,0,0));
-            cv::line(path2, currentPos_R2, nextPos_R2, cv::Scalar(0,255,0));
-            currentPos_L2 = nextPos_L2;
-            currentPos_R2 = nextPos_R2;
-
-            cv::imshow("motionPath 1", path1);
-            cv::imshow("motionPath 2", path2);
-
-
-
-
-
-
-
-
-
-
+            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L/100.0), "motionPath 1", cv::Scalar(255,0,0));
+            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R/100.0), "motionPath 1", cv::Scalar(255,255,0));
+            currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
+            currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
 
 
 //            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;

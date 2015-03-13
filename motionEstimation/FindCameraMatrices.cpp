@@ -210,7 +210,7 @@ bool CheckCoherentRotation(cv::Mat const& R) {
 
 bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
     // Compute F matrix using RANSAC
-    if(points.first.size() != points.second.size()){
+    if(points.first.size() != points.second.size() || 0 == points.first.size()){
         return false;
     }
 
@@ -259,6 +259,17 @@ bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
         }
     }
     return true;
+}
+
+void decomposeProjectionMat(const cv::Mat& P, cv::Mat& R, cv::Mat& T){
+    R = (cv::Mat_<double>(3,3) <<
+          P.at<double>(0,0),	P.at<double>(0,1),	P.at<double>(0,2),
+          P.at<double>(1,0),	P.at<double>(1,1),	P.at<double>(1,2),
+          P.at<double>(2,0),	P.at<double>(2,1),	P.at<double>(2,2));
+    T = (cv::Mat_<double>(3,1) <<
+            P.at<double>(0, 3),
+            P.at<double>(1, 3),
+            P.at<double>(2, 3));
 }
 
 

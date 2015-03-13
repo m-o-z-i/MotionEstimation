@@ -233,11 +233,37 @@ void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points
     }
 }
 
-void normalizePoints(const cv::Mat& KLInv, const vector<cv::Point2f>& pointsL, const cv::Mat& KRInv, const vector<cv::Point2f>& pointsR, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR){
+void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,
+                     vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R){
+    int size = points1L.size();
+    vector<cv::Point2f>::iterator iter_p1L = points1L.begin();
+    vector<cv::Point2f>::iterator iter_p1R = points1R.begin();
+    vector<cv::Point2f>::iterator iter_p2L  = points2L.begin();
+    vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if ((0 == points1L[iter_p1L-points1L.begin()].x && 0 == points1L[iter_p1L-points1L.begin()].y) ||
+            (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
+            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
+        {
+            points1L.erase(iter_p1L);
+            points1R.erase(iter_p1R);
+            points2L.erase(iter_p2L);
+            points2R.erase(iter_p2R);
+        } else {
+            ++iter_p1L ;
+            ++iter_p1R ;
+            ++iter_p2L  ;
+            ++iter_p2R  ;
+        }
+    }
+}
+
+void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv::Point2f>& pointsL, const vector<cv::Point2f>& pointsR, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR){
+
     vector<cv::Point3f> pointsL_h, pointsR_h;
     cv::convertPointsToHomogeneous(pointsL, pointsL_h);
     cv::convertPointsToHomogeneous(pointsR, pointsR_h);
-
 
     KLInv.convertTo(KLInv, CV_64F);
     KRInv.convertTo(KRInv, CV_64F);

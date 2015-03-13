@@ -17,8 +17,9 @@ void getInliersFromMedianValue (pair<vector<cv::Point2f>, vector<cv::Point2f>> c
 void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2, int resX, int resY);
 void deleteZeroLines(vector<cv::Point2f> &points1, vector<cv::Point2f> &points2);
 void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb, vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points1Rb, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R);
+void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R);
 
-void normalizePoints(const cv::Mat& KLInv, const vector<cv::Point2f>& inliersFL1, const cv::Mat& KRInv, const vector<cv::Point2f>& inliersFR1, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR);
+void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv::Point2f>& inliersFL1, const vector<cv::Point2f>& inliersFR1, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR);
 
 
 

@@ -17,5 +17,5 @@ bool DecomposeEtoRandT(const cv::Mat& E, cv::Mat_<double>& R1, cv::Mat_<double>&
 bool getRightProjectionMat(cv::Mat& E, cv::Mat& P1, const vector<cv::Point2f> &normPoints2D_L, const vector<cv::Point2f> &normPoints2D_R, std::vector<cv::Point3f>& outCloud);
 void loadIntrinsic(std::string name, cv::Mat& K, cv::Mat& distCoeff);
 void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F );
-
+void decomposeProjectionMat(const cv::Mat& P, cv::Mat& R, cv::Mat& T);
 #endif // FINDCAMERAMATRICES_H

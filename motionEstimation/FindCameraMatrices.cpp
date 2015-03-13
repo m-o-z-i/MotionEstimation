@@ -221,7 +221,7 @@ bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
     F = cv::findFundamentalMat(
             cv::Mat(points.first), cv::Mat(points.second),   // matching points
             inliers_fundamental,                             // match status (inlier ou outlier)
-            cv::FM_8POINT,                                   // RANSAC method
+            cv::FM_RANSAC,                                   // RANSAC method
             5.,                                              // distance to epipolar line
             .01);                                            // confidence probability
 

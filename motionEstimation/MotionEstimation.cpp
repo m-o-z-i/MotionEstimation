@@ -48,7 +48,7 @@ char key;
 
 int main() {
 
-    int frame=90;
+    int frame=1;
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
     loadIntrinsic("left", K_L, distCoeff_L);
@@ -106,7 +106,7 @@ int main() {
         // Check for invalid input
         if(! frame_L1.data || !frame_R1.data || !frame_R2.data || !frame_L2.data) {
             cout <<  "Could not open or find the image: "  << std::endl ;
-            frame=1;
+            //frame=1;
             continue;
         }
 
@@ -119,11 +119,6 @@ int main() {
         // delete in all frames points, that are not visible in each frames
         deleteUnvisiblePoints(corresPointsL1toR1, corresPointsL1toL2, corresPointsR1toR2, resX, resY);
 
-        if (8 > corresPointsL1toR1.first.size()) {
-            cout << "to less points found" << endl;
-            ++frame;
-            continue;
-        }
 
         // find inliers from median value
         vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
@@ -136,6 +131,12 @@ int main() {
         getInliersFromMedianValue(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersMedian_R1b, &inliersMedian_R2);
 
         deleteZeroLines(inliersMedian_L1a, inliersMedian_R1a, inliersMedian_L1b, inliersMedian_L2, inliersMedian_R1b, inliersMedian_R2);
+
+        if (8 > inliersMedian_R1a.size()) {
+            cout << "to less points found" << endl;
+            ++frame;
+            continue;
+        }
 
         // compute fundemental matrix FL1L2
         cv::Mat F_L;
@@ -158,7 +159,6 @@ int main() {
 
         // make sure that there are this inlier in all frames. If not delete this inlier in all frames
         deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
-
 
         //visualisize
         // convert grayscale to color image
@@ -200,7 +200,6 @@ int main() {
 
         if (goodPFound_L && goodPFound_R) {
             // find right scale factors u und v (according to rodehorst paper)
-
             // 1. method:
             cv::Mat P0 = (cv::Mat_<double>(3,4) <<
                           1.0, 0.0, 0.0, 0.0,
@@ -234,9 +233,9 @@ int main() {
             cv::hconcat(T_L, -(R_LR*T_R), A);
             B = T_LR -(R_L*T_LR);
 
-            cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
-            cout << "\n B: \n "<< B << endl << endl;
-            cout << "\n x: \n "<< x << endl << endl;
+//            cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
+//            cout << "\n B: \n "<< B << endl << endl;
+//            cout << "\n x: \n "<< x << endl << endl;
 
             //solve Ax = B
             cv::solve(A, B, x, cv::DECOMP_SVD);
@@ -244,10 +243,10 @@ int main() {
             double u_R2 = x.at<double>(1,0);
 
             // compare both methods
-            cout << "u links  1: " << u_L << endl;
-            cout << "u rechts 1: " << u_R << endl << endl;
-            cout << "u links  2: " << u_L2 << endl;
-            cout << "u rechts 2: " << u_R2 << endl;
+//            cout << "u links  1: " << u_L << endl;
+//            cout << "u rechts 1: " << u_R << endl << endl;
+//            cout << "u links  2: " << u_L2 << endl;
+//            cout << "u rechts 2: " << u_R2 << endl;
 
             //visualisize
             currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L/100.0), "motionPath 1", cv::Scalar(255,0,0));
@@ -277,15 +276,16 @@ int main() {
 //            cout << "cameraRot: hagen " << endl << RTest << endl;
 
         } else {
-            cout << " can't estimate motion no perspective Mat Found" << endl;
+            cout << "can't estimate motion no perspective Mat Found" << endl;
         }
 
         // cv::Mat_<double> rvec, t, R;
         // findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
 
         ++frame;
-        cvWaitKey(0);
+        cvWaitKey(10);
     }
+    cvWaitKey(0);
     return 0;
 }
 

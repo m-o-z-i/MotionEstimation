@@ -82,7 +82,7 @@ bool getRightProjectionMat( cv::Mat& E,
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
                 if (TestTriangulation(P0, pcloud1) && TestTriangulation(P1, pcloud1)) {
-                    cout << "############## use this perspective Matrix ################" << endl;
+                    cout << "############## use this perspective Matrix " << "P"<< i << j << "################" << endl;
                     cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
                     foundPerspectiveMatrix = true;
                     break;
@@ -122,7 +122,7 @@ bool TestTriangulation(const cv::Matx34f& P, const std::vector<cv::Point3f>& poi
     double percentage = ((double)count / (double)points3D.size());
     std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
-        //less than 75% of the points are in front of the camera
+        //less than 55% of the points are in front of the camera
         return false;
     }
     return true;

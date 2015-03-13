@@ -4,12 +4,11 @@
 // find pose estimation using orientation of pointcloud
 bool findPoseEstimation(
         cv::Mat_<double>& rvec,
-        cv::Mat_<double>& t,
+        cv::Mat & t,
         cv::Mat_<double>& R,
         std::vector<cv::Point3f> ppcloud,
         std::vector<cv::Point2f> imgPoints,
-        cv::Mat K,
-        cv::Mat distortion_coeff
+        cv::Mat K
         )
 {
     if(ppcloud.size() <= 7 || imgPoints.size() <= 7 || ppcloud.size() != imgPoints.size()) {
@@ -18,11 +17,11 @@ bool findPoseEstimation(
         return false;
     }
     vector<int> inliers;
-//    if(!cv::use_gpu) {
-        //use CPU
+
     double minVal,maxVal;
     cv::minMaxIdx(imgPoints,&minVal,&maxVal);
-    cv::solvePnPRansac(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
+    vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
+    cv::solvePnPRansac(ppcloud, imgPoints, K, distCoeffVec, rvec, t, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
                 //CV_PROFILE("solvePnP",cv::solvePnP(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, CV_EPNP);)
 //    } else {
 //        //use GPU ransac
@@ -35,7 +34,7 @@ bool findPoseEstimation(
 //        t_.convertTo(t,CV_64FC1);
 //    }
     vector<cv::Point2f> projected3D;
-    cv::projectPoints(ppcloud, rvec, t, K, distortion_coeff, projected3D);
+    cv::projectPoints(ppcloud, rvec, t, K, distCoeffVec, projected3D);
     if(inliers.size()==0) { //get inliers
         for(unsigned int i=0;i<projected3D.size();i++) {
             if(norm(projected3D[i]-imgPoints[i]) < 10.0)

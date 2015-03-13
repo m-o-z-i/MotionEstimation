@@ -46,6 +46,10 @@ char key;
  * surf detection need nonfree lib... can't use it in the vr-lab
  */
 
+//callback
+void method2 (const vector<cv::Point2f>& point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_L3, const cv::Mat &P_LR, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R);
+void method3 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
+
 int main() {
 
     int frame=1;
@@ -72,16 +76,22 @@ int main() {
     int resY = 480;
 
     // currentPosition
-    cv::Point2f currentPos_L1(512, 512);
-    cv::Point2f currentPos_R1(512, 512);
-    cv::Point2f currentPos_L2(512, 512);
-    cv::Point2f currentPos_R2(512, 512);
+    cv::Point2f currentPos_L1(900, 200);
+    cv::Point2f currentPos_R1(900, 200);
+    cv::Point2f currentPos_L2(900, 200);
+    cv::Point2f currentPos_R2(900, 200);
+    cv::Point2f currentPos_L3(500, 500);
+    cv::Point2f currentPos_R3(500, 500);
 
     cv::Mat path1 = cv::imread("data/background.jpg");
     cv::Mat path2 = cv::imread("data/background.jpg");
+    cv::Mat path3 = cv::imread("data/background.jpg");
+    cv::Mat path4 = cv::imread("data/background.jpg");
 
     cv::namedWindow("motionPath 1", cv::WINDOW_NORMAL);
     cv::namedWindow("motionPath 2", cv::WINDOW_NORMAL);
+    cv::namedWindow("motionPath 3", cv::WINDOW_NORMAL);
+    cv::namedWindow("motionPath 4", cv::WINDOW_NORMAL);
 
     while(true)
     {
@@ -121,18 +131,18 @@ int main() {
 
 
         // find inliers from median value
-        vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
-        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedian_L1a, &inliersMedian_R1a);
+//        vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
+//        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedian_L1a, &inliersMedian_R1a);
 
-        vector<cv::Point2f> inliersMedian_L1b, inliersMedian_L2;
-        getInliersFromMedianValue(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersMedian_L1b, &inliersMedian_L2);
+//        vector<cv::Point2f> inliersMedian_L1b, inliersMedian_L2;
+//        getInliersFromMedianValue(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersMedian_L1b, &inliersMedian_L2);
 
-        vector<cv::Point2f> inliersMedian_R1b, inliersMedian_R2;
-        getInliersFromMedianValue(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersMedian_R1b, &inliersMedian_R2);
+//        vector<cv::Point2f> inliersMedian_R1b, inliersMedian_R2;
+//        getInliersFromMedianValue(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersMedian_R1b, &inliersMedian_R2);
 
-        deleteZeroLines(inliersMedian_L1a, inliersMedian_R1a, inliersMedian_L1b, inliersMedian_L2, inliersMedian_R1b, inliersMedian_R2);
+//        deleteZeroLines(inliersMedian_L1a, inliersMedian_R1a, inliersMedian_L1b, inliersMedian_L2, inliersMedian_R1b, inliersMedian_R2);
 
-        if (8 > inliersMedian_R1a.size()) {
+        if (8 > corresPointsL1toR1.first.size()) {
             cout << "to less points found" << endl;
             ++frame;
             continue;
@@ -142,13 +152,13 @@ int main() {
         cv::Mat F_L;
         bool foundF_L;
         vector<cv::Point2f> inliersF_L1, inliersF_L2;
-        foundF_L = getFundamentalMatrix(make_pair(inliersMedian_L1a, inliersMedian_L2), &inliersF_L1, &inliersF_L2, F_L);
+        foundF_L = getFundamentalMatrix(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersF_L1, &inliersF_L2, F_L);
 
         // compute fundemental matrix FL1L2
         cv::Mat F_R;
         bool foundF_R;
         vector<cv::Point2f> inliersF_R1, inliersF_R2;
-        foundF_R = getFundamentalMatrix(make_pair(inliersMedian_R1a, inliersMedian_R2), &inliersF_R1, &inliersF_R2, F_R);
+        foundF_R = getFundamentalMatrix(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersF_R1, &inliersF_R2, F_R);
 
         // can't find fundamental Mat
         if (!foundF_L || !foundF_R){
@@ -162,10 +172,10 @@ int main() {
 
         //visualisize
         // convert grayscale to color image
-//        cv::Mat color_image;
-//        cv::cvtColor(frame1L, color_image, CV_GRAY2RGB);
-//        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianR1a, "Found CorresPoints l1a r1a", CV_RGB(0,255,0));
-//        drawCorresPoints(color_image, inliersMedianL1b, inliersMedianR1b, "Found CorresPoints l1b r1b", CV_RGB(0,255,0));
+        cv::Mat color_image;
+        cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+        drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
+        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
 
 //        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
 //        drawCorresPoints(color_image, inliersMedianR1b, inliersMedianR2, "Found CorresPoints R1 To R2", CV_RGB(0,0,255));
@@ -250,7 +260,7 @@ int main() {
 
             //visualisize
             currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L/100.0), "motionPath 1", cv::Scalar(255,0,0));
-            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R/100.0), "motionPath 1", cv::Scalar(255,255,0));
+            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R/100.0), "motionPath 1", cv::Scalar(0,255,0));
             currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
             currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
 
@@ -279,11 +289,21 @@ int main() {
             cout << "can't estimate motion no perspective Mat Found" << endl;
         }
 
-        // cv::Mat_<double> rvec, t, R;
-        // findPoseEstimation(rvec,t,R,pointCloud,medianInliersR1, K, distCoeff);
+        {   //second method
+            cv::Mat T2_L, T2_R;
+            method2(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, K_L, K_R, T2_L, T2_R);
+            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T2_L*0.000001), "motionPath 3", cv::Scalar(255,0,0));
+            currentPos_R3 = drawCameraPath(path3, currentPos_R3, cv::Mat(T2_R*0.000001), "motionPath 3", cv::Scalar(0,255,0));
+        }
+
+        {   //third method
+            cv::Mat T3;
+            method3(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, T3);
+            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T3), "motionPath 4", cv::Scalar(255,0,0));
+        }
 
         ++frame;
-        cvWaitKey(10);
+        cvWaitKey(100);
     }
     cvWaitKey(0);
     return 0;
@@ -292,9 +312,46 @@ int main() {
 
 
 
+void method2 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& K_L, const cv::Mat& K_R, cv::Mat& T_L, cv::Mat& T_R){
+    cv::Mat_<double> rvec_L, rvec_R, R_L, R_R;
+    cv::Mat P0 = (cv::Mat_<double>(3,4) <<
+                   1.0, 0.0, 0.0, 0.0,
+                   0.0, 1.0, 0.0, 0.0,
+                   0.0, 0.0, 1.0, 0.0 );
+
+    vector<cv::Point3f> worldcoordinates;
+    TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates);
+
+    findPoseEstimation(rvec_L, T_L, R_L, worldcoordinates, point_L2, K_L);
+    findPoseEstimation(rvec_R, T_R, R_R, worldcoordinates, point_R2, K_R);
+}
 
 
+void method3 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){
+    cv::Mat P0 = (cv::Mat_<double>(3,4) <<
+                   1.0, 0.0, 0.0, 0.0,
+                   0.0, 1.0, 0.0, 0.0,
+                   0.0, 0.0, 1.0, 0.0 );
 
+    vector<cv::Point3f> worldcoordinates_1, worldcoordinates_2;
+    TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates_1);
+    TriangulatePointsHZ(P0, P_LR, point_L2, point_R2, 0, worldcoordinates_2);
+
+    vector<cv::Point3f> translationVectors;
+    for (unsigned int i = 0; i < worldcoordinates_1.size(); ++i){
+        translationVectors.push_back(worldcoordinates_1[i] - worldcoordinates_2[i]);
+    }
+
+    cv::Point3f transVec = accumulate(translationVectors.begin(), translationVectors.end(), cv::Point3f(0,0,0), [](const cv::Point3f& sum, const cv::Point3f& p) {
+        return sum+p;
+    });
+
+    cout << transVec<< endl;
+    transVec = (1.0/translationVectors.size()) * transVec ;
+    cout << transVec<< endl;
+
+    T = cv::Mat(transVec);
+}
 
 
 

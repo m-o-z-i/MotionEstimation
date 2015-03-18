@@ -71,6 +71,12 @@ int main() {
     cv::Mat P_LR;
     cv::hconcat(R_LR, T_LR, P_LR);
 
+    cv::Mat P0 = (cv::Mat_<double>(3,4) <<
+                  1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0 );
+
+
     // define image size
     int resX = 752;
     int resY = 480;
@@ -82,6 +88,7 @@ int main() {
     cv::Point2f currentPos_R2(900, 200);
     cv::Point2f currentPos_L3(500, 500);
     cv::Point2f currentPos_R3(500, 500);
+    cv::Point2f currentPos_4(500, 500);
 
     cv::Mat path1 = cv::imread("data/background.jpg");
     cv::Mat path2 = cv::imread("data/background.jpg");
@@ -211,56 +218,26 @@ int main() {
         if (goodPFound_L && goodPFound_R) {
             // find right scale factors u und v (according to rodehorst paper)
             // 1. method:
-            cv::Mat P0 = (cv::Mat_<double>(3,4) <<
-                          1.0, 0.0, 0.0, 0.0,
-                          0.0, 1.0, 0.0, 0.0,
-                          0.0, 0.0, 1.0, 0.0 );
-
-            std::vector<cv::Point3f> X, X_L, X_R;
-            TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 5, X);
-            TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 5, X_L);
-            TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 5, X_R);
-
-            double sum_L = 0;
-            double sum_R = 0;
-            for (unsigned int i = 0; i < X.size(); ++i) {
-                sum_L += ((cv::norm(X[i])*1.0) / cv::norm(X_L[i])*1.0);
-                sum_R += ((cv::norm(X[i])*1.0) / cv::norm(X_R[i])*1.0);
-            }
-
-            double u_L = 1.0/X.size() * sum_L;
-            double u_R = 1.0/X.size() * sum_R;
+            double u_L1, u_R1;
+            getScaleFactor(P0, P_LR, P_L, P_R, normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, u_L1, u_R1);
 
             // 2. method:
             cv::Mat R_L, T_L, R_R, T_R;
             decomposeProjectionMat(P_L, R_L, T_L);
             decomposeProjectionMat(P_R, R_R, T_R);
 
-            cv::Mat A(3, 2, CV_32F);
-            cv::Mat B(3, 1, CV_32F);
-            cv::Mat x(2, 1, CV_32F);
+            double u_L2, u_R2;
+            getScaleFactor2(T_L, R_L, T_R, T_LR, R_LR, u_L2, u_R2);
 
-            cv::hconcat(T_L, -(R_LR*T_R), A);
-            B = T_LR -(R_L*T_LR);
-
-//            cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
-//            cout << "\n B: \n "<< B << endl << endl;
-//            cout << "\n x: \n "<< x << endl << endl;
-
-            //solve Ax = B
-            cv::solve(A, B, x, cv::DECOMP_SVD);
-            double u_L2 = x.at<double>(0,0);
-            double u_R2 = x.at<double>(1,0);
-
-            // compare both methods
-//            cout << "u links  1: " << u_L << endl;
-//            cout << "u rechts 1: " << u_R << endl << endl;
-//            cout << "u links  2: " << u_L2 << endl;
-//            cout << "u rechts 2: " << u_R2 << endl;
+            //compare both methods
+            cout << "u links  1: " << u_L1 << endl;
+            cout << "u rechts 1: " << u_R1 << endl << endl;
+            cout << "u links  2: " << u_L2 << endl;
+            cout << "u rechts 2: " << u_R2 << endl;
 
             //visualisize
-            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L/100.0), "motionPath 1", cv::Scalar(255,0,0));
-            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R/100.0), "motionPath 1", cv::Scalar(0,255,0));
+            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
+            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R1/100.0), "motionPath 1", cv::Scalar(0,255,0));
             currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
             currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
 
@@ -289,18 +266,18 @@ int main() {
             cout << "can't estimate motion no perspective Mat Found" << endl;
         }
 
-        {   //second method
-            cv::Mat T2_L, T2_R;
-            method2(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, K_L, K_R, T2_L, T2_R);
-            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T2_L*0.000001), "motionPath 3", cv::Scalar(255,0,0));
-            currentPos_R3 = drawCameraPath(path3, currentPos_R3, cv::Mat(T2_R*0.000001), "motionPath 3", cv::Scalar(0,255,0));
-        }
+//        {   //second method (solvePnPRansac)
+//            cv::Mat T2_L, T2_R;
+//            method2(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, K_L, K_R, T2_L, T2_R);
+//            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T2_L*0.000001), "motionPath 3", cv::Scalar(255,0,0));
+//            currentPos_R3 = drawCameraPath(path3, currentPos_R3, cv::Mat(T2_R*0.000001), "motionPath 3", cv::Scalar(0,255,0));
+//        }
 
-        {   //third method
-            cv::Mat T3;
-            method3(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, T3);
-            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T3), "motionPath 4", cv::Scalar(255,0,0));
-        }
+//        {   //third method (haagen)
+//            cv::Mat T3;
+//            method3(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, T3);
+//            currentPos_4 = drawCameraPath(path4, currentPos_4, cv::Mat(T3), "motionPath 4", cv::Scalar(255,0,0));
+//        }
 
         ++frame;
         cvWaitKey(100);

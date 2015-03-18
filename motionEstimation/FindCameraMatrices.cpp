@@ -294,3 +294,39 @@ void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
   fs.release();
 }
 
+
+void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R, const vector<cv::Point2f>& normPoints_L1, const vector<cv::Point2f>&normPoints_R1, const vector<cv::Point2f>&normPoints_L2, const vector<cv::Point2f>& normPoints_R2, double& u, double& v) {
+    std::vector<cv::Point3f> X, X_L, X_R;
+    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 5, X);
+    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 5, X_L);
+    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 5, X_R);
+
+    double sum_L = 0;
+    double sum_R = 0;
+    for (unsigned int i = 0; i < X.size(); ++i) {
+        sum_L += ((cv::norm(X[i])*1.0) / cv::norm(X_L[i])*1.0);
+        sum_R += ((cv::norm(X[i])*1.0) / cv::norm(X_R[i])*1.0);
+    }
+
+    u = 1.0/X.size() * sum_L;
+    v = 1.0/X.size() * sum_R;
+}
+
+void getScaleFactor2(const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R, const cv::Mat& T_LR, const cv::Mat& R_LR, double& u, double& v) {
+    cv::Mat A(3, 2, CV_32F);
+    cv::Mat B(3, 1, CV_32F);
+    cv::Mat x(2, 1, CV_32F);
+
+    cv::hconcat(T_L, -(R_LR*T_R), A);
+    B = T_LR -(R_L*T_LR);
+
+//            cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
+//            cout << "\n B: \n "<< B << endl << endl;
+//            cout << "\n x: \n "<< x << endl << endl;
+
+    //solve Ax = B
+    cv::solve(A, B, x, cv::DECOMP_SVD);
+    u = x.at<double>(0,0);
+    v = x.at<double>(1,0);
+}
+

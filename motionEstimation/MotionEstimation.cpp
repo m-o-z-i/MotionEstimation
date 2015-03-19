@@ -127,31 +127,27 @@ int main() {
             continue;
         }
 
-        // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 5,0.5,5);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame_L1, frame_R1, features);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toL2 = refindFeaturePoints(frame_L1, frame_L2, corresPointsL1toR1.first);
-        pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsR1toR2 = refindFeaturePoints(frame_R1, frame_R2, corresPointsL1toR1.second);
+        vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
+        findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
 
-        // delete in all frames points, that are not visible in each frames
-        deleteUnvisiblePoints(corresPointsL1toR1, corresPointsL1toL2, corresPointsR1toR2, resX, resY);
+
 
         // Test TRIANGULATION
         {
-            deleteZeroLines(corresPointsL1toR1.first, corresPointsL1toR1.second);
+            deleteZeroLines(points_L1, points_R1);
 
-            if (0 == corresPointsL1toR1.first.size()) {
+            if (0 == points_L1.size()) {
                 cout << "to less points found" << endl;
                 ++frame;
                 continue;
             }
 
             vector<cv::Point2f> normP_L1, normP_R1;
-            normalizePoints(KInv_L, KInv_R, corresPointsL1toR1.first, corresPointsL1toR1.second, normP_L1, normP_R1);
+            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
 
             cv::Mat color_image;
             cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "test triangulation normalized points ", CV_RGB(255,0,255));
+            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
             vector<cv::Point3f> pCloudTest;
             TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest);
@@ -177,7 +173,7 @@ int main() {
 
 //        deleteZeroLines(inliersMedian_L1a, inliersMedian_R1a, inliersMedian_L1b, inliersMedian_L2, inliersMedian_R1b, inliersMedian_R2);
 
-        if (8 > corresPointsL1toR1.first.size()) {
+        if (8 > points_L1.size()) {
             cout << "to less points found" << endl;
             ++frame;
             continue;
@@ -187,13 +183,13 @@ int main() {
         cv::Mat F_L;
         bool foundF_L;
         vector<cv::Point2f> inliersF_L1, inliersF_L2;
-        foundF_L = getFundamentalMatrix(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersF_L1, &inliersF_L2, F_L);
+        foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
 
         // compute fundemental matrix FL1L2
         cv::Mat F_R;
         bool foundF_R;
         vector<cv::Point2f> inliersF_R1, inliersF_R2;
-        foundF_R = getFundamentalMatrix(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersF_R1, &inliersF_R2, F_R);
+        foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
 
         // can't find fundamental Mat
         if (!foundF_L || !foundF_R){

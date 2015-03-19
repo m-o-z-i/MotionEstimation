@@ -28,7 +28,7 @@ vector<cv::Point2f> getStrongFeaturePoints(const cv::Mat& image, int number, flo
     return image_features;
 }
 
-pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat& prev_image, const cv::Mat& next_image, vector<cv::Point2f> frame1_features){
+void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features, vector<cv::Point2f> *points1, vector<cv::Point2f> *points2){
     /* Pyramidal Lucas Kanade Optical Flow! */
 
     /* This array will contain the locations of the points from frame 1 in frame 2. */
@@ -89,10 +89,10 @@ pair<vector<cv::Point2f>, vector<cv::Point2f>> refindFeaturePoints(const cv::Mat
         }
         ++iter_f1;
         ++iter_f2;
+
+        points1->push_back(frame1_features[i]);
+        points2->push_back(frame2_features[i]);
     }
-
-
-    return make_pair(frame1_features, frame2_features);
 }
 
 void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
@@ -129,48 +129,50 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
 }
 
 
-void deleteUnvisiblePoints(pair<vector<cv::Point2f>, vector<cv::Point2f>>& corresPoints1to2, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL1toR1, pair<vector<cv::Point2f>, vector<cv::Point2f> >& corresPointsL2toR2, int resX, int resY ){
-    int size = corresPoints1to2.first.size();
-    // iterate over all points and delete points, that are not in all frames visible;
-    vector<cv::Point2f>::iterator iter_c1a = corresPoints1to2.first.begin();
-    vector<cv::Point2f>::iterator iter_c1b = corresPoints1to2.second.begin();
-    vector<cv::Point2f>::iterator iter_c2a = corresPointsL1toR1.first.begin();
-    vector<cv::Point2f>::iterator iter_c2b = corresPointsL1toR1.second.begin();
-    vector<cv::Point2f>::iterator iter_c3a = corresPointsL2toR2.first.begin();
-    vector<cv::Point2f>::iterator iter_c3b = corresPointsL2toR2.second.begin();
-    for (unsigned int i = 0; i < size ; ++i ) {
-        if (1 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
-            1 >= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
-            1 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
-            1 >= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
-            1 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
-            1 >= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
-            1 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
-            1 >= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
-            1 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
-            1 >= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
-            1 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
-            1 >= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y ||
+void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1R, vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R, int resX, int resY){
 
-            resX <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].x   &&
-            resY <= corresPoints1to2.first[iter_c1a-corresPoints1to2.first.begin()].y   ||
-            resX <= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].x &&
-            resY <= corresPointsL1toR1.first[iter_c2a-corresPointsL1toR1.first.begin()].y ||
-            resX <= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].x &&
-            resY <= corresPointsL2toR2.first[iter_c3a-corresPointsL2toR2.first.begin()].y ||
-            resX <= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].x   &&
-            resY <= corresPoints1to2.second[iter_c1b-corresPoints1to2.second.begin()].y   ||
-            resX <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].x &&
-            resY <= corresPointsL1toR1.second[iter_c2b-corresPointsL1toR1.second.begin()].y ||
-            resX <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].x &&
-            resY <= corresPointsL2toR2.second[iter_c3b-corresPointsL2toR2.second.begin()].y )
+
+    int size = points1L.size();
+    // iterate over all points and delete points, that are not in all frames visible;
+    vector<cv::Point2f>::iterator iter_c1a = points1L.begin();
+    vector<cv::Point2f>::iterator iter_c1b = points1R.begin();
+    vector<cv::Point2f>::iterator iter_c2a = points1La.begin();
+    vector<cv::Point2f>::iterator iter_c2b = points1Ra.begin();
+    vector<cv::Point2f>::iterator iter_c3a = points2L.begin();
+    vector<cv::Point2f>::iterator iter_c3b = points2R.begin();
+    for (unsigned int i = 0; i < size ; ++i ) {
+        if (1 >= points1L[iter_c1a-points1L.begin()].x   &&
+            1 >= points1L[iter_c1a-points1L.begin()].y   ||
+            1 >= points1La[iter_c2a-points1La.begin()].x &&
+            1 >= points1La[iter_c2a-points1La.begin()].y ||
+            1 >= points2L[iter_c3a-points2L.begin()].x &&
+            1 >= points2L[iter_c3a-points2L.begin()].y ||
+            1 >= points1R[iter_c1b-points1R.begin()].x   &&
+            1 >= points1R[iter_c1b-points1R.begin()].y   ||
+            1 >= points1Ra[iter_c2b-points1Ra.begin()].x &&
+            1 >= points1Ra[iter_c2b-points1Ra.begin()].y ||
+            1 >= points2R[iter_c3b-points2R.begin()].x &&
+            1 >= points2R[iter_c3b-points2R.begin()].y ||
+
+            resX <= points1L[iter_c1a-points1L.begin()].x   &&
+            resY <= points1L[iter_c1a-points1L.begin()].y   ||
+            resX <= points1La[iter_c2a-points1La.begin()].x &&
+            resY <= points1La[iter_c2a-points1La.begin()].y ||
+            resX <= points2L[iter_c3a-points2L.begin()].x &&
+            resY <= points2L[iter_c3a-points2L.begin()].y ||
+            resX <= points1R[iter_c1b-points1R.begin()].x   &&
+            resY <= points1R[iter_c1b-points1R.begin()].y   ||
+            resX <= points1Ra[iter_c2b-points1Ra.begin()].x &&
+            resY <= points1Ra[iter_c2b-points1Ra.begin()].y ||
+            resX <= points2R[iter_c3b-points2R.begin()].x &&
+            resY <= points2R[iter_c3b-points2R.begin()].y )
         {
-            corresPoints1to2.first.erase(iter_c1a);
-            corresPoints1to2.second.erase(iter_c1b);
-            corresPointsL1toR1.first.erase(iter_c2a);
-            corresPointsL1toR1.second.erase(iter_c2b);
-            corresPointsL2toR2.first.erase(iter_c3a);
-            corresPointsL2toR2.second.erase(iter_c3b);
+            points1L.erase(iter_c1a);
+            points1R.erase(iter_c1b);
+            points1La.erase(iter_c2a);
+            points1Ra.erase(iter_c2b);
+            points2L.erase(iter_c3a);
+            points2R.erase(iter_c3b);
         } else
         {
             ++iter_c1a;
@@ -283,5 +285,27 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
 }
 
 
+void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> *points_L1, vector<cv::Point2f> *points_R1, vector<cv::Point2f> *points_L2, vector<cv::Point2f> *points_R2){
+    // find corresponding points
+    vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
+    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 100,0.03,15);
 
+    if (0 == features.size()){
+        return;
+    }
+
+    refindFeaturePoints(frame_L1, frame_R1, features, &points_L1_temp, &points_R1_temp);
+    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, &points_L1a_temp, &points_L2_temp);
+    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, &points_R1a_temp, &points_R2_temp);
+
+    // delete in all frames points, that are not visible in each frames
+    deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
+
+    for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
+        points_L1->push_back(points_L1_temp[i]);
+        points_R1->push_back(points_R1_temp[i]);
+        points_L2->push_back(points_L2_temp[i]);
+        points_R2->push_back(points_R2_temp[i]);
+    }
+}
 

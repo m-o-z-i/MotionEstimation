@@ -208,18 +208,18 @@ bool CheckCoherentRotation(cv::Mat const& R) {
     return true;
 }
 
-bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& points, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
+bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2f> const& points2, vector<cv::Point2f> *inliers1, vector<cv::Point2f> *inliers2, cv::Mat& F) {
     // Compute F matrix using RANSAC
-    if(points.first.size() != points.second.size() || 0 == points.first.size()){
+    if(points1.size() != points2.size() || 0 == points1.size()){
         return false;
     }
 
     //vector<cv::Point2f> p1;
     //vector<cv::Point2f> p2;
 
-    std::vector<uchar> inliers_fundamental(points.first.size(),0);
+    std::vector<uchar> inliers_fundamental(points1.size(),0);
     F = cv::findFundamentalMat(
-            cv::Mat(points.first), cv::Mat(points.second),   // matching points
+            cv::Mat(points1), cv::Mat(points2),   // matching points
             inliers_fundamental,                             // match status (inlier ou outlier)
             cv::FM_RANSAC,                                   // RANSAC method
             5.,                                              // distance to epipolar line
@@ -233,11 +233,11 @@ bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
     //check x' * F * x = 0 ??
     vector<cv::Point3f> homogenouse1;
     vector<cv::Point3f> homogenouse2;
-    cv::convertPointsToHomogeneous(points.first, homogenouse1);
-    cv::convertPointsToHomogeneous(points.second, homogenouse2);
+    cv::convertPointsToHomogeneous(points1, homogenouse1);
+    cv::convertPointsToHomogeneous(points2, homogenouse2);
 
     //get Inlier
-    for(unsigned i = 0; i<points.first.size(); ++i){
+    for(unsigned i = 0; i<points1.size(); ++i){
         if (inliers_fundamental[i] == 1) {
             cv::Mat point1 (homogenouse1[i]);
             cv::Mat point2 (homogenouse2[i]);
@@ -246,8 +246,8 @@ bool getFundamentalMatrix(pair<vector<cv::Point2f>, vector<cv::Point2f>> const& 
             point2.convertTo(point2, CV_64F);
 
             if ((point2 * F * point1).s[0] <= 0.1){
-                inliers1->push_back(points.first[i]);
-                inliers2->push_back(points.second[i]);
+                inliers1->push_back(points1[i]);
+                inliers2->push_back(points2[i]);
             } else {
                 inliers1->push_back(cv::Point2f(0,0));
                 inliers2->push_back(cv::Point2f(0,0));

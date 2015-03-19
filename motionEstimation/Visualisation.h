@@ -9,6 +9,7 @@ using namespace std;
 
 static const double pi = 3.14159265358979323846;
 
+
 void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 void drawLine(cv::Mat& ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);
 void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color = CV_RGB(0,0,0));
@@ -22,5 +23,7 @@ void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar
 void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21, cv::Mat mat_image22, int frame);
 
 cv::Point2f drawCameraPath(cv::Mat& img, const cv::Point2f prevPos, const cv::Mat& T, string name, cv::Scalar const& color);
+
+void drawPointCloud();
 
 #endif // VISUALISATION_H

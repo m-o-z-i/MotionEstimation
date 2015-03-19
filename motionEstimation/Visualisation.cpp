@@ -174,10 +174,17 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
 
 
 void drawCorresPoints(cv::Mat& color_image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
+
+    int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
+    double fontScale = 0.3;
+    int thickness = 1;
+
     for(unsigned int i = 0; i < inliers1.size(); i++)
     {
         double angle;		angle = atan2( (double) inliers1[i].y - inliers2[i].y, (double) inliers1[i].x - inliers2[i].x );
         drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
+        //cv::Point2f point (0.5*(inliers2[i] - inliers1[i]) );
+        cv::putText (color_image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[0], color[1], color[2]), thickness);
     }
 
     /* Now display the image we drew on.  Recall that "Optical Flow" is the name of

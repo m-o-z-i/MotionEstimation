@@ -128,7 +128,7 @@ int main() {
         }
 
         // find corresponding points
-        vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 250,0.01,5);
+        vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 5,0.5,5);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toR1 = refindFeaturePoints(frame_L1, frame_R1, features);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsL1toL2 = refindFeaturePoints(frame_L1, frame_L2, corresPointsL1toR1.first);
         pair<vector<cv::Point2f>, vector<cv::Point2f>> corresPointsR1toR2 = refindFeaturePoints(frame_R1, frame_R2, corresPointsL1toR1.second);
@@ -136,6 +136,34 @@ int main() {
         // delete in all frames points, that are not visible in each frames
         deleteUnvisiblePoints(corresPointsL1toR1, corresPointsL1toL2, corresPointsR1toR2, resX, resY);
 
+        // Test TRIANGULATION
+        {
+            deleteZeroLines(corresPointsL1toR1.first, corresPointsL1toR1.second);
+
+            if (0 == corresPointsL1toR1.first.size()) {
+                cout << "to less points found" << endl;
+                ++frame;
+                continue;
+            }
+
+            vector<cv::Point2f> normP_L1, normP_R1;
+            normalizePoints(KInv_L, KInv_R, corresPointsL1toR1.first, corresPointsL1toR1.second, normP_L1, normP_R1);
+
+            cv::Mat color_image;
+            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+            drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "test triangulation normalized points ", CV_RGB(255,0,255));
+
+            vector<cv::Point3f> pCloudTest;
+            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest);
+            int index = 0;
+            for (auto i : pCloudTest){
+                cout<< index << ":  " << i << endl;
+                ++index;
+            }
+            cv::waitKey(0);
+            ++frame;
+            continue;
+        }
 
         // find inliers from median value
 //        vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
@@ -179,10 +207,10 @@ int main() {
 
         //visualisize
         // convert grayscale to color image
-        cv::Mat color_image;
-        cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-        drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
-        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
+//        cv::Mat color_image;
+//        cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+//        drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
+//        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
 
 //        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
 //        drawCorresPoints(color_image, inliersMedianR1b, inliersMedianR2, "Found CorresPoints R1 To R2", CV_RGB(0,0,255));
@@ -198,6 +226,7 @@ int main() {
         vector<cv::Point2f> normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2;
         normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normPoints_L1, normPoints_R1);
         normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normPoints_L2, normPoints_R2);
+
 
         // calculate essential mat
         cv::Mat E_L = K_R.t() * F_L * K_L; //according to HZ (9.12)
@@ -236,10 +265,10 @@ int main() {
             cout << "u rechts 2: " << u_R2 << endl;
 
             //visualisize
-            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
-            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R1/100.0), "motionPath 1", cv::Scalar(0,255,0));
-            currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
-            currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
+//            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
+//            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R1/100.0), "motionPath 1", cv::Scalar(0,255,0));
+//            currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
+//            currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
 
 
 //            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
@@ -280,7 +309,7 @@ int main() {
 //        }
 
         ++frame;
-        cvWaitKey(100);
+        cvWaitKey(0);
     }
     cvWaitKey(0);
     return 0;

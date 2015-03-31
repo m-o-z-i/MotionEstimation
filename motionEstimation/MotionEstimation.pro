@@ -11,7 +11,8 @@ SOURCES += \
     FindPoints.cpp \
     Triangulation.cpp \
     Visualisation.cpp \
-    MultiCameraPnP.cpp
+    MultiCameraPnP.cpp \
+    PointCloudVis.cpp
 
 HEADERS += \
     line/MyLine.h \
@@ -19,7 +20,8 @@ HEADERS += \
     FindPoints.h \
     MultiCameraPnP.h \
     Triangulation.h \
-    Visualisation.h
+    Visualisation.h \
+    PointCloudVis.h
 
 unix:!macx: LIBS += -lopencv_core \
                     -lopencv_imgproc \
@@ -28,5 +30,11 @@ unix:!macx: LIBS += -lopencv_core \
                     -lopencv_contrib \
                     -lopencv_features2d \
                     -lopencv_objdetect \
-                    -lopencv_video
+                    -lopencv_video \
+                    -lpcl_visualization \
+                    -lpcl_common \
+                    -lpcl_filters \
+                    -lboost_system
+
+INCLUDEPATH += /usr/include/pcl-1.7 /usr/include/eigen3 /usr/include/vtk-5.8
 

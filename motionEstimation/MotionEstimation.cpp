@@ -4,6 +4,7 @@
 #include "MultiCameraPnP.h"
 #include "Triangulation.h"
 #include "Visualisation.h"
+#include "PointCloudVis.h"
 
 #include <cmath>
 #include <math.h>
@@ -95,10 +96,10 @@ int main() {
     cv::Mat path3 = cv::imread("data/background.jpg");
     cv::Mat path4 = cv::imread("data/background.jpg");
 
-    cv::namedWindow("motionPath 1", cv::WINDOW_NORMAL);
-    cv::namedWindow("motionPath 2", cv::WINDOW_NORMAL);
-    cv::namedWindow("motionPath 3", cv::WINDOW_NORMAL);
-    cv::namedWindow("motionPath 4", cv::WINDOW_NORMAL);
+//    cv::namedWindow("motionPath 1", cv::WINDOW_NORMAL);
+//    cv::namedWindow("motionPath 2", cv::WINDOW_NORMAL);
+//    cv::namedWindow("motionPath 3", cv::WINDOW_NORMAL);
+//    cv::namedWindow("motionPath 4", cv::WINDOW_NORMAL);
 
     while(true)
     {
@@ -142,20 +143,28 @@ int main() {
                 continue;
             }
 
-            vector<cv::Point2f> normP_L1, normP_R1;
+            std::vector<cv::Point2f> normP_L1, normP_R1;
             normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
 
             cv::Mat color_image;
             cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
             drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
-            vector<cv::Point3f> pCloudTest;
+            std::vector<cv::Vec3b> RGBValues;
+            for (unsigned int i = 0; i < points_L1.size(); ++i){
+                RGBValues.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
+            }
+
+            std::vector<cv::Point3f> pCloudTest;
             TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest);
             int index = 0;
             for (auto i : pCloudTest){
                 cout<< index << ":  " << i << endl;
                 ++index;
             }
+
+            RunVisualization(pCloudTest, RGBValues);
+
             cv::waitKey(0);
             ++frame;
             continue;

@@ -85,18 +85,18 @@ int main() {
     // currentPosition
     cv::Mat position = cv::Mat::eye(4, 4, CV_64F);
 
-    cv::Point2f currentPos_L1(900, 200);
-    cv::Point2f currentPos_R1(900, 200);
-    cv::Point2f currentPos_L2(900, 200);
-    cv::Point2f currentPos_R2(900, 200);
-    cv::Point2f currentPos_L3(500, 500);
-    cv::Point2f currentPos_R3(500, 500);
-    cv::Point2f currentPos_4(500, 500);
+//    cv::Point2f currentPos_L1(900, 200);
+//    cv::Point2f currentPos_R1(900, 200);
+//    cv::Point2f currentPos_L2(900, 200);
+//    cv::Point2f currentPos_R2(900, 200);
+//    cv::Point2f currentPos_L3(500, 500);
+//    cv::Point2f currentPos_R3(500, 500);
+//    cv::Point2f currentPos_4(500, 500);
 
-    cv::Mat path1 = cv::imread("data/background.jpg");
-    cv::Mat path2 = cv::imread("data/background.jpg");
-    cv::Mat path3 = cv::imread("data/background.jpg");
-    cv::Mat path4 = cv::imread("data/background.jpg");
+//    cv::Mat path1 = cv::imread("data/background.jpg");
+//    cv::Mat path2 = cv::imread("data/background.jpg");
+//    cv::Mat path3 = cv::imread("data/background.jpg");
+//    cv::Mat path4 = cv::imread("data/background.jpg");
 
 //    cv::namedWindow("motionPath 1", cv::WINDOW_NORMAL);
 //    cv::namedWindow("motionPath 2", cv::WINDOW_NORMAL);
@@ -214,9 +214,9 @@ int main() {
 
         //visualisize
         // convert grayscale to color image
-//        cv::Mat color_image;
-//        cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-//        drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
+        cv::Mat color_image;
+        cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+        drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
 //        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
 
 //        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
@@ -285,16 +285,15 @@ int main() {
 
             std::stringstream ss;
             ss << "camera" << frame;
-            visualizerShowCamera(cv::Matx33f(rotation),cv::Vec3f(translation),255,0,0,0.2,ss.str());
+            addCameraToVisualizer(cv::Matx33f(rotation),cv::Vec3f(translation),255,0,0,0.2,ss.str());
 
             // get RGB values for pointcloud representation
             std::vector<cv::Vec3b> RGBValues;
             for (unsigned int i = 0; i < inliersF_L1.size(); ++i){
                 RGBValues.push_back(frame_L1.at<cv::Vec3b>(inliersF_L1[i].x, inliersF_L1[i].y));
             }
-            cv::imshow(to_string(frame), frame_L1);
-            RunVisualization(pointCloud_L, RGBValues);
-            cv::waitKey(0);
+            RunVisualization(pointCloud_L, frame, RGBValues);
+
             //visualisize
 //            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
 //            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R1/100.0), "motionPath 1", cv::Scalar(0,255,0));
@@ -340,14 +339,10 @@ int main() {
 //        }
 
         ++frame;
-        cvWaitKey(0);
     }
-    cvWaitKey(0);
+    cv::waitKey(0);
     return 0;
 }
-
-
-
 
 void method2 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& K_L, const cv::Mat& K_R, cv::Mat& T_L, cv::Mat& T_R){
     cv::Mat_<double> rvec_L, rvec_R, R_L, R_R;
@@ -362,7 +357,6 @@ void method2 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Po
     findPoseEstimation(rvec_L, T_L, R_L, worldcoordinates, point_L2, K_L);
     findPoseEstimation(rvec_R, T_R, R_R, worldcoordinates, point_R2, K_R);
 }
-
 
 void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){
     cv::Mat P0 = (cv::Mat_<double>(3,4) <<

@@ -1,6 +1,10 @@
 #include "PointCloudVis.h"
 
 
+
+pcl::visualization::PCLVisualizer viewer("MotionEstimation Viewer");
+
+
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr orig_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -75,43 +79,41 @@ void SORFilter() {
 }
 
 void RunVisualization(const std::vector<cv::Point3f>& pointcloud,
+                      int frame,
                       const std::vector<cv::Vec3b>& pointcloud_RGBColor) {
     PopulatePCLPointCloud(pointcloud,pointcloud_RGBColor);
     //SORFilter();
     pcl::copyPointCloud(*cloud,*orig_cloud);
 
-    //pcl::visualization::CloudViewer viewer("Cloud Viewer");
-    pcl::visualization::PCLVisualizer viewer("MotionEstimation Viewer");
-
     // run the cloud viewer
-    viewer.addPointCloud(orig_cloud,"orig");
+    viewer.addPointCloud(orig_cloud, std::to_string(frame));
+    viewer.addPolygonMesh(cam_meshes.front().second,cam_meshes.front().first);
 
-    if(cam_meshes.size() > 0) {
-        int num_cams = cam_meshes.size();
-        cout << "showing " << num_cams << " cameras" << endl;
-        while(cam_meshes.size()>0) {
-            viewer.removeShape(cam_meshes.front().first);
-            viewer.addPolygonMesh(cam_meshes.front().second,cam_meshes.front().first);
-            cam_meshes.pop_front();
+    // draw camera direction
+    std::vector<Eigen::Matrix<float,6,1> > oneline = linesToShow.front().second;
+    pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
+                        B(oneline[1][3],oneline[1][4],oneline[1][5]);
+    for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
+    viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,linesToShow.front().first);
+
+    cam_meshes.clear();
+    linesToShow.clear();
+
+
+    // break loop with key-event n
+    char key = 0;
+    bool loop = true;
+    while (loop){
+        viewer.spinOnce();
+        //to register a event key, you have to make sure that a opencv named Window is open
+        key = cv::waitKey(10);
+        if (char(key) == 'n') {
+            loop = false;
         }
     }
-    if(linesToShow.size() > 0) {
-        cout << "showing " << linesToShow.size() << " lines" << endl;
-        while(linesToShow.size()>0) {
-            std::vector<Eigen::Matrix<float,6,1> > oneline = linesToShow.front().second;
-            pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
-                    B(oneline[1][3],oneline[1][4],oneline[1][5]);
-            for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
-            viewer.removeShape(linesToShow.front().first);
-            viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,linesToShow.front().first);
-            linesToShow.pop_front();
-        }
-        linesToShow.clear();
-    }
-    viewer.spinOnce();
 }
 
-void visualizerShowCamera(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s, const std::string& name) {
+void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s, const std::string& name) {
     std::string name_ = name,line_name = name + "line";
     if (name.length() <= 0) {
         std::stringstream ss; ss<<"camera"<< iCamCounter++;
@@ -150,12 +152,12 @@ void visualizerShowCamera(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, f
         AsVector(Eigen2Eigen(t,rgb),Eigen2Eigen(t + vforward*3.0,rgb))
         ));
 }
-void visualizerShowCamera(const float R[9], const float t[3], float r, float g, float b) {
-    visualizerShowCamera(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b);
+void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b) {
+    addCameraToVisualizer(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b);
 }
-void visualizerShowCamera(const float R[9], const float t[3], float r, float g, float b, double s) {
-    visualizerShowCamera(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b,s);
+void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b, double s) {
+    addCameraToVisualizer(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b,s);
 }
-void visualizerShowCamera(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name) {
-    visualizerShowCamera(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(t.val),r,g,b,s,name);
+void addCameraToVisualizer(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name) {
+    addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(t.val),r,g,b,s,name);
 }

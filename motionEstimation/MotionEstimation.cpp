@@ -48,8 +48,8 @@ char key;
  */
 
 //callback
-void method2 (const vector<cv::Point2f>& point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_L3, const cv::Mat &P_LR, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R);
-void method3 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
+void method2 (const std::vector<cv::Point2f>& point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_L3, const cv::Mat &P_LR, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R);
+void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
 
 int main() {
 
@@ -83,6 +83,8 @@ int main() {
     int resY = 480;
 
     // currentPosition
+    cv::Mat position = cv::Mat::eye(4, 4, CV_64F);
+
     cv::Point2f currentPos_L1(900, 200);
     cv::Point2f currentPos_R1(900, 200);
     cv::Point2f currentPos_L2(900, 200);
@@ -128,56 +130,56 @@ int main() {
             continue;
         }
 
-        vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
+        std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
 
 
 
         // Test TRIANGULATION
-        {
-            deleteZeroLines(points_L1, points_R1);
+//        {
+//            deleteZeroLines(points_L1, points_R1);
 
-            if (0 == points_L1.size()) {
-                cout << "to less points found" << endl;
-                ++frame;
-                continue;
-            }
+//            if (0 == points_L1.size()) {
+//                cout << "to less points found" << endl;
+//                ++frame;
+//                continue;
+//            }
 
-            std::vector<cv::Point2f> normP_L1, normP_R1;
-            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+//            std::vector<cv::Point2f> normP_L1, normP_R1;
+//            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
 
-            cv::Mat color_image;
-            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+//            cv::Mat color_image;
+//            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+//            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
-            std::vector<cv::Vec3b> RGBValues;
-            for (unsigned int i = 0; i < points_L1.size(); ++i){
-                RGBValues.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
-            }
+//            std::vector<cv::Vec3b> RGBValues;
+//            for (unsigned int i = 0; i < points_L1.size(); ++i){
+//                RGBValues.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
+//            }
 
-            std::vector<cv::Point3f> pCloudTest;
-            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest);
-            int index = 0;
-            for (auto i : pCloudTest){
-                cout<< index << ":  " << i << endl;
-                ++index;
-            }
+//            std::vector<cv::Point3f> pCloudTest;
+//            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest);
+//            int index = 0;
+//            for (auto i : pCloudTest){
+//                cout<< index << ":  " << i << endl;
+//                ++index;
+//            }
 
-            RunVisualization(pCloudTest, RGBValues);
+//            RunVisualization(pCloudTest, RGBValues);
 
-            cv::waitKey(0);
-            ++frame;
-            continue;
-        }
+//            cv::waitKey(0);
+//            ++frame;
+//            continue;
+//        }
 
         // find inliers from median value
-//        vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
+//        std::vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
 //        getInliersFromMedianValue(make_pair(corresPointsL1toR1.first, corresPointsL1toR1.second), &inliersMedian_L1a, &inliersMedian_R1a);
 
-//        vector<cv::Point2f> inliersMedian_L1b, inliersMedian_L2;
+//        std::vector<cv::Point2f> inliersMedian_L1b, inliersMedian_L2;
 //        getInliersFromMedianValue(make_pair(corresPointsL1toL2.first, corresPointsL1toL2.second), &inliersMedian_L1b, &inliersMedian_L2);
 
-//        vector<cv::Point2f> inliersMedian_R1b, inliersMedian_R2;
+//        std::vector<cv::Point2f> inliersMedian_R1b, inliersMedian_R2;
 //        getInliersFromMedianValue(make_pair(corresPointsR1toR2.first, corresPointsR1toR2.second), &inliersMedian_R1b, &inliersMedian_R2);
 
 //        deleteZeroLines(inliersMedian_L1a, inliersMedian_R1a, inliersMedian_L1b, inliersMedian_L2, inliersMedian_R1b, inliersMedian_R2);
@@ -191,13 +193,13 @@ int main() {
         // compute fundemental matrix FL1L2
         cv::Mat F_L;
         bool foundF_L;
-        vector<cv::Point2f> inliersF_L1, inliersF_L2;
+        std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
         foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
 
         // compute fundemental matrix FL1L2
         cv::Mat F_R;
         bool foundF_R;
-        vector<cv::Point2f> inliersF_R1, inliersF_R2;
+        std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
         foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
 
         // can't find fundamental Mat
@@ -228,9 +230,10 @@ int main() {
 //        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
 
         // normalisize all Points
-        vector<cv::Point2f> normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2;
+        std::vector<cv::Point2f> normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2;
         normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normPoints_L1, normPoints_R1);
         normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normPoints_L2, normPoints_R2);
+
 
 
         // calculate essential mat
@@ -264,11 +267,34 @@ int main() {
             getScaleFactor2(T_L, R_L, T_R, T_LR, R_LR, u_L2, u_R2);
 
             //compare both methods
-            cout << "u links  1: " << u_L1 << endl;
-            cout << "u rechts 1: " << u_R1 << endl << endl;
-            cout << "u links  2: " << u_L2 << endl;
-            cout << "u rechts 2: " << u_R2 << endl;
+//            cout << "u links  1: " << u_L1 << endl;
+//            cout << "u rechts 1: " << u_R1 << endl << endl;
+//            cout << "u links  2: " << u_L2 << endl;
+//            cout << "u rechts 2: " << u_R2 << endl;
 
+            cv::Mat deltaPos = (cv::Mat_<double>(4,4) <<
+                                     R_L.at<double>(0,0),	R_L.at<double>(0,1),	R_L.at<double>(0,2),	T_L.at<double>(0),
+                                     R_L.at<double>(1,0),	R_L.at<double>(1,1),	R_L.at<double>(1,2),	T_L.at<double>(1),
+                                     R_L.at<double>(2,0),	R_L.at<double>(2,1),	R_L.at<double>(2,2),	T_L.at<double>(2),
+                                     0                  , 0                    ,	0                  ,	1                   );
+
+            position = position * deltaPos;
+
+            cv::Mat rotation, translation;
+            decomposeProjectionMat(position, rotation, translation);
+
+            std::stringstream ss;
+            ss << "camera" << frame;
+            visualizerShowCamera(cv::Matx33f(rotation),cv::Vec3f(translation),255,0,0,0.2,ss.str());
+
+            // get RGB values for pointcloud representation
+            std::vector<cv::Vec3b> RGBValues;
+            for (unsigned int i = 0; i < inliersF_L1.size(); ++i){
+                RGBValues.push_back(frame_L1.at<cv::Vec3b>(inliersF_L1[i].x, inliersF_L1[i].y));
+            }
+            cv::imshow(to_string(frame), frame_L1);
+            RunVisualization(pointCloud_L, RGBValues);
+            cv::waitKey(0);
             //visualisize
 //            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
 //            currentPos_R1 = drawCameraPath(path1, currentPos_R1, T_R * (u_R1/100.0), "motionPath 1", cv::Scalar(0,255,0));
@@ -323,14 +349,14 @@ int main() {
 
 
 
-void method2 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& K_L, const cv::Mat& K_R, cv::Mat& T_L, cv::Mat& T_R){
+void method2 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& K_L, const cv::Mat& K_R, cv::Mat& T_L, cv::Mat& T_R){
     cv::Mat_<double> rvec_L, rvec_R, R_L, R_R;
     cv::Mat P0 = (cv::Mat_<double>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
                    0.0, 1.0, 0.0, 0.0,
                    0.0, 0.0, 1.0, 0.0 );
 
-    vector<cv::Point3f> worldcoordinates;
+    std::vector<cv::Point3f> worldcoordinates;
     TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates);
 
     findPoseEstimation(rvec_L, T_L, R_L, worldcoordinates, point_L2, K_L);
@@ -338,17 +364,17 @@ void method2 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& po
 }
 
 
-void method3 (const vector<cv::Point2f> &point_L1, const vector<cv::Point2f>& point_R1, const vector<cv::Point2f>& point_L2, const vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){
+void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){
     cv::Mat P0 = (cv::Mat_<double>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
                    0.0, 1.0, 0.0, 0.0,
                    0.0, 0.0, 1.0, 0.0 );
 
-    vector<cv::Point3f> worldcoordinates_1, worldcoordinates_2;
+    std::vector<cv::Point3f> worldcoordinates_1, worldcoordinates_2;
     TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates_1);
     TriangulatePointsHZ(P0, P_LR, point_L2, point_R2, 0, worldcoordinates_2);
 
-    vector<cv::Point3f> translationVectors;
+    std::vector<cv::Point3f> translationVectors;
     for (unsigned int i = 0; i < worldcoordinates_1.size(); ++i){
         translationVectors.push_back(worldcoordinates_1[i] - worldcoordinates_2[i]);
     }

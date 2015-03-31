@@ -81,7 +81,7 @@ void RunVisualization(const std::vector<cv::Point3f>& pointcloud,
     pcl::copyPointCloud(*cloud,*orig_cloud);
 
     //pcl::visualization::CloudViewer viewer("Cloud Viewer");
-    pcl::visualization::PCLVisualizer viewer("Cloud Viewer");
+    pcl::visualization::PCLVisualizer viewer("MotionEstimation Viewer");
 
     // run the cloud viewer
     viewer.addPointCloud(orig_cloud,"orig");
@@ -111,7 +111,7 @@ void RunVisualization(const std::vector<cv::Point3f>& pointcloud,
     viewer.spinOnce();
 }
 
-void visualizerShowCamera(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s = 0.01 /*downscale factor*/, const std::string& name = "") {
+void visualizerShowCamera(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s, const std::string& name) {
     std::string name_ = name,line_name = name + "line";
     if (name.length() <= 0) {
         std::stringstream ss; ss<<"camera"<< iCamCounter++;

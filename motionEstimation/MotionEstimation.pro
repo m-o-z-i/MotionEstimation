@@ -34,6 +34,9 @@ unix:!macx: LIBS += -lopencv_core \
                     -lpcl_visualization \
                     -lpcl_common \
                     -lpcl_filters \
+                    -lvtkCommon \
+                    -lvtkFiltering \
+                    -lvtkRendering \
                     -lboost_system
 
 INCLUDEPATH += /usr/include/pcl-1.7 /usr/include/eigen3 /usr/include/vtk-5.8

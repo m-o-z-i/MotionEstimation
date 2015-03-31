@@ -87,14 +87,19 @@ void RunVisualization(const std::vector<cv::Point3f>& pointcloud,
 
     // run the cloud viewer
     viewer.addPointCloud(orig_cloud, std::to_string(frame));
-    viewer.addPolygonMesh(cam_meshes.front().second,cam_meshes.front().first);
+
+    for (auto i : cam_meshes){
+        viewer.addPolygonMesh(i.second, i.first);
+    }
 
     // draw camera direction
-    std::vector<Eigen::Matrix<float,6,1> > oneline = linesToShow.front().second;
-    pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
-                        B(oneline[1][3],oneline[1][4],oneline[1][5]);
-    for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
-    viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,linesToShow.front().first);
+    for (auto j : linesToShow){
+        std::vector<Eigen::Matrix<float,6,1> > oneline = j.second;
+        pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
+                            B(oneline[1][3],oneline[1][4],oneline[1][5]);
+        for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
+        viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,j.first);
+    }
 
     cam_meshes.clear();
     linesToShow.clear();

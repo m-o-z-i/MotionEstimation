@@ -83,7 +83,8 @@ int main() {
     int resY = 480;
 
     // currentPosition
-    cv::Mat position = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat positionL = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat positionR = cv::Mat::eye(4, 4, CV_64F);
 
 //    cv::Point2f currentPos_L1(900, 200);
 //    cv::Point2f currentPos_R1(900, 200);
@@ -272,20 +273,39 @@ int main() {
 //            cout << "u links  2: " << u_L2 << endl;
 //            cout << "u rechts 2: " << u_R2 << endl;
 
-            cv::Mat deltaPos = (cv::Mat_<double>(4,4) <<
+            // LEFT
+            cv::Mat deltaPosL = (cv::Mat_<double>(4,4) <<
                                      R_L.at<double>(0,0),	R_L.at<double>(0,1),	R_L.at<double>(0,2),	T_L.at<double>(0),
                                      R_L.at<double>(1,0),	R_L.at<double>(1,1),	R_L.at<double>(1,2),	T_L.at<double>(1),
                                      R_L.at<double>(2,0),	R_L.at<double>(2,1),	R_L.at<double>(2,2),	T_L.at<double>(2),
                                      0                  , 0                    ,	0                  ,	1                   );
 
-            position = position * deltaPos;
+            positionL = positionL * deltaPosL;
 
-            cv::Mat rotation, translation;
-            decomposeProjectionMat(position, rotation, translation);
+            cv::Mat rotationL, translationL;
+            decomposeProjectionMat(positionL, rotationL, translationL);
 
-            std::stringstream ss;
-            ss << "camera" << frame;
-            addCameraToVisualizer(cv::Matx33f(rotation),cv::Vec3f(translation),255,0,0,0.2,ss.str());
+            std::stringstream left;
+            left << "camera_left" << frame;
+            addCameraToVisualizer(cv::Matx33f(rotationL),cv::Vec3f(translationL),255,0,0,0.2,left.str());
+
+
+            // RIGHT
+            cv::Mat deltaPosR = (cv::Mat_<double>(4,4) <<
+                                     R_R.at<double>(0,0),	R_R.at<double>(0,1),	R_R.at<double>(0,2),	T_R.at<double>(0),
+                                     R_R.at<double>(1,0),	R_R.at<double>(1,1),	R_R.at<double>(1,2),	T_R.at<double>(1),
+                                     R_R.at<double>(2,0),	R_R.at<double>(2,1),	R_R.at<double>(2,2),	T_R.at<double>(2),
+                                     0                  , 0                    ,	0                  ,	1                   );
+
+
+            positionR = positionR * deltaPosR;
+
+            cv::Mat rotationR, translationR;
+            decomposeProjectionMat(positionR, rotationR, translationR);
+
+            std::stringstream right;
+            right << "camera" << frame;
+            addCameraToVisualizer(cv::Matx33f(rotationR),cv::Vec3f(translationR),0,255,0,0.2,right.str());
 
             // get RGB values for pointcloud representation
             std::vector<cv::Vec3b> RGBValues;

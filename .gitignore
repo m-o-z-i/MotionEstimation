@@ -33,6 +33,7 @@ motionEstimation/MotionEstimation
 *.png
 *.bmp
 *.jpg
+*.cam
 
 # Other repositories
 .svn

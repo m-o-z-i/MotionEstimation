@@ -274,14 +274,15 @@ void decomposeProjectionMat(const cv::Mat& P, cv::Mat& R, cv::Mat& T){
 
 
 //-----------------------------------------------------------------------------
-void loadIntrinsic(std::string name, cv::Mat& K, cv::Mat& distCoeff) {
+void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& distCoeff_R) {
 //-----------------------------------------------------------------------------
-  cv::FileStorage fs("data/calibration/" + name + ".yml", cv::FileStorage::READ);
-  fs["cameraMatrix"] >> K;
-  fs["distCoeff"] >> distCoeff;
+  cv::FileStorage fs("data/calibration/final/intrinsic.yml", cv::FileStorage::READ);
+  fs["cameraMatrixLeft"] >> K_L;
+  fs["cameraMatrixRight"] >> K_R;
+  fs["distCoeffsLeft"] >> distCoeff_L;
+  fs["distCoeffsRight"] >> distCoeff_R;
   fs.release();
 }
-
 
 //-----------------------------------------------------------------------------
 void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {

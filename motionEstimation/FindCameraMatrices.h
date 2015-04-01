@@ -15,7 +15,7 @@ bool getFundamentalMatrix(const vector<cv::Point2f> &points1, const vector<cv::P
 bool CheckCoherentRotation(const cv::Mat& R);
 bool DecomposeEtoRandT(const cv::Mat& E, cv::Mat_<double>& R1, cv::Mat_<double>& R2, cv::Mat_<double>& t1, cv::Mat_<double>& t2);
 bool getRightProjectionMat(cv::Mat& E, cv::Mat& P1, const vector<cv::Point2f> &normPoints2D_L, const vector<cv::Point2f> &normPoints2D_R, std::vector<cv::Point3f>& outCloud);
-void loadIntrinsic(std::string name, cv::Mat& K, cv::Mat& distCoeff);
+void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat &distCoeff_L, cv::Mat &distCoeff_R);
 void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F );
 void decomposeProjectionMat(const cv::Mat& P, cv::Mat& R, cv::Mat& T);
 

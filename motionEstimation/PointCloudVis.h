@@ -14,12 +14,13 @@
 
 #include <vector>
 #include <sstream>
+#include <utility>
+#include <iostream>
 
 
 
 
-
-void RunVisualization(const std::vector<cv::Point3f>& pointcloud, int frame, const std::vector<cv::Vec3b>& pointcloud_RGB = std::vector<cv::Vec3b>());
+void RunVisualization();
 
 void SORFilter();
 
@@ -37,4 +38,5 @@ void addCameraToVisualizer(const float R[9], const float t[3], float r, float g,
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b, double s);
 void addCameraToVisualizer(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name);
 
+void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,std::string name,const std::vector<cv::Vec3b>& pointcloud_RGBColor);
 #endif // POINTCLOUDVIS_H

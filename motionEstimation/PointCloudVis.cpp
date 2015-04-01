@@ -9,8 +9,9 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZR
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr orig_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 ////////////////////////////////// Show Camera ////////////////////////////////////
-std::deque<std::pair<std::string,pcl::PolygonMesh> >					cam_meshes;
-std::deque<std::pair<std::string,std::vector<Eigen::Matrix<float,6,1> > > >	linesToShow;
+std::deque<std::pair<std::string, pcl::PolygonMesh> >					        cam_meshes;
+std::deque<std::pair<std::string, std::vector<Eigen::Matrix<float,6,1> > > >	linesToShow;
+std::deque<std::pair<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >          point_clouds;
 //TODO define mutex
 bool							bShowCam;
 int								iCamCounter = 0;
@@ -23,7 +24,6 @@ void PopulatePCLPointCloud(const std::vector<cv::Point3f> &pointcloud,
                            const std::vector<cv::Vec3b>& pointcloud_RGBColor
                            )
 {
-    cout<<"Creating point cloud...";
     cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     for (unsigned int i=0; i<pointcloud.size(); ++i) {
@@ -78,31 +78,42 @@ void SORFilter() {
     pcl::copyPointCloud(*cloud_filtered,*cloud);
 }
 
-void RunVisualization(const std::vector<cv::Point3f>& pointcloud,
-                      int frame,
-                      const std::vector<cv::Vec3b>& pointcloud_RGBColor) {
+void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,
+                               std::string name,
+                               const std::vector<cv::Vec3b>& pointcloud_RGBColor) {
+    cout << "add pointcloud " << name << "  size: "  << pointcloud.size() <<  endl;
+
     PopulatePCLPointCloud(pointcloud,pointcloud_RGBColor);
     //SORFilter();
     pcl::copyPointCloud(*cloud,*orig_cloud);
 
-    // run the cloud viewer
-    viewer.addPointCloud(orig_cloud, std::to_string(frame));
+    point_clouds.push_back(std::make_pair(name, orig_cloud));
+}
 
-    for (auto i : cam_meshes){
-        viewer.addPolygonMesh(i.second, i.first);
+void RunVisualization() {
+    // draw pointclouds
+
+    for (auto p : point_clouds) {
+        viewer.addPointCloud(p.second, p.first);
+    }
+
+    // draw cams
+    for (auto c : cam_meshes){
+        viewer.addPolygonMesh(c.second, c.first);
     }
 
     // draw camera direction
-    for (auto j : linesToShow){
-        std::vector<Eigen::Matrix<float,6,1> > oneline = j.second;
+    for (auto l : linesToShow){
+        std::vector<Eigen::Matrix<float,6,1> > oneline = l.second;
         pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
                             B(oneline[1][3],oneline[1][4],oneline[1][5]);
         for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
-        viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,j.first);
+        viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,l.first);
     }
 
     cam_meshes.clear();
     linesToShow.clear();
+    point_clouds.clear();
 
 
     // break loop with key-event n

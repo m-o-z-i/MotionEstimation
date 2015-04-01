@@ -13,6 +13,7 @@
 #include <stack>
 #include <sstream>
 #include <string.h>
+#include <dirent.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -50,14 +51,14 @@ char key;
 //callback
 void method2 (const std::vector<cv::Point3f> &worldcoordinates, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat &P_L, const cv::Mat &P_R, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R, cv::Mat& R_L, cv::Mat& R_R);
 void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
+int getFiles (std::string const& dir, std::vector<std::string> &files);
 
 int main() {
 
     int frame=1;
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
-    loadIntrinsic("left", K_L, distCoeff_L);
-    loadIntrinsic("right", K_R, distCoeff_R);
+    loadIntrinsic(K_L, K_R, distCoeff_L, distCoeff_R);
 
     // get extrinsic test parameter
     cv::Mat E_LR, F_LR, R_LR, T_LR;
@@ -112,6 +113,17 @@ int main() {
 //    cv::namedWindow("motionPath 3", cv::WINDOW_NORMAL);
 //    cv::namedWindow("motionPath 4", cv::WINDOW_NORMAL);
 
+    //load file names
+    std::vector<string> filenames_left, filenames_right;
+    getFiles("data/stereoImages/round-small/left/", filenames_left);
+    getFiles("data/stereoImages/round-small/right/", filenames_right);
+
+    std::vector<cv::Mat> leftImages, rightImages;
+    for (unsigned int i = 0; i < filenames_left.size(); ++i){
+        leftImages.push_back(cv::imread("data/stereoImages/round-small/left/"+filenames_left[i],0));
+        rightImages.push_back(cv::imread("data/stereoImages/round-small/right/"+filenames_right[i],0));
+    }
+
     while(true)
     {
         cout << "FRAME" <<  frame << endl;
@@ -124,13 +136,24 @@ int main() {
         // 4. or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
         // 5. recover Pose (need newer version of calib3d)
 
-        //stereo1
-        cv::Mat frame_L1 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame))+".jpg",0);
-        cv::Mat frame_R1 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame))+".jpg",0);
+        if (leftImages.size() -1 <= frame +1) {
+            break;
+        }
 
-        //stereo2
-        cv::Mat frame_L2 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame+1))+".jpg",0);
-        cv::Mat frame_R2 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame+1))+".jpg",0);
+        cv::Mat frame_L1 = leftImages[frame];
+        cv::Mat frame_R1 = rightImages[frame];
+
+        cv::Mat frame_L2 = leftImages[frame+1];
+        cv::Mat frame_R2 = rightImages[frame+1];
+
+
+//        //stereo1
+//        cv::Mat frame_L1 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame))+".jpg",0);
+//        cv::Mat frame_R1 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame))+".jpg",0);
+
+//        //stereo2
+//        cv::Mat frame_L2 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame+1))+".jpg",0);
+//        cv::Mat frame_R2 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame+1))+".jpg",0);
 
         // Check for invalid input
         if(! frame_L1.data || !frame_R1.data || !frame_R2.data || !frame_L2.data) {
@@ -145,51 +168,52 @@ int main() {
 
 
         // Test TRIANGULATION
-        {
-            deleteZeroLines(points_L1, points_R1);
+//        {
+//            deleteZeroLines(points_L1, points_R1);
 
-            if (0 == points_L1.size()) {
-                cout << "to less points found" << endl;
-                ++frame;
-                continue;
-            }
+//            if (0 == points_L1.size()) {
+//                cout << "to less points found" << endl;
+//                ++frame;
+//                continue;
+//            }
 
-            std::vector<cv::Point2f> normP_L1, normP_R1;
-            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+//            std::vector<cv::Point2f> normP_L1, normP_R1;
+//            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
 
-            cv::Mat color_image;
-            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+//            cv::Mat color_image;
+//            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+//            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
-            std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
-            for (unsigned int i = 0; i < points_L1.size(); ++i){
-                RGBValues1.push_back(cv::Vec3b(255,0,0));
-                RGBValues2.push_back(cv::Vec3b(0,255,0));
-                RGBValues3.push_back(cv::Vec3b(0,0,255));
-            }
+//            std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
+//            for (unsigned int i = 0; i < points_L1.size(); ++i){
+//                RGBValues1.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
+//                //RGBValues1.push_back(cv::Vec3b(255,0,0));
+//                //RGBValues2.push_back(cv::Vec3b(0,255,0));
+//                //RGBValues3.push_back(cv::Vec3b(0,0,255));
+//            }
 
-            std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
-            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
-            triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
-            TriangulateOpenCV(P0, P_LR, normP_L1, normP_R1,pCloudTest3);
-            int index = 0;
-            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
-                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
-                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
-                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
-                ++index;
-            }
-            AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
-            AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
-            AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
+//            std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
+//            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
+//            //triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
+//            //TriangulateOpenCV(P0, P_LR, K_L, K_R, points_L1, points_R1, pCloudTest3);
+////            int index = 0;
+////            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
+////                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
+////                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
+////                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
+////                ++index;
+////            }
+//            AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
+//            //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
+//            //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
 
 
-            RunVisualization();
+//            RunVisualization();
 
-            cv::waitKey(0);
-            ++frame;
-            continue;
-        }
+//            cv::waitKey(0);
+//            ++frame;
+//            continue;
+//        }
 
         // find inliers from median value
 //        std::vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
@@ -236,6 +260,7 @@ int main() {
         cv::Mat color_image;
         cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
         drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
+
 //        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
 
 //        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
@@ -246,7 +271,7 @@ int main() {
 
 //        drawCorresPoints(color_image, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
 //        drawCorresPoints(color_image, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
-//        drawEpipolarLines(frame1L, frame1R, inliersFL1, inliersFR1, F);
+        drawEpipolarLines(frame_L1, frame_L2, inliersF_L1, inliersF_L2, F_L);
 
         // normalisize all Points
         std::vector<cv::Point2f> normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2;
@@ -325,50 +350,50 @@ int main() {
             right << "camera_right" << frame;
             addCameraToVisualizer(cv::Matx33f(rotationR),cv::Vec3f(translationR),0,255,0,0.2,right.str());
 
-            {   //second method (solvePnPRansac)
-                // Triangulate stereo system:
-                std::vector<cv::Point3f> worldcoordinates_LR;
-                TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, worldcoordinates_LR);
+//            {   //second method (solvePnPRansac)
+//                // Triangulate stereo system:
+//                std::vector<cv::Point3f> worldcoordinates_LR;
+//                TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, worldcoordinates_LR);
 
-                // SOLVE PNP RANSAC
-                cv::Mat T2_L, T2_R, R2_L, R2_R;
-                findPoseEstimation(P_L, K_L, worldcoordinates_LR, inliersF_L2, T2_L, R2_L);
-                findPoseEstimation(P_R, K_R, worldcoordinates_LR, inliersF_R2, T2_R, R2_R);
+//                // SOLVE PNP RANSAC
+//                cv::Mat T2_L, T2_R, R2_L, R2_R;
+//                findPoseEstimation(P_L, K_L, worldcoordinates_LR, inliersF_L2, T2_L, R2_L);
+//                findPoseEstimation(P_R, K_R, worldcoordinates_LR, inliersF_R2, T2_R, R2_R);
 
-                // LEFT 2
-                cv::Mat deltaPos2L = (cv::Mat_<double>(4,4) <<
-                                         R2_L.at<double>(0,0),	R2_L.at<double>(0,1),	R2_L.at<double>(0,2),	T2_L.at<double>(0),
-                                         R2_L.at<double>(1,0),	R2_L.at<double>(1,1),	R2_L.at<double>(1,2),	T2_L.at<double>(1),
-                                         R2_L.at<double>(2,0),	R2_L.at<double>(2,1),	R2_L.at<double>(2,2),	T2_L.at<double>(2),
-                                         0                  , 0                    ,	0                  ,	1                   );
+//                // LEFT 2
+//                cv::Mat deltaPos2L = (cv::Mat_<double>(4,4) <<
+//                                         R2_L.at<double>(0,0),	R2_L.at<double>(0,1),	R2_L.at<double>(0,2),	T2_L.at<double>(0),
+//                                         R2_L.at<double>(1,0),	R2_L.at<double>(1,1),	R2_L.at<double>(1,2),	T2_L.at<double>(1),
+//                                         R2_L.at<double>(2,0),	R2_L.at<double>(2,1),	R2_L.at<double>(2,2),	T2_L.at<double>(2),
+//                                         0                  , 0                    ,	0                  ,	1                   );
 
-                position2L = position2L * deltaPos2L;
+//                position2L = position2L * deltaPos2L;
 
-                cv::Mat rotation2L, translation2L;
-                decomposeProjectionMat(position2L, rotation2L, translation2L);
+//                cv::Mat rotation2L, translation2L;
+//                decomposeProjectionMat(position2L, rotation2L, translation2L);
 
-                std::stringstream left2;
-                left << "camera_left2" << frame;
-                addCameraToVisualizer(cv::Matx33f(rotation2L),cv::Vec3f(translation2L),125,0,0,2.0,left2.str());
-
-
-                // RIGHT 2
-                cv::Mat deltaPos2R = (cv::Mat_<double>(4,4) <<
-                                         R2_R.at<double>(0,0),	R2_R.at<double>(0,1),	R2_R.at<double>(0,2),	T2_R.at<double>(0),
-                                         R2_R.at<double>(1,0),	R2_R.at<double>(1,1),	R2_R.at<double>(1,2),	T2_R.at<double>(1),
-                                         R2_R.at<double>(2,0),	R2_R.at<double>(2,1),	R2_R.at<double>(2,2),	T2_R.at<double>(2),
-                                         0                  , 0                    ,	0                  ,	1                   );
+//                std::stringstream left2;
+//                left << "camera_left2" << frame;
+//                addCameraToVisualizer(cv::Matx33f(rotation2L),cv::Vec3f(translation2L),125,0,0,2.0,left2.str());
 
 
-                position2R = position2R * deltaPos2R;
+//                // RIGHT 2
+//                cv::Mat deltaPos2R = (cv::Mat_<double>(4,4) <<
+//                                         R2_R.at<double>(0,0),	R2_R.at<double>(0,1),	R2_R.at<double>(0,2),	T2_R.at<double>(0),
+//                                         R2_R.at<double>(1,0),	R2_R.at<double>(1,1),	R2_R.at<double>(1,2),	T2_R.at<double>(1),
+//                                         R2_R.at<double>(2,0),	R2_R.at<double>(2,1),	R2_R.at<double>(2,2),	T2_R.at<double>(2),
+//                                         0                  , 0                    ,	0                  ,	1                   );
 
-                cv::Mat rotation2R, translation2R;
-                decomposeProjectionMat(position2R, rotation2R, translation2R);
 
-                std::stringstream right2;
-                right << "camera_right2" << frame;
-                addCameraToVisualizer(cv::Matx33f(rotation2R),cv::Vec3f(translation2R),255,0,0,2.0,right2.str());
-            }
+//                position2R = position2R * deltaPos2R;
+
+//                cv::Mat rotation2R, translation2R;
+//                decomposeProjectionMat(position2R, rotation2R, translation2R);
+
+//                std::stringstream right2;
+//                right << "camera_right2" << frame;
+//                addCameraToVisualizer(cv::Matx33f(rotation2R),cv::Vec3f(translation2R),255,0,0,2.0,right2.str());
+//            }
 
 
 
@@ -383,7 +408,7 @@ int main() {
 
             AddPointcloudToVisualizer(pointCloud_L, std::to_string(frame), RGBValues);
 
-            RunVisualization();
+
 
             //visualisize
 //            currentPos_L1 = drawCameraPath(path1, currentPos_L1, T_L * (u_L1/100.0), "motionPath 1", cv::Scalar(255,0,0));
@@ -430,7 +455,9 @@ int main() {
 //        }
 
         ++frame;
+        cv::waitKey(30);
     }
+    RunVisualization();
     cv::waitKey(0);
     return 0;
 }
@@ -463,6 +490,34 @@ void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Po
 
 
 
+int getFiles (std::string const& dir, std::vector<std::string> &files)
+{
+  DIR *dp;
+  struct dirent *dirp;
+
+  //Unable to open dir
+  if((dp  = opendir(dir.c_str())) == NULL)
+  {
+    std::cout << "Error(" << errno << ") opening " << dir << std::endl;
+    return errno;
+  }
+
+  //read files and push them to vector
+  while ((dirp = readdir(dp)) != NULL)
+  {
+    std::string name = std::string(dirp->d_name);
+    //discard . and .. from list
+    if(name != "." && name != "..")
+    {
+      files.push_back(std::string(dirp->d_name));
+    }
+  }
+
+  closedir(dp);
+  std::sort(files.begin(), files.end());
+
+  return 0;
+}
 
 
 

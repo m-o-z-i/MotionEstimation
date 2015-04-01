@@ -2,7 +2,7 @@
 #include "FindCameraMatrices.h"
 
 // find pose estimation using orientation of pointcloud
-bool findPoseEstimation(
+void findPoseEstimation(
         cv::Mat const& P,
         cv::Mat const& K,
         std::vector<cv::Point3f> const& ppcloud,
@@ -11,10 +11,12 @@ bool findPoseEstimation(
         cv::Mat& R
         )
 {
+    bool transformationFound = true;
+
     if(ppcloud.size() <= 7 || imgPoints.size() <= 7 || ppcloud.size() != imgPoints.size()) {
         //something went wrong aligning 3D to 2D points..
         cerr << "couldn't find [enough] corresponding cloud points... (only " << ppcloud.size() << ")" <<endl;
-        return false;
+        transformationFound = false;
     }
     vector<int> inliers;
 
@@ -50,21 +52,26 @@ bool findPoseEstimation(
 
     if(inliers.size() < (double)(imgPoints.size())/5.0) {
         cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
-        return false;
+        transformationFound = false;
     }
 
     if(cv::norm(T) > 2000.0) {
         // this is bad...
         cerr << "estimated camera movement is too big, skip this camera\r\n";
-        return false;
+        transformationFound = false;
     }
 
     cv::Rodrigues(rvec, R);
 
     if(!CheckCoherentRotation(R)) {
         cerr << "rotation is incoherent. we should try a different base view..." << endl;
-        return false;
+        transformationFound = false;
     }
+
+    if (!transformationFound){
+        R = cv::Mat::eye(3, 3, CV_64F);
+        T = cv::Mat::zeros(3, 1, CV_64F);
+    }
+
     std::cout << "found t = " << T << "\nR = \n"<< R <<std::endl;
-    return true;
 }

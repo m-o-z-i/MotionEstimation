@@ -1,16 +1,31 @@
 #include "Triangulation.h"
 
-void TriangulateOpenCV(const cv::Mat& P0,
-                         const cv::Mat& P1,
-                         const vector<cv::Point2f>& inliersF1,
-                         const vector<cv::Point2f>& inliersF2,
-                         std::vector<cv::Point3f>& outCloud)
+void TriangulateOpenCV(const cv::Mat& P_L,
+                       const cv::Mat& P_R,
+                       const cv::Mat& K_L,
+                       const cv::Mat& K_R,
+                       const vector<cv::Point2f>& inliersF1,
+                       const vector<cv::Point2f>& inliersF2,
+                       std::vector<cv::Point3f>& outCloud)
 {
+    cv::Mat PK_L = K_L * P_L;
+    cv::Mat PK_R = K_R * P_R;
+
+
     //triangulate Points:
-    cv::Mat points1 = cv::Mat(inliersF1).reshape(1, 2);
-    cv::Mat points2 = cv::Mat(inliersF2).reshape(1, 2);
-    cv::Mat points3D_h = cv::Mat(1,inliersF1.size(), CV_32FC4);
-    cv::triangulatePoints(P0, P1, points1, points2, points3D_h);
+    cv::Mat points1 = cv::Mat(inliersF1);
+    cv::Mat points2 = cv::Mat(inliersF2);
+
+    cv::Mat points3D_h = cv::Mat::zeros(1,inliersF1.size(), CV_32FC4);
+
+    for (auto i : inliersF1){
+        cout << i << endl;
+    }
+    cout << "2d \n" << points1 << endl;
+    cout << "3d \n" << points3D_h << endl;
+
+    cv::triangulatePoints(PK_L, PK_R, points1, points2, points3D_h);
+    cout << "3d triangulated \n" << points3D_h << endl;
 
     // get cartesian coordinates
     vector<cv::Point3f> points3D;

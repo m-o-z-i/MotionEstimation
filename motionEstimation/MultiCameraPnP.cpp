@@ -3,15 +3,14 @@
 
 // find pose estimation using orientation of pointcloud
 bool findPoseEstimation(
-        cv::Mat_<double>& rvec,
-        cv::Mat & t,
-        cv::Mat_<double>& R,
-        std::vector<cv::Point3f> ppcloud,
-        std::vector<cv::Point2f> imgPoints,
-        cv::Mat K
+        cv::Mat const& P,
+        std::vector<cv::Point3f> const& ppcloud,
+        std::vector<cv::Point2f> const& normPoints, //(normalized)
+        cv::Mat& T,
+        cv::Mat& R
         )
 {
-    if(ppcloud.size() <= 7 || imgPoints.size() <= 7 || ppcloud.size() != imgPoints.size()) {
+    if(ppcloud.size() <= 7 || normPoints.size() <= 7 || ppcloud.size() != normPoints.size()) {
         //something went wrong aligning 3D to 2D points..
         cerr << "couldn't find [enough] corresponding cloud points... (only " << ppcloud.size() << ")" <<endl;
         return false;
@@ -19,45 +18,52 @@ bool findPoseEstimation(
     vector<int> inliers;
 
     double minVal,maxVal;
-    cv::minMaxIdx(imgPoints,&minVal,&maxVal);
+    cv::minMaxIdx(normPoints,&minVal,&maxVal);
+
+    cv::Mat K = cv::Mat::eye(3, 3, CV_64F); // use identity calibration Mat (points are allready normalised)
     vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
-    cv::solvePnPRansac(ppcloud, imgPoints, K, distCoeffVec, rvec, t, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
-                //CV_PROFILE("solvePnP",cv::solvePnP(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, CV_EPNP);)
-//    } else {
-//        //use GPU ransac
-//        //make sure datatstructures are cv::gpu compatible
-//        cv::Mat ppcloud_m(ppcloud); ppcloud_m = ppcloud_m.t();
-//        cv::Mat imgPoints_m(imgPoints); imgPoints_m = imgPoints_m.t();
-//        cv::Mat rvec_,t_;
-//        cv::gpu::solvePnPRansac(ppcloud_m,imgPoints_m,K_32f,distcoeff_32f,rvec_,t_,false);
-//        rvec_.convertTo(rvec,CV_64FC1);
-//        t_.convertTo(t,CV_64FC1);
-//    }
-    vector<cv::Point2f> projected3D;
-    cv::projectPoints(ppcloud, rvec, t, K, distCoeffVec, projected3D);
-    if(inliers.size()==0) { //get inliers
-        for(unsigned int i=0;i<projected3D.size();i++) {
-            if(norm(projected3D[i]-imgPoints[i]) < 10.0)
-                inliers.push_back(i);
+    cv::Mat_<double> rvec;
+    cv::solvePnPRansac(ppcloud, normPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (double)(normPoints.size()), inliers, CV_EPNP);
+
+
+    // calculate reprojection error and define inliers
+    for (unsigned int i = 0; i < ppcloud.size(); ++i) {
+        // reproject 3d points
+        cv::Mat_<double> point3D_h(4, 1);
+        point3D_h(0) = ppcloud[i].x;
+        point3D_h(1) = ppcloud[i].y;
+        point3D_h(2) = ppcloud[i].z;
+        point3D_h(3) = 1.0;
+
+        // reproject points
+        cv::Mat_<double> reprojectedPoint_h = P * point3D_h;
+
+        // convert reprojected image point to carthesian coordinates
+        cv::Point2f reprojectedPoint(reprojectedPoint_h(0) / reprojectedPoint_h(2), reprojectedPoint_h(1) / reprojectedPoint_h(2));
+
+        double reproj_error = (cv::norm(normPoints[i] - reprojectedPoint));
+        if (reproj_error < 10.0) {
+            inliers.push_back(i);
         }
     }
 
-    //cv::Rodrigues(rvec, R);
-    //visualizerShowCamera(R,t,0,255,0,0.1);
-    if(inliers.size() < (double)(imgPoints.size())/5.0) {
-        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
+    if(inliers.size() < (double)(normPoints.size())/5.0) {
+        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<normPoints.size()<<")"<< endl;
         return false;
     }
-    if(cv::norm(t) > 200.0) {
+
+    if(cv::norm(T) > 2000.0) {
         // this is bad...
         cerr << "estimated camera movement is too big, skip this camera\r\n";
         return false;
     }
+
     cv::Rodrigues(rvec, R);
+
     if(!CheckCoherentRotation(R)) {
         cerr << "rotation is incoherent. we should try a different base view..." << endl;
         return false;
     }
-    std::cout << "found t = " << t << "\nR = \n"<<R<<std::endl;
+    std::cout << "found t = " << T << "\nR = \n"<< R <<std::endl;
     return true;
 }

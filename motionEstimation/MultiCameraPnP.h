@@ -3,9 +3,10 @@
 
 #include <vector>
 #include <opencv2/core/core.hpp>
+#include "Triangulation.h"
 
 using namespace std;
 
-bool findPoseEstimation(cv::Mat_<double>& rvec, cv::Mat &t, cv::Mat_<double>& R, std::vector<cv::Point3f> ppcloud, std::vector<cv::Point2f> imgPoints, cv::Mat K);
+bool findPoseEstimation(const cv::Mat &P, const std::vector<cv::Point3f> &ppcloud, const std::vector<cv::Point2f> &normPoints, cv::Mat &T, cv::Mat &R);
 
 #endif // MULTICAMERAPNP_H

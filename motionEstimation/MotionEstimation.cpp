@@ -48,7 +48,7 @@ char key;
  */
 
 //callback
-void method2 (const std::vector<cv::Point2f>& point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_L3, const cv::Mat &P_LR, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R);
+void method2 (const std::vector<cv::Point2f>& point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat &P_L, const cv::Mat &P_R, const cv::Mat &P_LR, cv::Mat& T_L, cv::Mat& T_R, cv::Mat& R_L, cv::Mat& R_R);
 void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
 
 int main() {
@@ -82,9 +82,17 @@ int main() {
     int resX = 752;
     int resY = 480;
 
-    // currentPosition
+    // currentPosition E Mat
     cv::Mat positionL = cv::Mat::eye(4, 4, CV_64F);
     cv::Mat positionR = cv::Mat::eye(4, 4, CV_64F);
+
+    // currentPosition SOLVE PNP RANSAC
+    cv::Mat position2L = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat position2R = cv::Mat::eye(4, 4, CV_64F);
+
+    // currentPosition TRIANGULATION
+    cv::Mat position3L = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat position3R = cv::Mat::eye(4, 4, CV_64F);
 
 //    cv::Point2f currentPos_L1(900, 200);
 //    cv::Point2f currentPos_R1(900, 200);
@@ -287,7 +295,7 @@ int main() {
 
             std::stringstream left;
             left << "camera_left" << frame;
-            addCameraToVisualizer(cv::Matx33f(rotationL),cv::Vec3f(translationL),255,0,0,0.2,left.str());
+            addCameraToVisualizer(cv::Matx33f(rotationL),cv::Vec3f(translationL),0,125,0,0.2,left.str());
 
 
             // RIGHT
@@ -304,8 +312,52 @@ int main() {
             decomposeProjectionMat(positionR, rotationR, translationR);
 
             std::stringstream right;
-            right << "camera" << frame;
+            right << "camera_right" << frame;
             addCameraToVisualizer(cv::Matx33f(rotationR),cv::Vec3f(translationR),0,255,0,0.2,right.str());
+
+            {   //second method (solvePnPRansac)
+                // SOLVE PNP RANSAC
+                cv::Mat T2_L, T2_R, R2_L, R2_R;
+                method2(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_L, P_R, P_LR, T2_L, T2_R, R2_L, R2_R);
+                // LEFT 2
+                cv::Mat deltaPos2L = (cv::Mat_<double>(4,4) <<
+                                         R2_L.at<double>(0,0),	R2_L.at<double>(0,1),	R2_L.at<double>(0,2),	T2_L.at<double>(0),
+                                         R2_L.at<double>(1,0),	R2_L.at<double>(1,1),	R2_L.at<double>(1,2),	T2_L.at<double>(1),
+                                         R2_L.at<double>(2,0),	R2_L.at<double>(2,1),	R2_L.at<double>(2,2),	T2_L.at<double>(2),
+                                         0                  , 0                    ,	0                  ,	1                   );
+
+                position2L = position2L * deltaPos2L;
+
+                cv::Mat rotation2L, translation2L;
+                decomposeProjectionMat(position2L, rotation2L, translation2L);
+
+                std::stringstream left2;
+                left << "camera_left2" << frame;
+                addCameraToVisualizer(cv::Matx33f(rotation2L),cv::Vec3f(translation2L),125,0,0,0.2,left2.str());
+
+
+                // RIGHT 2
+                cv::Mat deltaPos2R = (cv::Mat_<double>(4,4) <<
+                                         R2_R.at<double>(0,0),	R2_R.at<double>(0,1),	R2_R.at<double>(0,2),	T2_R.at<double>(0),
+                                         R2_R.at<double>(1,0),	R2_R.at<double>(1,1),	R2_R.at<double>(1,2),	T2_R.at<double>(1),
+                                         R2_R.at<double>(2,0),	R2_R.at<double>(2,1),	R2_R.at<double>(2,2),	T2_R.at<double>(2),
+                                         0                  , 0                    ,	0                  ,	1                   );
+
+
+                position2R = position2R * deltaPos2R;
+
+                cv::Mat rotation2R, translation2R;
+                decomposeProjectionMat(position2R, rotation2R, translation2R);
+
+                std::stringstream right2;
+                right << "camera_right2" << frame;
+                addCameraToVisualizer(cv::Matx33f(rotation2R),cv::Vec3f(translation2R),255,0,0,0.2,right2.str());
+            }
+
+
+
+
+
 
             // get RGB values for pointcloud representation
             std::vector<cv::Vec3b> RGBValues;
@@ -364,18 +416,25 @@ int main() {
     return 0;
 }
 
-void method2 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& K_L, const cv::Mat& K_R, cv::Mat& T_L, cv::Mat& T_R){
-    cv::Mat_<double> rvec_L, rvec_R, R_L, R_R;
+void method2 (const std::vector<cv::Point2f>& point_L1, const std::vector<cv::Point2f>& point_R1,
+              const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2,
+              const cv::Mat& P_L, const cv::Mat& P_R, const cv::Mat& P_LR,
+              cv::Mat& T_L, cv::Mat& T_R, cv::Mat& R_L, cv::Mat& R_R)
+{
     cv::Mat P0 = (cv::Mat_<double>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
                    0.0, 1.0, 0.0, 0.0,
                    0.0, 0.0, 1.0, 0.0 );
 
-    std::vector<cv::Point3f> worldcoordinates;
-    TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates);
+    std::vector<cv::Point3f> worldcoordinates_LR;
+    //TriangulatePointsHZ(P0, P_L, point_L1, point_L2, 0, worldcoordinates_L);
+    //TriangulatePointsHZ(P0, P_R, point_R1, point_R2, 0, worldcoordinates_R);
 
-    findPoseEstimation(rvec_L, T_L, R_L, worldcoordinates, point_L2, K_L);
-    findPoseEstimation(rvec_R, T_R, R_R, worldcoordinates, point_R2, K_R);
+    //should be the best one?
+    TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates_LR);
+
+    findPoseEstimation(P_L ,worldcoordinates_LR, point_L2, T_L, R_L);
+    findPoseEstimation(P_R, worldcoordinates_LR, point_R2, T_R, R_R);
 }
 
 void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){

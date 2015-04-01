@@ -288,7 +288,7 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
 void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> *points_L1, vector<cv::Point2f> *points_R1, vector<cv::Point2f> *points_L2, vector<cv::Point2f> *points_R2){
     // find corresponding points
     vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
-    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 100,0.03,15);
+    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 500,0.03,2);
 
     if (0 == features.size()){
         return;

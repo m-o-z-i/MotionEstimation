@@ -172,11 +172,13 @@ int main() {
             TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
             triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
             TriangulateOpenCV(P0, P_LR, normP_L1, normP_R1,pCloudTest3);
-//            int index = 0;
-//            for (auto i : pCloudTest){
-//                cout<< index << ":  " << i << endl;
-//                ++index;
-//            }
+            int index = 0;
+            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
+                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
+                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
+                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
+                ++index;
+            }
             AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
             AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
             AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);

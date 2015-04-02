@@ -132,7 +132,6 @@ void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<c
     for(unsigned int j = 0; j < features.first.size(); ++j)
     {
         float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
-        cout << j << " : " << direction << ", " << fabs(direction) << endl;
 
         if (fabs(direction) < 0.4) {
             inliers1->push_back(features.first[j]);
@@ -314,8 +313,8 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
     refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, &points_L1a_temp, &points_L2_temp);
     refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, &points_R1a_temp, &points_R2_temp);
 
-    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
-    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
+//    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
+//    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
 
 
     // delete in all frames points, that are not visible in each frames

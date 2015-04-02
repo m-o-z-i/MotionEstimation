@@ -128,6 +128,22 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
     }
 }
 
+void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
+    for(unsigned int j = 0; j < features.first.size(); ++j)
+    {
+        float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
+        cout << j << " : " << direction << ", " << fabs(direction) << endl;
+
+        if (fabs(direction) < 0.4) {
+            inliers1->push_back(features.first[j]);
+            inliers2->push_back(features.second[j]);
+        } else {
+            inliers1->push_back(cv::Point2f(0,0));
+            inliers2->push_back(cv::Point2f(0,0));
+        }
+    }
+}
+
 
 void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1R, vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R, int resX, int resY){
 
@@ -298,14 +314,13 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
     refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, &points_L1a_temp, &points_L2_temp);
     refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, &points_R1a_temp, &points_R2_temp);
 
-    drawPoints(frame_L1, features, "feaures found" , cv::Scalar(2,55,212));
+    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
+    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
 
-    cout << "size of points: " << points_L1_temp.size() << ", " << points_R1_temp.size()  << ", " << points_L2_temp.size() << ", " << points_R2_temp.size() << endl;
 
     // delete in all frames points, that are not visible in each frames
     deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
 
-    cout << "size of points: " << points_L1_temp.size() << ", " << points_R1_temp.size()  << ", " << points_L2_temp.size() << ", " << points_R2_temp.size() << endl;
 
     for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
         points_L1->push_back(points_L1_temp[i]);

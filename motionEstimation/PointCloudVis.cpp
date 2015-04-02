@@ -23,13 +23,13 @@ void initVisualisation(){
 
     cout << "INIT VISUALISATION " << endl;
 
-    viewer.addCoordinateSystem(1000,0,0,0);
+    viewer.addCoordinateSystem(300,0,0,0);
 
     // add ground plane
     vtkSmartPointer<vtkPlaneSource> planeSource = vtkSmartPointer<vtkPlaneSource>::New ();
     planeSource->SetXResolution (10);
     planeSource->SetYResolution (10);
-    planeSource->SetOrigin (0, 0, 0);
+    planeSource->SetOrigin (-100, 0, -100);
     planeSource->SetPoint1 (10000, 0, 0);
     planeSource->SetPoint2 (0, 0, 10000);
 

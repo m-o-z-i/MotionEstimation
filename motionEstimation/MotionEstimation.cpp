@@ -71,6 +71,9 @@ int main() {
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0 );
 
+    cv::Mat R_0, T_0;
+    decomposeProjectionMat(P0, R_0, T_0);
+
 
     // define image size
     int resX = 752;
@@ -139,6 +142,10 @@ int main() {
         // Test TRIANGULATION
         {
             deleteZeroLines(points_L1, points_R1);
+            // find inliers from median value
+            std::vector<cv::Point2f> inliers_L1, inliers_R1;
+            getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &inliers_L1, &inliers_R1);
+            deleteZeroLines(inliers_L1, inliers_R1);
 
             if (3 >= points_L1.size()) {
                 cout << "to less points found" << endl;
@@ -148,14 +155,13 @@ int main() {
 
             cv::Mat color_image;
             cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+            drawCorresPoints(color_image, inliers_L1, inliers_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
             std::vector<cv::Point2f> normP_L1, normP_R1;
-            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-
+            normalizePoints(KInv_L, KInv_R, inliers_L1, inliers_R1, normP_L1, normP_R1);
 
             std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
-            for (unsigned int i = 0; i < points_L1.size(); ++i){
+            for (unsigned int i = 0; i < normP_L1.size(); ++i){
                 RGBValues1.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
                 //RGBValues1.push_back(cv::Vec3b(255,0,0));
                 //RGBValues2.push_back(cv::Vec3b(0,255,0));
@@ -176,6 +182,9 @@ int main() {
             AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
             //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
             //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
+
+            addCameraToVisualizer(R_0, T_0, 0, 255, 0, 50, "camL");
+            addCameraToVisualizer(R_LR, T_LR, 255, 0, 0, 50, "camR");
 
 
             RunVisualization();

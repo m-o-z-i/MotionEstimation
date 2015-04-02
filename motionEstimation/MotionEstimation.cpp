@@ -43,7 +43,7 @@ char key;
 
 //callback
 void method2 (const std::vector<cv::Point3f> &worldcoordinates, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat &P_L, const cv::Mat &P_R, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R, cv::Mat& R_L, cv::Mat& R_R);
-void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T);
+void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& KInv_L, const cv::Mat& KInv_R, cv::Mat& T, cv::Mat& R);
 int getFiles (std::string const& dir, std::vector<std::string> &files);
 
 int main() {
@@ -139,13 +139,13 @@ int main() {
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
 
-        // Test TRIANGULATION
+        // Test Method 3
         {
-            deleteZeroLines(points_L1, points_R1);
             // find inliers from median value
-            std::vector<cv::Point2f> inliers_L1, inliers_R1;
+            std::vector<cv::Point2f> inliers_L1, inliers_R1, inliers_L2, inliers_R2;
             getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &inliers_L1, &inliers_R1);
-            deleteZeroLines(inliers_L1, inliers_R1);
+            getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), &inliers_L2, &inliers_R2);
+            deleteZeroLines(inliers_L1, inliers_R1, inliers_L1, inliers_R1);
 
             if (3 >= points_L1.size()) {
                 cout << "to less points found" << endl;
@@ -155,44 +155,83 @@ int main() {
 
             cv::Mat color_image;
             cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            drawCorresPoints(color_image, inliers_L1, inliers_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+            drawCorresPoints(color_image, inliers_L1, inliers_R1, " corres points stereo 1 ", CV_RGB(255,0,255));
 
-            std::vector<cv::Point2f> normP_L1, normP_R1;
-            normalizePoints(KInv_L, KInv_R, inliers_L1, inliers_R1, normP_L1, normP_R1);
+            cv::Mat T3, R3;
+            method3(inliers_L1, inliers_R1, inliers_L1, inliers_R1, P_LR, KInv_L, KInv_R, T3, R3);
 
-            std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
-            for (unsigned int i = 0; i < normP_L1.size(); ++i){
+
+            std::vector<cv::Vec3b> RGBValues1;
+            for (unsigned int i = 0; i < inliers_L1.size(); ++i){
                 uchar grey = frame_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
                 RGBValues1.push_back(cv::Vec3b(grey,grey,grey));
-                //RGBValues1.push_back(cv::Vec3b(255,0,0));
-                //RGBValues2.push_back(cv::Vec3b(0,255,0));
-                //RGBValues3.push_back(cv::Vec3b(0,0,255));
             }
 
-            std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
-            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
-            //triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
-            //TriangulateOpenCV(P0, P_LR, K_L, K_R, points_L1, points_R1, pCloudTest3);
-//            int index = 0;
-//            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
-//                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
-//                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
-//                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
-//                ++index;
-//            }
-            AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
-            //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
-            //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
+            //addCameraToVisualizer(R_0, T_0, 0, 255, 0, 50, "camL");
+            //addCameraToVisualizer(R_LR, T_LR, 255, 0, 0, 50, "camR");
 
-            addCameraToVisualizer(R_0, T_0, 0, 255, 0, 50, "camL");
-            addCameraToVisualizer(R_LR, T_LR, 255, 0, 0, 50, "camR");
+            //RunVisualization();
 
-
-            RunVisualization();
-
+            cv::waitKey();
             ++frame;
             continue;
         }
+
+
+
+//        // Test TRIANGULATION
+//        {
+//            deleteZeroLines(points_L1, points_R1);
+//            // find inliers from median value
+//            std::vector<cv::Point2f> inliers_L1, inliers_R1;
+//            getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &inliers_L1, &inliers_R1);
+//            deleteZeroLines(inliers_L1, inliers_R1);
+
+//            if (3 >= points_L1.size()) {
+//                cout << "to less points found" << endl;
+//                ++frame;
+//                continue;
+//            }
+
+//            cv::Mat color_image;
+//            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+//            drawCorresPoints(color_image, inliers_L1, inliers_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+
+//            std::vector<cv::Point2f> normP_L1, normP_R1;
+//            normalizePoints(KInv_L, KInv_R, inliers_L1, inliers_R1, normP_L1, normP_R1);
+
+//            std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
+//            for (unsigned int i = 0; i < normP_L1.size(); ++i){
+//                uchar grey = frame_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+//                RGBValues1.push_back(cv::Vec3b(grey,grey,grey));
+//                //RGBValues1.push_back(cv::Vec3b(255,0,0));
+//                //RGBValues2.push_back(cv::Vec3b(0,255,0));
+//                //RGBValues3.push_back(cv::Vec3b(0,0,255));
+//            }
+
+//            std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
+//            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
+//            //triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
+//            //TriangulateOpenCV(P0, P_LR, K_L, K_R, points_L1, points_R1, pCloudTest3);
+////            int index = 0;
+////            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
+////                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
+////                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
+////                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
+////                ++index;
+////            }
+//            //AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
+//            //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
+//            //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
+
+//            //addCameraToVisualizer(R_0, T_0, 0, 255, 0, 50, "camL");
+//            //addCameraToVisualizer(R_LR, T_LR, 255, 0, 0, 50, "camR");
+
+//            //RunVisualization();
+
+//            ++frame;
+//            continue;
+//        }
 
         // find inliers from median value
 //        std::vector<cv::Point2f> inliersMedian_L1a, inliersMedian_R1a;
@@ -396,30 +435,71 @@ int main() {
     return 0;
 }
 
-void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, cv::Mat& T){
+void method3 (const std::vector<cv::Point2f> &point_L1, const std::vector<cv::Point2f>& point_R1, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat& P_LR, const cv::Mat& KInv_L, const cv::Mat& KInv_R, cv::Mat& T, cv::Mat& R){
     cv::Mat P0 = (cv::Mat_<double>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
                    0.0, 1.0, 0.0, 0.0,
                    0.0, 0.0, 1.0, 0.0 );
 
-    std::vector<cv::Point3f> worldcoordinates_1, worldcoordinates_2;
-    TriangulatePointsHZ(P0, P_LR, point_L1, point_R1, 0, worldcoordinates_1);
-    TriangulatePointsHZ(P0, P_LR, point_L2, point_R2, 0, worldcoordinates_2);
+    int numberPts = point_L1.size();
 
-    std::vector<cv::Point3f> translationVectors;
-    for (unsigned int i = 0; i < worldcoordinates_1.size(); ++i){
-        translationVectors.push_back(worldcoordinates_1[i] - worldcoordinates_2[i]);
+    std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+    normalizePoints(KInv_L, KInv_R, point_L1, point_R1, normP_L1, normP_R1);
+    normalizePoints(KInv_L, KInv_R, point_L2, point_R2, normP_L2, normP_R2);
+
+    std::vector<cv::Point3f> X_1, X_2;
+    TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, X_1);
+    TriangulatePointsHZ(P0, P_LR, normP_L2, normP_R2, 0, X_2);
+
+    // convert to normalized homogenous coordinates
+    cv::Mat worldcoordinates_1_h, worldcoordinates_2_h;
+    cv::convertPointsToHomogeneous(cv::Mat(X_1), worldcoordinates_1_h);
+    cv::convertPointsToHomogeneous(cv::Mat(X_2), worldcoordinates_2_h);
+
+    //estimate rotation
+    //1. translate 3d points by theire mean vectors to origin
+
+    cv::Point3f Xmean_1, Xmean_2;
+    for (unsigned int i = 0; i < numberPts; ++i){
+        Xmean_1 += X_1[i];
+        Xmean_2 += X_2[i];
     }
 
-    cv::Point3f transVec = accumulate(translationVectors.begin(), translationVectors.end(), cv::Point3f(0,0,0), [](const cv::Point3f& sum, const cv::Point3f& p) {
-        return sum+p;
-    });
+    Xmean_1 = 1/numberPts * Xmean_1;
+    Xmean_2 = 1/numberPts * Xmean_2;
 
-    cout << transVec<< endl;
-    transVec = (1.0/translationVectors.size()) * transVec ;
-    cout << transVec<< endl;
+    std::vector<cv::Point3f> XC_1, XC_2;
+    for (unsigned int i = 0; i < numberPts; ++i){
+        XC_1.push_back( X_1[i] - Xmean_1);
+        XC_2.push_back( X_2[i] - Xmean_2);
+    }
 
-    T = cv::Mat(transVec);
+    //2. compute 3x3 covariance matrix
+    cv::Mat A_temp;
+    for (unsigned int i = 0; i < numberPts; ++i){
+        A_temp = A_temp + (cv::Mat(XC_1[i])*cv::Mat(XC_2[i]).t());
+    }
+
+    cv::Mat A = 1/numberPts * A_temp;
+
+    // estimate R from svd(A)
+    cv::SVD svd(A, cv::SVD::MODIFY_A);
+    cv::Mat svd_u = svd.u;
+    cv::Mat svd_s = svd.vt;
+    cv::Mat svd_v = svd.w;
+
+    if (cv::determinant(svd_u)*cv::determinant(svd_v) >= 0){
+        //svd_s = ...
+    } else {
+        //svd_s = ...
+    }
+
+    cv::Mat R_temp;
+    R_temp = svd_u * svd_s * svd_v.t();
+
+    // compute translation
+    T = cv::Mat(Xmean_2) - R_temp*cv::Mat(Xmean_1);
+    R = R_temp;
 }
 
 

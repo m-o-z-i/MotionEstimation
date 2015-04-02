@@ -84,6 +84,8 @@ cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h,         
         X(2) = X_(2);
         X(3) = 1.0;
     }
+
+
     return X;
 }
 

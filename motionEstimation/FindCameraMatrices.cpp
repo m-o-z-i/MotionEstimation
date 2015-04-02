@@ -287,7 +287,7 @@ void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& di
 //-----------------------------------------------------------------------------
 void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
 //-----------------------------------------------------------------------------
-  cv::FileStorage fs("data/calibration/extrinsic.yml", cv::FileStorage::READ);
+  cv::FileStorage fs("data/calibration/final/extrinsic.yml", cv::FileStorage::READ);
   fs["R"] >> R;
   fs["T"] >> T;
   fs["E"] >> E;

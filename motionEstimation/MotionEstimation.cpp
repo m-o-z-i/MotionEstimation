@@ -111,29 +111,19 @@ int main() {
     getFiles("data/stereoImages/round-small/left/", filenames_left);
     getFiles("data/stereoImages/round-small/right/", filenames_right);
 
-    std::vector<cv::Mat> leftImages, rightImages;
-    for (unsigned int i = 0; i < filenames_left.size(); ++i){
-        leftImages.push_back(cv::imread("data/stereoImages/round-small/left/"+filenames_left[i],0));
-        rightImages.push_back(cv::imread("data/stereoImages/round-small/right/"+filenames_right[i],0));
-    }
-
     initVisualisation();
 
     while(true)
     {
         cout << "FRAME" <<  frame << endl;
 
-        if (leftImages.size() -1 <= frame +1) {
-            break;
-        }
-
 //        //stereo1
-        cv::Mat frame_L1 = leftImages[frame];
-        cv::Mat frame_R1 = rightImages[frame];
+        cv::Mat frame_L1 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame],0);
+        cv::Mat frame_R1 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame],0);
 
 //        //stereo2
-        cv::Mat frame_L2 = leftImages[frame+1];
-        cv::Mat frame_R2 = rightImages[frame+1];
+        cv::Mat frame_L2 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame+1],0);
+        cv::Mat frame_R2 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame+1],0);
 
         // Check for invalid input
         if(! frame_L1.data || !frame_R1.data || !frame_R2.data || !frame_L2.data) {
@@ -143,13 +133,13 @@ int main() {
         }
 
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
-        //findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
+        findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
 
         // Test TRIANGULATION
         {
             deleteZeroLines(points_L1, points_R1);
 
-            if (0 == points_L1.size()) {
+            if (3 >= points_L1.size()) {
                 cout << "to less points found" << endl;
                 ++frame;
                 continue;

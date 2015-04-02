@@ -119,11 +119,11 @@ int main() {
 
 //        //stereo1
         cv::Mat frame_L1 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame],0);
-        cv::Mat frame_R1 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame],0);
+        cv::Mat frame_R1 = cv::imread("data/stereoImages/round-small/right/"+filenames_right[frame],0);
 
 //        //stereo2
         cv::Mat frame_L2 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame+1],0);
-        cv::Mat frame_R2 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame+1],0);
+        cv::Mat frame_R2 = cv::imread("data/stereoImages/round-small/right/"+filenames_right[frame+1],0);
 
         // Check for invalid input
         if(! frame_L1.data || !frame_R1.data || !frame_R2.data || !frame_L2.data) {
@@ -131,6 +131,7 @@ int main() {
             //frame=1;
             continue;
         }
+
 
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
@@ -145,12 +146,12 @@ int main() {
                 continue;
             }
 
-            //cv::Mat color_image;
-            //cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
-            //drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
+            cv::Mat color_image;
+            cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
+            drawCorresPoints(color_image, points_L1, points_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
 
-            //std::vector<cv::Point2f> normP_L1, normP_R1;
-            //normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+            std::vector<cv::Point2f> normP_L1, normP_R1;
+            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
 
 
             std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
@@ -162,7 +163,7 @@ int main() {
             }
 
             std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
-            //TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
+            TriangulatePointsHZ(P0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
             //triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
             //TriangulateOpenCV(P0, P_LR, K_L, K_R, points_L1, points_R1, pCloudTest3);
 //            int index = 0;
@@ -172,7 +173,7 @@ int main() {
 //                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
 //                ++index;
 //            }
-            //AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
+            AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
             //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
             //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
 

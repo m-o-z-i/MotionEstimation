@@ -19,6 +19,7 @@
 
 
 
+void initVisualisation();
 
 void RunVisualization();
 

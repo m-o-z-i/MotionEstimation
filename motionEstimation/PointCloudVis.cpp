@@ -18,7 +18,21 @@ int								iCamCounter = 0;
 int								iLineCounter = 0;
 int								ipolygon[18] = {0,1,2,  0,3,1,  0,4,3,  0,2,4,  3,1,4,   2,4,1};
 
+void initVisualisation(){
 
+    cout << "INIT VISUALISATION " << endl;
+
+    //viewer.addCoordinateSystem(50000,10000,10000,10000);
+
+    //(a, b, c, d with ax+by+cz+d=0)
+    pcl::ModelCoefficients plane_coeff;
+    plane_coeff.values.resize (4);    // We need 4 values
+    plane_coeff.values[0] = 0;
+    plane_coeff.values[1] = 1;
+    plane_coeff.values[2] = 0;
+    plane_coeff.values[3] = 0;
+    viewer.addPlane(plane_coeff, 0,0,0);
+}
 
 void PopulatePCLPointCloud(const std::vector<cv::Point3f> &pointcloud,
                            const std::vector<cv::Vec3b>& pointcloud_RGBColor

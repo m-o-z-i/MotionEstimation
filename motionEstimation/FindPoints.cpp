@@ -288,7 +288,7 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
 void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> *points_L1, vector<cv::Point2f> *points_R1, vector<cv::Point2f> *points_L2, vector<cv::Point2f> *points_R2){
     // find corresponding points
     vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
-    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 500,0.03,2);
+    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 500,0.001,5);
 
     if (0 == features.size()){
         return;
@@ -298,8 +298,14 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
     refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, &points_L1a_temp, &points_L2_temp);
     refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, &points_R1a_temp, &points_R2_temp);
 
+    drawPoints(frame_L1, features, "feaures found" , cv::Scalar(2,55,212));
+
+    cout << "size of points: " << points_L1_temp.size() << ", " << points_R1_temp.size()  << ", " << points_L2_temp.size() << ", " << points_R2_temp.size() << endl;
+
     // delete in all frames points, that are not visible in each frames
     deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
+
+    cout << "size of points: " << points_L1_temp.size() << ", " << points_R1_temp.size()  << ", " << points_L2_temp.size() << ", " << points_R2_temp.size() << endl;
 
     for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
         points_L1->push_back(points_L1_temp[i]);

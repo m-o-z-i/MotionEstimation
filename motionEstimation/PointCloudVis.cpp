@@ -1,6 +1,7 @@
+#define private public
+#define protected public
+
 #include "PointCloudVis.h"
-
-
 
 pcl::visualization::PCLVisualizer viewer("MotionEstimation Viewer");
 
@@ -22,16 +23,26 @@ void initVisualisation(){
 
     cout << "INIT VISUALISATION " << endl;
 
-    //viewer.addCoordinateSystem(50000,10000,10000,10000);
+    viewer.addCoordinateSystem(1000,0,0,0);
 
-    //(a, b, c, d with ax+by+cz+d=0)
-    pcl::ModelCoefficients plane_coeff;
-    plane_coeff.values.resize (4);    // We need 4 values
-    plane_coeff.values[0] = 0;
-    plane_coeff.values[1] = 1;
-    plane_coeff.values[2] = 0;
-    plane_coeff.values[3] = 0;
-    viewer.addPlane(plane_coeff, 0,0,0);
+    // add ground plane
+    vtkSmartPointer<vtkPlaneSource> planeSource = vtkSmartPointer<vtkPlaneSource>::New ();
+    planeSource->SetXResolution (10);
+    planeSource->SetYResolution (10);
+    planeSource->SetOrigin (0, 0, 0);
+    planeSource->SetPoint1 (10000, 0, 0);
+    planeSource->SetPoint2 (0, 0, 10000);
+
+    vtkSmartPointer<vtkPolyDataMapper> planMapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
+    planMapper->SetInputConnection (planeSource->GetOutputPort ());
+
+    vtkSmartPointer<vtkActor> planeActor = vtkSmartPointer<vtkActor>::New ();
+    planeActor->SetMapper (planMapper);
+    planeActor->GetProperty ()->SetRepresentationToWireframe ();
+    planeActor->GetProperty ()->SetColor (1, 1, 1);
+
+    //do not hack!!!!
+    viewer.addActorToRenderer(planeActor);
 }
 
 void PopulatePCLPointCloud(const std::vector<cv::Point3f> &pointcloud,

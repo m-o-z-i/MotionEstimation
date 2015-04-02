@@ -24,6 +24,4 @@ void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21
 
 cv::Point2f drawCameraPath(cv::Mat& img, const cv::Point2f prevPos, const cv::Mat& T, string name, cv::Scalar const& color);
 
-void drawPointCloud();
-
 #endif // VISUALISATION_H

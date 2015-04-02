@@ -162,7 +162,8 @@ int main() {
 
             std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
             for (unsigned int i = 0; i < normP_L1.size(); ++i){
-                RGBValues1.push_back(frame_L1.at<cv::Vec3b>(points_L1[i].x, points_L1[i].y));
+                uchar grey = frame_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+                RGBValues1.push_back(cv::Vec3b(grey,grey,grey));
                 //RGBValues1.push_back(cv::Vec3b(255,0,0));
                 //RGBValues2.push_back(cv::Vec3b(0,255,0));
                 //RGBValues3.push_back(cv::Vec3b(0,0,255));

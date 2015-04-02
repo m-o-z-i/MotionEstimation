@@ -26,27 +26,20 @@ using namespace std;
 
 char key;
 
+// ************************************
+// ******* Motion Estimation **********
+// ************************************
+// 1- Get Matrix K
+// 2. calculate EssentialMatrix
+// 3. for bundle adjustment use SSBA
+// 4. or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
+// 5. recover Pose (need newer version of calib3d)
+
 //TODO:
 // other meothod do decompose essential mat;
 //      http://www.morethantechnical.com/2012/08/09/decomposing-the-essential-matrix-using-horn-and-eigen-wcode/
 //
-/* STEP BY STEP:
- * 1.  capture stereo calibrated images in frame 1
- * 2.1 find feature points in image 1.1
- * 2.2 find corresponding points in image 1.2
- * 3.  triangulate 3d points from frame 1
- * 4.  wait one frame
- * 5.  capture again images from frame 2
- * 6.  try to find same corresponding points from frame 1 in new stereo images from frame 2
- * 7.  triangulate 3d points from frame 2
- * 8.  calculate essential matrix from frame 1 to frame 2
- * 9.  estimate motion with 2 sets of 2d and 3d points and the essential matrix .. how?
- * 10. swap 2d points of frame 1 and frame 2
- * 11. try to add some new feature points (until defined numer of necessary points are reached)
- * 12. continue with step 4
- *
- * surf detection need nonfree lib... can't use it in the vr-lab
- */
+
 
 //callback
 void method2 (const std::vector<cv::Point3f> &worldcoordinates, const std::vector<cv::Point2f>& point_L2, const std::vector<cv::Point2f>& point_R2, const cv::Mat &P_L, const cv::Mat &P_R, const cv::Mat &K_L, const cv::Mat &K_R, cv::Mat& T_L, cv::Mat& T_R, cv::Mat& R_L, cv::Mat& R_R);
@@ -127,33 +120,18 @@ int main() {
     while(true)
     {
         cout << "FRAME" <<  frame << endl;
-        // ************************************
-        // ******* Motion Estimation **********
-        // ************************************
-        // 1- Get Matrix K
-        // 2. calculate EssentialMatrix
-        // 3. for bundle adjustment use SSBA
-        // 4. or http://stackoverflow.com/questions/13921720/bundle-adjustment-functions
-        // 5. recover Pose (need newer version of calib3d)
 
         if (leftImages.size() -1 <= frame +1) {
             break;
         }
 
+//        //stereo1
         cv::Mat frame_L1 = leftImages[frame];
         cv::Mat frame_R1 = rightImages[frame];
 
+//        //stereo2
         cv::Mat frame_L2 = leftImages[frame+1];
         cv::Mat frame_R2 = rightImages[frame+1];
-
-
-//        //stereo1
-//        cv::Mat frame_L1 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame))+".jpg",0);
-//        cv::Mat frame_R1 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame))+".jpg",0);
-
-//        //stereo2
-//        cv::Mat frame_L2 = cv::imread("data/moritz_rec/left/left_000"+(std::to_string(frame+1))+".jpg",0);
-//        cv::Mat frame_R2 = cv::imread("data/moritz_rec/right/right_000"+(std::to_string(frame+1))+".jpg",0);
 
         // Check for invalid input
         if(! frame_L1.data || !frame_R1.data || !frame_R2.data || !frame_L2.data) {
@@ -164,8 +142,6 @@ int main() {
 
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(frame_L1, frame_R1, frame_L2, frame_R2, &points_L1, &points_R1, &points_L2, &points_R2);
-
-
 
         // Test TRIANGULATION
 //        {
@@ -252,7 +228,7 @@ int main() {
             continue;
         }
 
-        // make sure that there are this inlier in all frames. If not delete this inlier in all frames
+        // make sure that there are all inliers in all frames.
         deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
 
         //visualisize
@@ -260,15 +236,12 @@ int main() {
         cv::Mat color_image;
         cv::cvtColor(frame_L1, color_image, CV_GRAY2RGB);
         drawCorresPoints(color_image, inliersF_L1, inliersF_L2, "inliers F L ", CV_RGB(0,255,0));
-
 //        drawCorresPoints(color_image, inliersF_R1, inliersF_R2, "inliers F R ", CV_RGB(0,255,0));
-
 //        drawCorresPoints(color_image, inliersMedianL1a, inliersMedianL2, "Found CorresPoints L1 To L2", CV_RGB(255,0,0));
 //        drawCorresPoints(color_image, inliersMedianR1b, inliersMedianR2, "Found CorresPoints R1 To R2", CV_RGB(0,0,255));
 //        drawCorresPoints(color_image, corresPoints1to2.first, corresPoints1to2.second, "Found CorresPoints", CV_RGB(0,255,0));
 //        drawCorresPoints(color_image, corresPointsL1toR1.first, corresPointsL1toR1.second, "Found CorresPoints", CV_RGB(255,0,0));
 //        drawCorresPoints(color_image, corresPointsL1toR2.first, corresPointsL1toR2.second, "Found CorresPoints", CV_RGB(0,0,255));
-
 //        drawCorresPoints(color_image, inliersMedianL1, inliersMedianR1, "Inliers Median", CV_RGB(255,255,0));
 //        drawCorresPoints(color_image, inliersFL1, inliersFR1, "inliers after ransac. for F computation", CV_RGB(0,255,255));
         drawEpipolarLines(frame_L1, frame_L2, inliersF_L1, inliersF_L2, F_L);
@@ -278,17 +251,9 @@ int main() {
         normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normPoints_L1, normPoints_R1);
         normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normPoints_L2, normPoints_R2);
 
-
-
         // calculate essential mat
         cv::Mat E_L = K_R.t() * F_L * K_L; //according to HZ (9.12)
         cv::Mat E_R = K_R.t() * F_R * K_L; //according to HZ (9.12)
-
-//        std::cout << "\n\n FundamentalMat \n" << F << std::endl;
-//        std::cout << "\n\n FundamentalMat Test\n" << FTest << std::endl;
-//        std::cout << "EssentialMat \n" << E << std::endl;
-//        std::cout << "\n\n EssentialMat TEST \n" << ETest << std::endl;
-//        cvWaitKey(0);
 
         // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
         cv::Mat P_L, P_R;
@@ -396,10 +361,6 @@ int main() {
 //            }
 
 
-
-
-
-
             // get RGB values for pointcloud representation
             std::vector<cv::Vec3b> RGBValues;
             for (unsigned int i = 0; i < inliersF_L1.size(); ++i){
@@ -416,37 +377,9 @@ int main() {
 //            currentPos_L2 = drawCameraPath(path2, currentPos_L2, T_L * u_L2, "motionPath 2", cv::Scalar(255,0,0));
 //            currentPos_R2 = drawCameraPath(path2, currentPos_R2, T_R * u_R2, "motionPath 2", cv::Scalar(0,255,0));
 
-
-//            cv::Mat KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot;
-//            cv::decomposeProjectionMatrix(P_L, KNew, RNew, TNew, RotX, RotY, RotZ, EulerRot);
-//            cout << P_L << endl << RNew << endl << TNew << endl;
-
-//            double n = TNew.at<double>(3,0);
-//            double x = TNew.at<double>(0,0)/n;
-//            double y = TNew.at<double>(1,0)/n;
-//            double z = TNew.at<double>(2,0)/n;
-
-//            cv::Vec3f TVec(x, y, z);
-//            cv::Vec3f TVecTest(T_LR);
-
-//            double length1 = sqrt(TVec[0] * TVec[0] + TVec[1] * TVec[1] + TVec[2] *TVec[2] );
-//            double length2 = sqrt(TVecTest[0] * TVecTest[0] + TVecTest[1] * TVecTest[1] + TVecTest[2] *TVecTest[2] );
-
-//            cout << "cameraRot: owndata " << endl << EulerRot << endl;
-//            cout << "cameraPos: owndata [" << TVec[0]/length1 << ", " << TVec[1]/length1 << ", " << TVec[2]/length1 << "]"  << endl;
-//            cout << "cameraPos: hagen   [" << TVecTest[0]/length2 << ", " << TVecTest[1]/length2 << ", " << TVecTest[2]/length2 << "]"   << endl;
-//            cout << "cameraRot: hagen " << endl << RTest << endl;
-
         } else {
             cout << "can't estimate motion no perspective Mat Found" << endl;
         }
-
-//        {   //second method (solvePnPRansac)
-//            cv::Mat T2_L, T2_R;
-//            method2(normPoints_L1, normPoints_R1, normPoints_L2, normPoints_R2, P_LR, K_L, K_R, T2_L, T2_R);
-//            currentPos_L3 = drawCameraPath(path3, currentPos_L3, cv::Mat(T2_L*0.000001), "motionPath 3", cv::Scalar(255,0,0));
-//            currentPos_R3 = drawCameraPath(path3, currentPos_R3, cv::Mat(T2_R*0.000001), "motionPath 3", cv::Scalar(0,255,0));
-//        }
 
 //        {   //third method (haagen)
 //            cv::Mat T3;

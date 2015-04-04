@@ -276,27 +276,49 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
     }
 }
 
-void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv::Point2f>& pointsL, const vector<cv::Point2f>& pointsR, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR){
+void normalizePoints(const cv::Mat& KInv, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, vector<cv::Point2f>& normPoints1, vector<cv::Point2f>& normPoints2){
 
-    vector<cv::Point3f> pointsL_h, pointsR_h;
-    cv::convertPointsToHomogeneous(pointsL, pointsL_h);
-    cv::convertPointsToHomogeneous(pointsR, pointsR_h);
+    vector<cv::Point3f> points1_h, points2_h;
+    cv::convertPointsToHomogeneous(points1, points1_h);
+    cv::convertPointsToHomogeneous(points2, points2_h);
+
+    KInv.convertTo(KInv, CV_64F);
+
+    for(unsigned int i = 0; i < points1.size(); ++i){
+        cv::Mat matPoint1_h(points1_h[i]);
+        matPoint1_h.convertTo(matPoint1_h, CV_64F);
+
+        cv::Mat matPoint2_h(points2_h[i]);
+        matPoint2_h.convertTo(matPoint2_h, CV_64F);
+
+        points1_h[i] = cv::Point3f(cv::Mat(KInv * matPoint1_h));
+        points2_h[i] = cv::Point3f(cv::Mat(KInv * matPoint2_h));
+    }
+    cv::convertPointsFromHomogeneous(points1_h, normPoints1);
+    cv::convertPointsFromHomogeneous(points2_h, normPoints2);
+}
+
+void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv::Point2f>& points_L, const vector<cv::Point2f>& points_R, vector<cv::Point2f>& normPoints_L, vector<cv::Point2f>& normPoints_R){
+
+    vector<cv::Point3f> points_Lh, points_Rh;
+    cv::convertPointsToHomogeneous(points_L, points_Lh);
+    cv::convertPointsToHomogeneous(points_R, points_Rh);
 
     KLInv.convertTo(KLInv, CV_64F);
     KRInv.convertTo(KRInv, CV_64F);
 
-    for(unsigned int i = 0; i < pointsL.size(); ++i){
-        cv::Mat matPointL_h(pointsL_h[i]);
-        matPointL_h.convertTo(matPointL_h, CV_64F);
+    for(unsigned int i = 0; i < points_L.size(); ++i){
+        cv::Mat matPoint_Lh(points_Lh[i]);
+        matPoint_Lh.convertTo(matPoint_Lh, CV_64F);
 
-        cv::Mat matPointR_h(pointsR_h[i]);
-        matPointR_h.convertTo(matPointR_h, CV_64F);
+        cv::Mat matPoint_Rh(points_Rh[i]);
+        matPoint_Rh.convertTo(matPoint_Rh, CV_64F);
 
-        pointsL_h[i] = cv::Point3f(cv::Mat(KLInv * matPointL_h));
-        pointsR_h[i] = cv::Point3f(cv::Mat(KRInv * matPointR_h));
+        points_Lh[i] = cv::Point3f(cv::Mat(KLInv * matPoint_Lh));
+        points_Rh[i] = cv::Point3f(cv::Mat(KRInv * matPoint_Rh));
     }
-    cv::convertPointsFromHomogeneous(pointsL_h, normPointsL);
-    cv::convertPointsFromHomogeneous(pointsR_h, normPointsR);
+    cv::convertPointsFromHomogeneous(points_Lh, normPoints_L);
+    cv::convertPointsFromHomogeneous(points_Rh, normPoints_R);
 }
 
 

@@ -6,22 +6,22 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -std=c++11 -fPIC -g -fexpensive-optimizations -D_GNULINUX -O3
 SOURCES += \
     MotionEstimation.cpp \
-    line/MyLine.cpp \
     FindCameraMatrices.cpp \
     FindPoints.cpp \
     Triangulation.cpp \
     Visualisation.cpp \
-    MultiCameraPnP.cpp \
-    PointCloudVis.cpp
+    PointCloudVis.cpp \
+    main.cpp \
+    Utility.cpp
 
 HEADERS += \
-    line/MyLine.h \
     FindCameraMatrices.h \
     FindPoints.h \
-    MultiCameraPnP.h \
     Triangulation.h \
     Visualisation.h \
-    PointCloudVis.h
+    PointCloudVis.h \
+    MotionEstimation.h \
+    Utility.h
 
 unix:!macx: LIBS += -lopencv_core \
                     -lopencv_imgproc \

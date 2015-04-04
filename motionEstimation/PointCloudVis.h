@@ -38,7 +38,9 @@ inline std::vector<Eigen::Matrix<float,6,1> > AsVector(const Eigen::Matrix<float
 void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s = 0.01 /*downscale factor*/, const std::string& name = "");
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b);
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b, double s);
-void addCameraToVisualizer(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name);
+void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name);
+void addCameraToVisualizer(const cv::Mat &currentPos, const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name);
+
 
 void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,std::string name,const std::vector<cv::Vec3b>& pointcloud_RGBColor);
 #endif // POINTCLOUDVIS_H

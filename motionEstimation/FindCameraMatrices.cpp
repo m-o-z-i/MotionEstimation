@@ -31,12 +31,12 @@ bool getRightProjectionMat( cv::Mat& E,
         // validation of E
         bool ValidationOfE = DecomposeEtoRandT(E,R1,R2,t1,t2);     // extract cameras [R|t]
         if (!ValidationOfE) return false;
-                if(determinant(R1)+1.0 < 1e-05) {
-                    //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
-                    cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
-                    E = -E;
-                    DecomposeEtoRandT(E,R1,R2,t1,t2);
-                }
+        if(determinant(R1)+1.0 < 1e-05) {
+            //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
+            cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
+            E = -E;
+            DecomposeEtoRandT(E,R1,R2,t1,t2);
+        }
         if (!CheckCoherentRotation(R1) && !CheckCoherentRotation(R2)) {
             cout << "resulting rotations are not coherent\n";
             return false;
@@ -81,7 +81,7 @@ bool getRightProjectionMat( cv::Mat& E,
                 double reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_R, pcloud1);
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
-                if (TestTriangulation(P0, pcloud1) && TestTriangulation(P1, pcloud1)) {
+                if (positionCheck(P0, pcloud1) && positionCheck(P1, pcloud1)) {
                     cout << "############## use this perspective Matrix " << "P"<< i << j << "################" << endl;
                     cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
                     foundPerspectiveMatrix = true;
@@ -104,7 +104,7 @@ bool getRightProjectionMat( cv::Mat& E,
     return true;
 }
 
-bool TestTriangulation(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3D) {
+bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3D) {
     vector<cv::Point3f> pcloud_pt3d_projected(points3D.size());
 
     cv::Matx44f P4x4 = cv::Matx44f::eye();
@@ -219,11 +219,11 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
 
     std::vector<uchar> inliers_fundamental(points1.size(),0);
     F = cv::findFundamentalMat(
-            cv::Mat(points1), cv::Mat(points2),   // matching points
-            inliers_fundamental,                             // match status (inlier ou outlier)
-            cv::FM_RANSAC,                                   // RANSAC method
-            5.,                                              // distance to epipolar line
-            .01);                                            // confidence probability
+                cv::Mat(points1), cv::Mat(points2),   // matching points
+                inliers_fundamental,                             // match status (inlier ou outlier)
+                cv::FM_RANSAC,                                   // RANSAC method
+                5.,                                              // distance to epipolar line
+                .01);                                            // confidence probability
 
     if(countNonZero(F) < 1) {
         //cout << "can't find F" << endl;
@@ -261,38 +261,27 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
     return true;
 }
 
-void decomposeProjectionMat(const cv::Mat& P, cv::Mat& R, cv::Mat& T){
-    R = (cv::Mat_<double>(3,3) <<
-          P.at<double>(0,0),	P.at<double>(0,1),	P.at<double>(0,2),
-          P.at<double>(1,0),	P.at<double>(1,1),	P.at<double>(1,2),
-          P.at<double>(2,0),	P.at<double>(2,1),	P.at<double>(2,2));
-    T = (cv::Mat_<double>(3,1) <<
-            P.at<double>(0, 3),
-            P.at<double>(1, 3),
-            P.at<double>(2, 3));
-}
-
 
 //-----------------------------------------------------------------------------
 void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& distCoeff_R) {
-//-----------------------------------------------------------------------------
-  cv::FileStorage fs("data/calibration/final/intrinsic.yml", cv::FileStorage::READ);
-  fs["cameraMatrixLeft"] >> K_L;
-  fs["cameraMatrixRight"] >> K_R;
-  fs["distCoeffsLeft"] >> distCoeff_L;
-  fs["distCoeffsRight"] >> distCoeff_R;
-  fs.release();
+    //-----------------------------------------------------------------------------
+    cv::FileStorage fs("data/calibration/final/intrinsic.yml", cv::FileStorage::READ);
+    fs["cameraMatrixLeft"] >> K_L;
+    fs["cameraMatrixRight"] >> K_R;
+    fs["distCoeffsLeft"] >> distCoeff_L;
+    fs["distCoeffsRight"] >> distCoeff_R;
+    fs.release();
 }
 
 //-----------------------------------------------------------------------------
 void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
-//-----------------------------------------------------------------------------
-  cv::FileStorage fs("data/calibration/final/extrinsic.yml", cv::FileStorage::READ);
-  fs["R"] >> R;
-  fs["T"] >> T;
-  fs["E"] >> E;
-  fs["F"] >> F;
-  fs.release();
+    //-----------------------------------------------------------------------------
+    cv::FileStorage fs("data/calibration/final/extrinsic.yml", cv::FileStorage::READ);
+    fs["R"] >> R;
+    fs["T"] >> T;
+    fs["E"] >> E;
+    fs["F"] >> F;
+    fs.release();
 }
 
 
@@ -313,7 +302,7 @@ void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, 
     v = 1.0/X.size() * sum_R;
 }
 
-void getScaleFactor2(const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R, const cv::Mat& T_LR, const cv::Mat& R_LR, double& u, double& v) {
+void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  double& u, double& v) {
     cv::Mat A(3, 2, CV_32F);
     cv::Mat B(3, 1, CV_32F);
     cv::Mat x(2, 1, CV_32F);
@@ -321,9 +310,9 @@ void getScaleFactor2(const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,
     cv::hconcat(T_L, -(R_LR*T_R), A);
     B = T_LR -(R_L*T_LR);
 
-//            cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
-//            cout << "\n B: \n "<< B << endl << endl;
-//            cout << "\n x: \n "<< x << endl << endl;
+//    cout << "\n\n\n  ########### Matrizen ############### \n A: \n "<< A << endl << endl;
+//    cout << "\n B: \n "<< B << endl << endl;
+//    cout << "\n x: \n "<< x << endl << endl;
 
     //solve Ax = B
     cv::solve(A, B, x, cv::DECOMP_SVD);

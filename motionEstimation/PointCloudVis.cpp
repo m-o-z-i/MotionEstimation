@@ -131,7 +131,7 @@ void RunVisualization() {
     for (auto l : linesToShow){
         std::vector<Eigen::Matrix<float,6,1> > oneline = l.second;
         pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
-                            B(oneline[1][3],oneline[1][4],oneline[1][5]);
+                B(oneline[1][3],oneline[1][4],oneline[1][5]);
         for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
         viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,l.first);
     }
@@ -190,8 +190,8 @@ void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, 
     //TODO mutex release
 
     linesToShow.push_back(std::make_pair(line_name,
-        AsVector(Eigen2Eigen(t,rgb),Eigen2Eigen(t + vforward*3.0,rgb))
-        ));
+                                         AsVector(Eigen2Eigen(t,rgb),Eigen2Eigen(t + vforward*3.0,rgb))
+                                         ));
 }
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b) {
     addCameraToVisualizer(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b);
@@ -199,6 +199,12 @@ void addCameraToVisualizer(const float R[9], const float t[3], float r, float g,
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b, double s) {
     addCameraToVisualizer(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b,s);
 }
-void addCameraToVisualizer(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name) {
-    addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(t.val),r,g,b,s,name);
+void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name) {
+    addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(T.val),r,g,b,s,name);
+}
+void addCameraToVisualizer(const cv::Mat& currentPos, const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name) {
+
+
+
+    addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(T.val),r,g,b,s,name);
 }

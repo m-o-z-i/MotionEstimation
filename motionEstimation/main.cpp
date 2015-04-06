@@ -161,7 +161,7 @@ int main(){
         getNewPos (currentPos_ES_L, T_E_L, R_E_L, newPos_ES_L);
         std::stringstream left_ES;
         left_ES << "camera_ES_left" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_E_L1), cv::Matx33f(R_E_L), 0, 255, 0, 0.2, left_ES.str());
+        addCameraToVisualizer(cv::Vec3f(T_E_L1), cv::Matx33f(R_E_L), 255, 0, 0, 20, left_ES.str());
 
 
         //RIGHT:
@@ -169,7 +169,7 @@ int main(){
         getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
         std::stringstream right_ES;
         right_ES << "camera_ES_right" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_E_R1), cv::Matx33f(R_E_R), 0, 255, 0, 0.2, right_ES.str());
+        addCameraToVisualizer(cv::Vec3f(T_E_R1), cv::Matx33f(R_E_R), 125, 0, 0, 20, right_ES.str());
 
         currentPos_ES_L   = newPos_ES_L  ;
         currentPos_ES_R   = newPos_ES_R  ;
@@ -196,7 +196,7 @@ int main(){
         getNewPos (currentPos_PnP_L, T_PnP_L, R_PnP_L, newPos_PnP_L);
         std::stringstream left_PnP;
         left_PnP << "camera_PnP_left" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_PnP_L), cv::Matx33f(R_PnP_L), 0, 255, 0, 0.2, left_PnP.str());
+        addCameraToVisualizer(cv::Vec3f(T_PnP_L), cv::Matx33f(R_PnP_L), 0, 255, 0, 20, left_PnP.str());
 
 
         //RIGHT:
@@ -204,7 +204,7 @@ int main(){
         getNewPos (currentPos_ES_R, T_PnP_R, R_PnP_R, newPos_ES_R);
         std::stringstream right_PnP;
         right_PnP << "camera_PnP_right" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_PnP_R), cv::Matx33f(R_PnP_R), 0, 255, 0, 0.2, right_PnP.str());
+        addCameraToVisualizer(cv::Vec3f(T_PnP_R), cv::Matx33f(R_PnP_R), 0, 125, 0, 20, right_PnP.str());
 
         currentPos_PnP_L  = newPos_PnP_L ;
         currentPos_PnP_R  = newPos_PnP_R ;
@@ -228,7 +228,7 @@ int main(){
         getNewPos (currentPos_Stereo, T_Stereo, R_Stereo, newPos_Stereo);
         std::stringstream stereo;
         stereo << "camera_Stereo" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_Stereo), cv::Matx33f(R_Stereo), 0, 255, 0, 0.2, stereo.str());
+        addCameraToVisualizer(cv::Vec3f(T_Stereo), cv::Matx33f(R_Stereo), 0, 0, 255, 20, stereo.str());
 
         currentPos_Stereo = newPos_Stereo;
         // ##############################################################################

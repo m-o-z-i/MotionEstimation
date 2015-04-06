@@ -22,7 +22,7 @@
 
 int main(){
 
-    int frame=1;
+    int frame=368;
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
     loadIntrinsic(K_L, K_R, distCoeff_L, distCoeff_R);
@@ -86,7 +86,7 @@ int main(){
         // Check for invalid input
         if(! image_L1.data || !image_R1.data || !image_R2.data || !image_L2.data) {
             cout <<  "Could not open or find the image: "  << std::endl ;
-            //frame=1;
+            ++frame;
             continue;
         }
 
@@ -100,6 +100,12 @@ int main(){
         getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &horizontal_L1, &horizontal_R1);
         getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), &horizontal_L2, &horizontal_R2);
         deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
+
+        if(0 == horizontal_L1.size()) {
+            cout <<  "can't find any corresponding points in all 4 frames' "  << std::endl ;
+            ++frame;
+            continue;
+        }
 
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1, normP_R1);

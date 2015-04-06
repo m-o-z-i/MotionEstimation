@@ -203,21 +203,11 @@ void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, fl
     addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(T.val),r,g,b,s,name);
 }
 void addCameraToVisualizer(const cv::Mat& currentPos, const cv::Mat &T, const cv::Mat& R, float r, float g, float b, double s, const std::string& name) {
-
-    cv::Mat deltaPos = (cv::Mat_<double>(4,4) <<
-                        R.at<double>(0,0),	R.at<double>(0,1),	R.at<double>(0,2),	T.at<double>(0),
-                        R.at<double>(1,0),	R.at<double>(1,1),	R.at<double>(1,2),	T.at<double>(1),
-                        R.at<double>(2,0),	R.at<double>(2,1),	R.at<double>(2,2),	T.at<double>(2),
-                        0                  ,    0                    ,	0                  ,	1                   );
-
-    cv::Mat position = currentPos * deltaPos;
+    cv::Mat position;
+    getNewPos(currentPos, T, R, position);
 
     cv::Mat rotation, translation;
     decomposeProjectionMat(position, translation, rotation);
-
-    cv::Matx33f R_(cv::Matx33f(rotation));
-    cv::Vec3f T_(cv::Vec3f(translation));
-
 
     addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(cv::Matx33f(rotation).val),Eigen::Vector3f(cv::Vec3f(translation).val),r,g,b,s,name);
 }

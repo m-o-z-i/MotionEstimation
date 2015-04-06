@@ -69,10 +69,7 @@ bool getRightProjectionMat( cv::Mat& E,
                 //cout << "\n************ Testing P"<< i<<j<< " **************" << endl;
 
                 //projection matrix of second camera: P1  = K[R|t]
-                P1 = (cv::Mat_<double>(3,4) <<
-                      R(0,0),	R(0,1),	R(0,2),	T(0),
-                      R(1,0),	R(1,1),	R(1,2),	T(1),
-                      R(2,0),	R(2,1),	R(2,2),	T(2));
+                composeProjectionMat(T, R, P1);
 
                 //triangulate from Richard Hartley and Andrew Zisserman
                 TriangulatePointsHZ( P0, P1, normPoints2D_L, normPoints2D_R, 20, pcloud1);

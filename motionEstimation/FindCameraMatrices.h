@@ -1,6 +1,7 @@
 #ifndef FINDCAMERAMATRICES_H
 #define FINDCAMERAMATRICES_H
 
+#include "Utility.h"
 
 #include <vector>
 #include <utility>

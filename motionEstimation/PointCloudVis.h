@@ -1,6 +1,8 @@
 #ifndef POINTCLOUDVIS_H
 #define POINTCLOUDVIS_H
 
+#include "Utility.h"
+
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/statistical_outlier_removal.h>
@@ -39,7 +41,7 @@ void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, 
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b);
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b, double s);
 void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name);
-void addCameraToVisualizer(const cv::Mat &currentPos, const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name);
+void addCameraToVisualizer(const cv::Mat &currentPos, const cv::Mat& T, const cv::Mat &R, float r, float g, float b, double s, const std::string& name);
 
 
 void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,std::string name,const std::vector<cv::Vec3b>& pointcloud_RGBColor);

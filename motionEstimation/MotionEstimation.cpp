@@ -113,7 +113,7 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& points_2,
 }
 
 
-bool motionEstimationEssentialMat (const cv::Mat& image1, const cv::Mat& image2,
+bool motionEstimationEssentialMat (const cv::Mat& image1,
                                    const std::vector<cv::Point2f>& points1,
                                    const std::vector<cv::Point2f>& points2,
                                    const cv::Mat& K, const cv::Mat& KInv,
@@ -144,7 +144,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1, const cv::Mat& image2,
     cv::Mat color_image1;
     cv::cvtColor(image1, color_image1, CV_GRAY2RGB);
     drawCorresPoints(color_image1, inliersF1, inliersF2, "inliers F", CV_RGB(0,255,0));
-    drawEpipolarLines(image1, image2, inliersF1, inliersF2, F);
+    drawEpipolarLines(image1, inliersF1, F);
 
     // normalisize all Points
     std::vector<cv::Point2f> normPoints1, normPoints2;
@@ -226,7 +226,6 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
 
     if (cv::determinant(svd_u) * cv::determinant(svd_v) < 0){ // det(v) == det(v.t())?
         S_diag.at<float>(8) = -1;
-        std::cout << S_diag << std::endl;
     }
 
     cv::Mat R_temp = svd_u * S_diag * svd_v;

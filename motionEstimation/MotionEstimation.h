@@ -25,7 +25,7 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
                                           const std::vector<cv::Point3f>& pointCloud_2,
                                           cv::Mat& T, cv::Mat& R);
 
-bool motionEstimationEssentialMat (const cv::Mat& image1, const cv::Mat& image2,
+bool motionEstimationEssentialMat (const cv::Mat& image1,
                                    const std::vector<cv::Point2f>& points1,
                                    const std::vector<cv::Point2f>& points2,
                                    const cv::Mat& K, const cv::Mat& KInv,

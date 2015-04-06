@@ -235,6 +235,7 @@ int main(){
 
 
         RunVisualization();
+        ++frame;
 
         // To Do:
         // swap image files...

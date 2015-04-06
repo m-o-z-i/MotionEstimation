@@ -202,12 +202,6 @@ void addCameraToVisualizer(const float R[9], const float t[3], float r, float g,
 void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name) {
     addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(T.val),r,g,b,s,name);
 }
-void addCameraToVisualizer(const cv::Mat& currentPos, const cv::Mat &T, const cv::Mat& R, float r, float g, float b, double s, const std::string& name) {
-    cv::Mat position;
-    getNewPos(currentPos, T, R, position);
-
-    cv::Mat rotation, translation;
-    decomposeProjectionMat(position, translation, rotation);
-
-    addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(cv::Matx33f(rotation).val),Eigen::Vector3f(cv::Vec3f(translation).val),r,g,b,s,name);
+void addCameraToVisualizer(const cv::Mat &T, const cv::Mat& R, float r, float g, float b, double s, const std::string& name) {
+       addCameraToVisualizer(Eigen::Matrix<float,3,3,Eigen::RowMajor>(cv::Matx33f(R).val),Eigen::Vector3f(cv::Vec3f(T).val),r,g,b,s,name);
 }

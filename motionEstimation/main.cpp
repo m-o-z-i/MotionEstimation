@@ -112,8 +112,11 @@ int main(){
         normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2, normP_R2);
 
         std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-        TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-        TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+        std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1, inlierTriang_L1, inlierTriang_R1);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2, inlierTriang_L2, inlierTriang_R2);
+
+        deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_1, pointCloud_2);
 
         // get RGB values for pointcloud representation
         std::vector<cv::Vec3b> RGBValues;
@@ -125,6 +128,7 @@ int main(){
         AddPointcloudToVisualizer(pointCloud_1, std::to_string(frame), RGBValues);
 
 
+#if 0
         // ######################## ESSENTIAL MAT ################################
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
@@ -184,7 +188,6 @@ int main(){
 
 
 
-#if 0
         // ################################## PnP ######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
         bool poseEstimationFoundPnP_L = motionEstimationPnP(points_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
@@ -218,28 +221,36 @@ int main(){
         // ##############################################################################
 
 
+#endif
 
 
         // ################################# STEREO #####################################
+        // for cv::waitKey input:
+        cv::namedWindow("CV::Waitkey");
 
         cv::Mat T_Stereo, R_Stereo;
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);
         if (!poseEstimationFoundStereo){
-            T_Stereo = cv::Mat::zeros(3, 1, CV_64F);
-            R_Stereo = cv::Mat::eye(3, 3, CV_64F);
+            T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
+            R_Stereo = cv::Mat::eye(3, 3, CV_32F);
         }
+
 
         //STEREO:
         cv::Mat newPos_Stereo;
         getNewPos (currentPos_Stereo, T_Stereo, R_Stereo, newPos_Stereo);
         std::stringstream stereo;
         stereo << "camera_Stereo" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_Stereo), cv::Matx33f(R_Stereo), 0, 0, 255, 20, stereo.str());
+
+        cv::Mat rotation, translation;
+        decomposeProjectionMat(newPos_Stereo, translation, rotation);
+        std::cout << "T: " << translation << std::endl;
+
+        addCameraToVisualizer(translation, rotation, 0, 0, 255, 100, stereo.str());
 
         currentPos_Stereo = newPos_Stereo;
         // ##############################################################################
 
-#endif
 
         RunVisualization();
         ++frame;

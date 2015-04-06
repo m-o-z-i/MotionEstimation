@@ -199,8 +199,8 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
         Xmean_2 += pointCloud_2[i];
     }
 
-    Xmean_1 = 1/numberPts * Xmean_1;
-    Xmean_2 = 1/numberPts * Xmean_2;
+    Xmean_1 = 1.0/numberPts * Xmean_1;
+    Xmean_2 = 1.0/numberPts * Xmean_2;
 
     std::vector<cv::Point3f> XC_1, XC_2;
     for (unsigned int i = 0; i < numberPts; ++i){
@@ -208,13 +208,14 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
         XC_2.push_back( pointCloud_2[i] - Xmean_2);
     }
 
+
     //2. compute 3x3 covariance matrix
     cv::Mat A_temp;
     for (unsigned int i = 0; i < numberPts; ++i){
-        A_temp = A_temp + (cv::Mat(XC_1[i])*cv::Mat(XC_2[i]).t());
+        A_temp = A_temp + (cv::Mat(XC_2[i])*cv::Mat(XC_1[i]).t());
     }
 
-    cv::Mat A = 1/numberPts * A_temp;
+    cv::Mat A = 1.0/numberPts * A_temp;
 
     // estimate R from svd(A)
     cv::SVD svd(A, cv::SVD::FULL_UV);

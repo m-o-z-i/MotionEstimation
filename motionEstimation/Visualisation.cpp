@@ -172,7 +172,7 @@ void drawEpipolarLines(cv::Mat frame1, cv::Mat frame2, const vector<cv::Point2f>
 }
 
 
-void drawCorresPoints(cv::Mat& color_image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
+void drawCorresPoints(cv::Mat color_image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
 
     int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
     double fontScale = 0.3;
@@ -186,9 +186,6 @@ void drawCorresPoints(cv::Mat& color_image, const vector<cv::Point2f>& inliers1,
         cv::putText (color_image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[0], color[1], color[2]), thickness);
     }
 
-    /* Now display the image we drew on.  Recall that "Optical Flow" is the name of
-     * the window we created above.
-     */
     cv::imshow(name, color_image);
     cv::waitKey(1);
 }

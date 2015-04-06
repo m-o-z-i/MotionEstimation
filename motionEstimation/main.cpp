@@ -122,8 +122,9 @@ int main(){
 
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
-        bool poseEstimationFoundES_L = motionEstimationEssentialMat(image_L1, image_L2, points_L1, points_L2, K_L, KInv_L, T_E_L, R_E_L);
-        bool poseEstimationFoundES_R = motionEstimationEssentialMat(image_L1, image_L2, points_L1, points_L2, K_L, KInv_L, T_E_R, R_E_R);
+        bool poseEstimationFoundES_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_E_L, R_E_L);
+        bool poseEstimationFoundES_R = motionEstimationEssentialMat(image_R1, points_R1, points_R2, K_R, KInv_R, T_E_R, R_E_R);
+
         if (!poseEstimationFoundES_L){
             T_E_L = cv::Mat::zeros(3, 1, CV_64F);
             R_E_L = cv::Mat::eye(3, 3, CV_64F);
@@ -161,7 +162,7 @@ int main(){
         getNewPos (currentPos_ES_L, T_E_L, R_E_L, newPos_ES_L);
         std::stringstream left_ES;
         left_ES << "camera_ES_left" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_E_L1), cv::Matx33f(R_E_L), 255, 0, 0, 20, left_ES.str());
+        addCameraToVisualizer(currentPos_ES_L, T_E_L, R_E_L, 255, 0, 0, 20, left_ES.str());
 
 
         //RIGHT:
@@ -169,7 +170,7 @@ int main(){
         getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
         std::stringstream right_ES;
         right_ES << "camera_ES_right" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_E_R1), cv::Matx33f(R_E_R), 125, 0, 0, 20, right_ES.str());
+        addCameraToVisualizer(currentPos_ES_R, T_E_R, R_E_R, 0, 255, 0, 20, right_ES.str());
 
         currentPos_ES_L   = newPos_ES_L  ;
         currentPos_ES_R   = newPos_ES_R  ;
@@ -177,7 +178,7 @@ int main(){
 
 
 
-
+#if 0
         // ################################## PnP ######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
         bool poseEstimationFoundPnP_L = motionEstimationPnP(points_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
@@ -213,7 +214,6 @@ int main(){
 
 
 
-
         // ################################# STEREO #####################################
 
         cv::Mat T_Stereo, R_Stereo;
@@ -233,6 +233,7 @@ int main(){
         currentPos_Stereo = newPos_Stereo;
         // ##############################################################################
 
+#endif
 
         RunVisualization();
         ++frame;

@@ -21,6 +21,7 @@ void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& p
 void deleteZeroLines(vector<cv::Point2f> &points1, vector<cv::Point2f> &points2);
 void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb, vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points1Rb, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R);
 void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R);
+void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R, vector<cv::Point3f>& cloud1, vector<cv::Point3f>& cloud2 );
 
 void normalizePoints(const cv::Mat& KInv, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, vector<cv::Point2f>& normPoints1, vector<cv::Point2f>& normPoints2);
 void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv::Point2f>& inliersFL1, const vector<cv::Point2f>& inliersFR1, vector<cv::Point2f>& normPointsL, vector<cv::Point2f>& normPointsR);

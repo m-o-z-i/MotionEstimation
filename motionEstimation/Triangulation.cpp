@@ -145,7 +145,42 @@ void TriangulatePointsHZ(
 
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
         cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
-        pointcloud.push_back(cv::Point3d(X(0),X(1),X(2)));
+        pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
+    }
+}
+
+void TriangulatePointsWithInlier(
+        const cv::Matx34f& P0,
+        const cv::Matx34f& P1,
+        const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
+        int numberOfTriangulations,
+        vector<cv::Point3f>& pointcloud,
+        vector<cv::Point2f>& inlier1,
+        vector<cv::Point2f>& inlier2
+        )
+{
+    // if parameter is 0 triangulate all points
+    if (0 == numberOfTriangulations) {
+        numberOfTriangulations = points1.size();
+    }
+    pointcloud.clear();
+
+    vector<cv::Point3f> points1_h, points2_h;
+    cv::convertPointsToHomogeneous(points1, points1_h);
+    cv::convertPointsToHomogeneous(points2, points2_h);
+
+    for (unsigned int i=0; i < numberOfTriangulations; ++i ){
+        cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
+        if (0 < X(2)){
+            pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
+            inlier1.push_back(points1[i]);
+            inlier2.push_back(points2[i]);
+        } else {
+            pointcloud.push_back(cv::Point3f(0,0,0));
+            inlier1.push_back(cv::Point2f(0,0));
+            inlier2.push_back(cv::Point2f(0,0));
+        }
     }
 }
 

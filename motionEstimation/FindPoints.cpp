@@ -276,6 +276,43 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
     }
 }
 
+void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,
+                     vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R,
+                     vector<cv::Point3f>& cloud1, vector<cv::Point3f>& cloud2 )
+{
+    int size = points1L.size();
+    vector<cv::Point2f>::iterator iter_p1L = points1L.begin();
+    vector<cv::Point2f>::iterator iter_p1R = points1R.begin();
+    vector<cv::Point2f>::iterator iter_p2L  = points2L.begin();
+    vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
+    vector<cv::Point3f>::iterator iter_cloud1  = cloud1.begin();
+    vector<cv::Point3f>::iterator iter_cloud2  = cloud2.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if ((0 == points1L[iter_p1L-points1L.begin()].x && 0 == points1L[iter_p1L-points1L.begin()].y) ||
+            (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
+            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y) ||
+            (0 == cloud1[iter_cloud1-cloud1.begin()].x  && 0 == cloud1[iter_cloud1-cloud1.begin()].y)  ||
+            (0 == cloud2[iter_cloud2-cloud2.begin()].x  && 0 == cloud2[iter_cloud2-cloud2.begin()].y))
+        {
+            points1L.erase(iter_p1L);
+            points1R.erase(iter_p1R);
+            points2L.erase(iter_p2L);
+            points2R.erase(iter_p2R);
+            cloud1.erase(iter_cloud1);
+            cloud2.erase(iter_cloud2);
+        } else {
+            ++iter_p1L ;
+            ++iter_p1R ;
+            ++iter_p2L  ;
+            ++iter_p2R  ;
+            ++iter_cloud1  ;
+            ++iter_cloud2  ;
+        }
+    }
+}
+
+
 void normalizePoints(const cv::Mat& KInv, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, vector<cv::Point2f>& normPoints1, vector<cv::Point2f>& normPoints2){
 
     vector<cv::Point3f> points1_h, points2_h;

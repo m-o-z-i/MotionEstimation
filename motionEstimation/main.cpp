@@ -112,7 +112,8 @@ int main(){
         // get RGB values for pointcloud representation
         std::vector<cv::Vec3b> RGBValues;
         for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
-            RGBValues.push_back(image_L1.at<cv::Vec3b>(horizontal_L1[i].x, horizontal_L1[i].y));
+            uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+            RGBValues.push_back(cv::Vec3b(grey,grey,grey));
         }
 
         AddPointcloudToVisualizer(pointCloud_1, std::to_string(frame), RGBValues);

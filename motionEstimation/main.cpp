@@ -22,7 +22,7 @@
 
 int main(){
 
-    int frame=368;
+    int frame=1;
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
     loadIntrinsic(K_L, K_R, distCoeff_L, distCoeff_R);
@@ -126,7 +126,6 @@ int main(){
 
 
         // ######################## ESSENTIAL MAT ################################
-
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
         bool poseEstimationFoundES_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_E_L, R_E_L);
@@ -159,10 +158,10 @@ int main(){
         cv::Mat T_E_R2 = T_E_R * u_R2;
 
         //compare both methods
-        //            cout << "u links  1: " << u_L1 << endl;
-        //            cout << "u rechts 1: " << u_R1 << endl << endl;
-        //            cout << "u links  2: " << u_L2 << endl;
-        //            cout << "u rechts 2: " << u_R2 << endl;
+        cout << "u links  1: " << u_L1 << endl;
+        cout << "u rechts 1: " << u_R1 << endl << endl;
+        cout << "u links  2: " << u_L2 << endl;
+        cout << "u rechts 2: " << u_R2 << endl;
 
         //LEFT:
         cv::Mat newPos_ES_L;

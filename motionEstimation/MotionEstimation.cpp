@@ -224,15 +224,17 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
 
     cv::Mat S_diag = cv::Mat::eye(3, 3, CV_32F); // 3 x 3 mat
 
-    if (cv::determinant(svd_u) * cv::determinant(svd_v.t()) < 0){ // det(v) == det(v.t())?
-        S_diag.at<double>(8) = -1;
+    if (cv::determinant(svd_u) * cv::determinant(svd_v) < 0){ // det(v) == det(v.t())?
+        S_diag.at<float>(8) = -1;
+        std::cout << S_diag << std::endl;
     }
 
-    cv::Mat R_temp;
-    R_temp = svd_u * S_diag * svd_v;
+    cv::Mat R_temp = svd_u * S_diag * svd_v;
 
     // compute translation
-    T = cv::Mat(Xmean_2) - R_temp*cv::Mat(Xmean_1);
+    cv::Mat T_temp = cv::Mat(Xmean_2) - R_temp*cv::Mat(Xmean_1);
+
+    T = T_temp;
     R = R_temp;
 
     return true;

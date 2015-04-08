@@ -34,7 +34,13 @@ int getFiles (std::string const& dir, std::vector<std::string> &files)
 void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, cv::Mat& newPos){
     cv::Mat temp, deltaPos;
     composeProjectionMat(T, R, temp);
-    cv::Mat_<float> temp2 = (cv::Mat_<float>(1,4) << 0,0,0,1);
+
+    cv::Mat_<double> temp2 = (cv::Mat_<double>(1,4) << 0,0,0,1);
+
+    if (temp.type() != temp2.type()){
+        temp.convertTo(temp, temp2.type());
+        std::cout << "convert" << std::endl;
+    }
 
     cv::vconcat(temp, temp2, deltaPos);
 

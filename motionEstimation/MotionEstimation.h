@@ -31,8 +31,8 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
                                    const cv::Mat& K, const cv::Mat& KInv,
                                    cv::Mat& T, cv::Mat& R);
 
-bool motionEstimationPnP (const std::vector<cv::Point2f>& points_2,
-                          const std::vector<cv::Point3f>& pointCloud_LR,
+bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
+                          const std::vector<cv::Point3f>& pointCloud_1LR,
                           const cv::Mat& K,
                           cv::Mat& T, cv::Mat& R);
 

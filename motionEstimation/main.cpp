@@ -37,8 +37,9 @@ int main(){
     cv::invert(K_L, KInv_R);
 
     // get projection Mat between L and R
-    cv::Mat P_LR;
-    cv::hconcat(R_LR, T_LR, P_LR);
+    cv::Mat P_LR, rvec_LR;
+    composeProjectionMat(T_LR, R_LR, P_LR);
+    cv::Rodrigues(R_LR, rvec_LR);
 
     cv::Mat P_0 = (cv::Mat_<double>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
@@ -94,6 +95,14 @@ int main(){
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, &points_L1, &points_R1, &points_L2, &points_R2);
 
+        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+        normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+        normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
+        std::vector<cv::Point3f> pointCloud_1;
+        TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+
+
         // triangulate both stereo setups..
         // find inliers from median value
         std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
@@ -107,16 +116,16 @@ int main(){
             continue;
         }
 
-        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-        normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1, normP_R1);
-        normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2, normP_R2);
+        std::vector<cv::Point2f> normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian;
+        normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1_Trian, normP_R1_Trian);
+        normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2_Trian, normP_R2_Trian);
 
-        std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+        std::vector<cv::Point3f> pointCloud_inlier_1, pointCloud_inlier_2;
         std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
-        TriangulatePointsWithInlier(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
-        TriangulatePointsWithInlier(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L1_Trian, normP_R1_Trian, 0, pointCloud_inlier_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L2_Trian, normP_R2_Trian, 0, pointCloud_inlier_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
+        deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_inlier_1, pointCloud_inlier_2);
 
-        deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_1, pointCloud_2);
 
         // get RGB values for pointcloud representation
         std::vector<cv::Vec3b> RGBValues;
@@ -125,8 +134,7 @@ int main(){
             RGBValues.push_back(cv::Vec3b(grey,grey,grey));
         }
 
-        AddPointcloudToVisualizer(pointCloud_1, std::to_string(frame), RGBValues);
-
+        AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
 
 #if 0
         // ######################## ESSENTIAL MAT ################################
@@ -151,7 +159,7 @@ int main(){
         cv::Mat P_L, P_R;
         composeProjectionMat(T_E_L, R_E_L, P_L);
         composeProjectionMat(T_E_R, R_E_R, P_R);
-        getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
+        getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian, u_L1, u_R1);
         cv::Mat T_E_L1 = T_E_L * u_L1;
         cv::Mat T_E_R1 = T_E_R * u_R1;
 
@@ -172,7 +180,12 @@ int main(){
         getNewPos (currentPos_ES_L, T_E_L, R_E_L, newPos_ES_L);
         std::stringstream left_ES;
         left_ES << "camera_ES_left" << frame;
-        addCameraToVisualizer(currentPos_ES_L, T_E_L, R_E_L, 255, 0, 0, 20, left_ES.str());
+
+        cv::Mat rotation_ES_L, translation_ES_L;
+        decomposeProjectionMat(newPos_ES_L, translation_ES_L, rotation_ES_L);
+        std::cout << "T_ES_left: " << translation_ES_L << std::endl;
+
+        addCameraToVisualizer(translation_ES_L, rotation_ES_L, 255, 0, 0, 20, left_ES.str());
 
 
         //RIGHT:
@@ -180,18 +193,38 @@ int main(){
         getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
         std::stringstream right_ES;
         right_ES << "camera_ES_right" << frame;
-        addCameraToVisualizer(currentPos_ES_R, T_E_R, R_E_R, 0, 255, 0, 20, right_ES.str());
+
+        cv::Mat rotation_ES_R, translation_ES_R;
+        decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
+        std::cout << "T_ES_right: " << translation_ES_R << std::endl;
+        addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
 
         currentPos_ES_L   = newPos_ES_L  ;
         currentPos_ES_R   = newPos_ES_R  ;
         // ##############################################################################
+#endif
 
 
-
-        // ################################## PnP ######################################
+        // ################################## PnP #######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
+
+        // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
+        bool poseEstimationFoundTemp_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_PnP_L, R_PnP_L);
+        bool poseEstimationFoundTemp_R = motionEstimationEssentialMat(image_R1, points_R1, points_R2, K_R, KInv_R, T_PnP_R, R_PnP_R);
+
+        if (!poseEstimationFoundTemp_L){
+            T_PnP_L = cv::Mat::zeros(3, 1, CV_64F);
+            R_PnP_L = cv::Mat::eye(3, 3, CV_64F);
+        }
+        if (!poseEstimationFoundTemp_R){
+            T_PnP_R = cv::Mat::zeros(3, 1, CV_64F);
+            R_PnP_R = cv::Mat::eye(3, 3, CV_64F);
+        }
+
+        // use initial guess values for pose estimation
         bool poseEstimationFoundPnP_L = motionEstimationPnP(points_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
         bool poseEstimationFoundPnP_R = motionEstimationPnP(points_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
+
         if (!poseEstimationFoundPnP_L){
             T_PnP_L = cv::Mat::zeros(3, 1, CV_64F);
             R_PnP_L = cv::Mat::eye(3, 3, CV_64F);
@@ -201,40 +234,49 @@ int main(){
             R_PnP_R = cv::Mat::eye(3, 3, CV_64F);
         }
 
+
         //LEFT:
         cv::Mat newPos_PnP_L;
         getNewPos (currentPos_PnP_L, T_PnP_L, R_PnP_L, newPos_PnP_L);
         std::stringstream left_PnP;
         left_PnP << "camera_PnP_left" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_PnP_L), cv::Matx33f(R_PnP_L), 0, 255, 0, 20, left_PnP.str());
+
+        cv::Mat rotation_PnP_L, translation_PnP_L;
+        decomposeProjectionMat(newPos_PnP_L, translation_PnP_L, rotation_PnP_L);
+        std::cout << "T_PnP_left: " << translation_PnP_L << std::endl;
+
+        addCameraToVisualizer(translation_PnP_L, rotation_PnP_L, 0, 255, 0, 20, left_PnP.str());
 
 
         //RIGHT:
         cv::Mat newPos_PnP_R;
-        getNewPos (currentPos_ES_R, T_PnP_R, R_PnP_R, newPos_ES_R);
+        getNewPos (currentPos_PnP_R, T_PnP_R, R_PnP_R, newPos_PnP_R);
         std::stringstream right_PnP;
         right_PnP << "camera_PnP_right" << frame;
-        addCameraToVisualizer(cv::Vec3f(T_PnP_R), cv::Matx33f(R_PnP_R), 0, 125, 0, 20, right_PnP.str());
+
+        cv::Mat rotation_PnP_R, translation_PnP_R;
+        decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
+        std::cout << "T_PnP_left: " << translation_PnP_R << std::endl;
+
+        addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
+
 
         currentPos_PnP_L  = newPos_PnP_L ;
         currentPos_PnP_R  = newPos_PnP_R ;
         // ##############################################################################
 
 
-#endif
-
-
+#if 0
         // ################################# STEREO #####################################
         // for cv::waitKey input:
         drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "triangulated inlier", cv::Scalar(255,0,0));
 
         cv::Mat T_Stereo, R_Stereo;
-        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);
+        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
         if (!poseEstimationFoundStereo){
             T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
             R_Stereo = cv::Mat::eye(3, 3, CV_32F);
         }
-
 
         //STEREO:
         cv::Mat newPos_Stereo;
@@ -250,7 +292,7 @@ int main(){
 
         currentPos_Stereo = newPos_Stereo;
         // ##############################################################################
-
+#endif
 
         RunVisualization();
         ++frame;

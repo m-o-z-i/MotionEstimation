@@ -54,60 +54,56 @@ bool TestTriangulation (const cv::Mat& image_L1,
 
 
 // find pose estimation using orientation mapping of pointcloud with ransac
-bool motionEstimationPnP (const std::vector<cv::Point2f>& points_2,
-                          const std::vector<cv::Point3f>& pointCloud_LR,
+bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
+                          const std::vector<cv::Point3f>& pointCloud_1LR,
                           const cv::Mat& K,
                           cv::Mat& T, cv::Mat& R)
 {
-    if(pointCloud_LR.size() <= 7 || points_2.size() <= 7 || pointCloud_LR.size() != points_2.size()) {
+    if(pointCloud_1LR.size() <= 7 || imgPoints.size() <= 7 || pointCloud_1LR.size() != imgPoints.size()) {
         //something went wrong aligning 3D to 2D points..
-        cerr << "couldn't find [enough] corresponding cloud points... (only " << pointCloud_LR.size() << ")" <<endl;
+        cerr << "couldn't find [enough] corresponding cloud points... (only " << pointCloud_1LR.size() << ")" <<endl;
         return false;
     }
+
+    cv::Mat rvec;
+    cv::Rodrigues(R, rvec);
 
     vector<int> inliers;
 
     double minVal,maxVal;
-    cv::minMaxIdx(points_2,&minVal,&maxVal);
+    cv::minMaxIdx(imgPoints,&minVal,&maxVal);
 
-    cv::Mat_<double> rvec, T_temp, R_temp;
     vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
 
     //can't work.. a cloud and points...?!
-    cv::solvePnPRansac(pointCloud_LR, points_2, K, distCoeffVec, rvec, T_temp, true, 1000, 0.006 * maxVal, 0.25 * (double)(points_2.size()), inliers, CV_EPNP);
+    cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
 
     // calculate reprojection error and define inliers
-    vector<cv::Point2f> projected3D;
-    cv::projectPoints(pointCloud_LR, rvec, T_temp, K, distCoeffVec, projected3D);
+    std::vector<cv::Point2f> projected3D;
+    cv::projectPoints(pointCloud_1LR, rvec, T, K, distCoeffVec, projected3D);
     if(inliers.size()==0) { //get inliers
         for(unsigned int i=0;i<projected3D.size();i++) {
-            if(norm(projected3D[i]-points_2[i]) < 10.0)
+            if(norm(projected3D[i]-imgPoints[i]) < 10.0)
                 inliers.push_back(i);
         }
     }
 
-    if(inliers.size() < (double)(points_2.size())/5.0) {
-        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<points_2.size()<<")"<< endl;
+    if(inliers.size() < (double)(imgPoints.size())/5.0) {
+        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
         return false;
     }
 
-    if(cv::norm(T_temp) > 2000.0) {
+    if(cv::norm(T) > 2000.0) {
         // this is bad...
         cerr << "estimated camera movement is too big, skip this camera\r\n";
         return false;
     }
 
-    cv::Rodrigues(rvec, R_temp);
-
-    if(!CheckCoherentRotation(R_temp)) {
+    cv::Rodrigues(rvec, R);
+    if(!CheckCoherentRotation(R)) {
         cerr << "rotation is incoherent. we should try a different base view..." << endl;
         return false;
     }
-
-    std::cout << "found t = " << T_temp << "\nR = \n"<< R_temp <<std::endl;
-
-    T = T_temp;
-    R = R_temp;
 
     return true;
 }
@@ -139,11 +135,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
     // make sure that there are all inliers in all frames.
     deleteZeroLines(inliersF1, inliersF2);
 
-    //visualisize
-    // convert grayscale to color image
-    cv::Mat color_image1;
-    cv::cvtColor(image1, color_image1, CV_GRAY2RGB);
-    drawCorresPoints(color_image1, inliersF1, inliersF2, "inliers F", CV_RGB(0,255,0));
+    drawCorresPoints(image1, inliersF1, inliersF2, "inliers F", CV_RGB(0,255,0));
     drawEpipolarLines(image1, inliersF1, F);
 
     // normalisize all Points

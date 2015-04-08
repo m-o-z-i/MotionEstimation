@@ -148,7 +148,11 @@ void drawEpipolarLines(cv::Mat frame1, const vector<cv::Point2f>& points1, cv::M
 }
 
 
-void drawCorresPoints(cv::Mat color_image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
+void drawCorresPoints(const cv::Mat& image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
+
+    // convert grayscale to color image
+    cv::Mat color_image;
+    cv::cvtColor(image, color_image, CV_GRAY2RGB);
 
     int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
     double fontScale = 0.3;

@@ -136,7 +136,7 @@ int main(){
 
         AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
 
-#if 0
+//#if 0
         // ######################## ESSENTIAL MAT ################################
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
@@ -202,9 +202,9 @@ int main(){
         currentPos_ES_L   = newPos_ES_L  ;
         currentPos_ES_R   = newPos_ES_R  ;
         // ##############################################################################
-#endif
+//#endif
 
-
+#if 0
         // ################################## PnP #######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
 
@@ -264,7 +264,7 @@ int main(){
         currentPos_PnP_L  = newPos_PnP_L ;
         currentPos_PnP_R  = newPos_PnP_R ;
         // ##############################################################################
-
+#endif
 
 #if 0
         // ################################# STEREO #####################################

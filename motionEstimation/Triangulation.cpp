@@ -152,23 +152,25 @@ void TriangulatePointsHZ(
 void TriangulatePointsWithInlier(
         const cv::Matx34f& P0,
         const cv::Matx34f& P1,
-        const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
-        const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& normPoints1, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& normPoints2, //normalized (inv(K)*x)
         int numberOfTriangulations,
         vector<cv::Point3f>& pointcloud,
+        const vector<cv::Point2f>& points1,
+        const vector<cv::Point2f>& points2,
         vector<cv::Point2f>& inlier1,
         vector<cv::Point2f>& inlier2
         )
 {
     // if parameter is 0 triangulate all points
     if (0 == numberOfTriangulations) {
-        numberOfTriangulations = points1.size();
+        numberOfTriangulations = normPoints1.size();
     }
     pointcloud.clear();
 
     vector<cv::Point3f> points1_h, points2_h;
-    cv::convertPointsToHomogeneous(points1, points1_h);
-    cv::convertPointsToHomogeneous(points2, points2_h);
+    cv::convertPointsToHomogeneous(normPoints1, points1_h);
+    cv::convertPointsToHomogeneous(normPoints2, points2_h);
 
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
         cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);

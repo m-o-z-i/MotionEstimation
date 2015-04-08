@@ -113,8 +113,8 @@ int main(){
 
         std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
         std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
-        TriangulatePointsWithInlier(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1, inlierTriang_L1, inlierTriang_R1);
-        TriangulatePointsWithInlier(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2, inlierTriang_L2, inlierTriang_R2);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
 
         deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_1, pointCloud_2);
 
@@ -226,7 +226,7 @@ int main(){
 
         // ################################# STEREO #####################################
         // for cv::waitKey input:
-        cv::namedWindow("CV::Waitkey");
+        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "triangulated inlier", cv::Scalar(255,0,0));
 
         cv::Mat T_Stereo, R_Stereo;
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);

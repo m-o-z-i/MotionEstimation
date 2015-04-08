@@ -35,12 +35,14 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1,
 
 void TriangulatePointsWithInlier(
         const cv::Matx34f& P0, const cv::Matx34f& P1,
-        const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
-        const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& normPoints1, //normalized (inv(K)*x)
+        const vector<cv::Point2f>& normPoints2, //normalized (inv(K)*x)
         int numberOfTriangulations,
         vector<cv::Point3f>& pointcloud,
-        vector<cv::Point2f>& inlier1, vector<cv::Point2f>& inlier2
-        );
+        const vector<cv::Point2f>& points1,
+        const vector<cv::Point2f>& points2,
+        vector<cv::Point2f>& inlier1,
+        vector<cv::Point2f>& inlier2);
 
 
 void computeReprojectionError(const cv::Mat& P,

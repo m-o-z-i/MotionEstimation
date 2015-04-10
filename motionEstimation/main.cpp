@@ -67,8 +67,10 @@ int main(){
 
     //load file names
     std::vector<string> filenames_left, filenames_right;
-    getFiles("data/stereoImages/round-small/left/", filenames_left);
-    getFiles("data/stereoImages/round-small/right/", filenames_right);
+    string imagePath_L = "data/stereoImages/round-small/left/";
+    string imagePath_R = "data/stereoImages/round-small/right/";
+    getFiles(imagePath_L, filenames_left);
+    getFiles(imagePath_R, filenames_right);
 
     initVisualisation();
 
@@ -77,12 +79,12 @@ int main(){
         cout << "FRAME" <<  frame << endl;
 
         //stereo1
-        cv::Mat image_L1 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame],0);
-        cv::Mat image_R1 = cv::imread("data/stereoImages/round-small/right/"+filenames_right[frame],0);
+        cv::Mat image_L1 = cv::imread(imagePath_L+filenames_left[frame],0);
+        cv::Mat image_R1 = cv::imread(imagePath_R+filenames_right[frame],0);
 
         //stereo2
-        cv::Mat image_L2 = cv::imread("data/stereoImages/round-small/left/"+filenames_left[frame+1],0);
-        cv::Mat image_R2 = cv::imread("data/stereoImages/round-small/right/"+filenames_right[frame+1],0);
+        cv::Mat image_L2 = cv::imread(imagePath_L+filenames_left[frame+1],0);
+        cv::Mat image_R2 = cv::imread(imagePath_R+filenames_right[frame+1],0);
 
         // Check for invalid input
         if(! image_L1.data || !image_R1.data || !image_R2.data || !image_L2.data) {
@@ -133,6 +135,10 @@ int main(){
             uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
             RGBValues.push_back(cv::Vec3b(grey,grey,grey));
         }
+
+        //rotatePointCloud(pointCloud_inlier_1);
+
+        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
 
         AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
 

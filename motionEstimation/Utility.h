@@ -13,5 +13,6 @@ void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R);
 void composeProjectionMat(const cv::Mat &T, const cv::Mat& R, cv::Mat& P);
 
 void rotatePointCloud(std::vector<cv::Point3f> &cloud);
+void rotatePointCloud(std::vector<cv::Point3f>& cloud, const cv::Mat P);
 
 #endif // UTILITY_H

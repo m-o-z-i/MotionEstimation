@@ -67,13 +67,27 @@ void composeProjectionMat(const cv::Mat& T, const cv::Mat& R, cv::Mat& P){
 }
 
 void rotatePointCloud(std::vector<cv::Point3f>& cloud){
-    cv::Mat R = (cv::Mat_<float>(3,3) <<
+    cv::Mat R = (cv::Mat_<double>(3,3) <<
                 -1, 0, 0,
                  0,-1, 0,
                  0, 0, 1);
     for (auto &i : cloud){
         cv::Mat point(i);
+        point.convertTo(point, R.type());
         cv::Mat newPoint = R * point;
+        i = cv::Point3f(newPoint);
+    }
+}
+
+void rotatePointCloud(std::vector<cv::Point3f>& cloud, const cv::Mat P){
+    cv::Mat R, T;
+    decomposeProjectionMat(P, T, R);
+
+    for (auto &i : cloud){
+        cv::Mat point(i);
+        point.convertTo(point, R.type());
+
+        cv::Mat newPoint = R * point + T;
         i = cv::Point3f(newPoint);
     }
 }

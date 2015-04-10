@@ -65,3 +65,15 @@ void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R){
 void composeProjectionMat(const cv::Mat& T, const cv::Mat& R, cv::Mat& P){
     cv::hconcat(R, T, P);
 }
+
+void rotatePointCloud(std::vector<cv::Point3f>& cloud){
+    cv::Mat R = (cv::Mat_<float>(3,3) <<
+                -1, 0, 0,
+                 0,-1, 0,
+                 0, 0, 1);
+    for (auto &i : cloud){
+        cv::Mat point(i);
+        cv::Mat newPoint = R * point;
+        i = cv::Point3f(newPoint);
+    }
+}

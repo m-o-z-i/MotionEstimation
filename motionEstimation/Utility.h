@@ -12,4 +12,6 @@ void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, c
 void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R);
 void composeProjectionMat(const cv::Mat &T, const cv::Mat& R, cv::Mat& P);
 
+void rotatePointCloud(std::vector<cv::Point3f> &cloud);
+
 #endif // UTILITY_H

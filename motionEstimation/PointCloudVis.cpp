@@ -112,13 +112,22 @@ void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,
     //SORFilter();
     pcl::copyPointCloud(*cloud,*orig_cloud);
 
-    point_clouds.push_back(std::make_pair(name, orig_cloud));
+    point_clouds.push_back(std::make_pair(name, cloud));
+}
+
+void AddLineToVisualizer(const std::vector<cv::Point3f>& pointCloud_1, const std::vector<cv::Point3f>& pointCloud_2, std::string name, const cv::Scalar &color){
+    for (unsigned int i = 0; i < pointCloud_1.size(); ++i){
+        pcl::PointXYZ point1(pointCloud_1[i].x, pointCloud_1[i].y, pointCloud_1[i].z);
+        pcl::PointXYZ point2(pointCloud_2[i].x, pointCloud_2[i].y, pointCloud_2[i].z);
+        viewer.addLine(point1, point2, color[0], color[1], color[2], name+std::to_string(i));
+    }
 }
 
 void RunVisualization() {
     // draw pointclouds
 
     for (auto p : point_clouds) {
+        std::cout << "test" << endl;
         viewer.addPointCloud(p.second, p.first);
     }
 

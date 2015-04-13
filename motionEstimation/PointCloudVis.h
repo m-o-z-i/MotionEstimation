@@ -43,6 +43,7 @@ void addCameraToVisualizer(const float R[9], const float t[3], float r, float g,
 void addCameraToVisualizer(const cv::Vec3f& T, const cv::Matx33f& R, float r, float g, float b, double s, const std::string& name);
 void addCameraToVisualizer(const cv::Mat &currentPos, const cv::Mat& T, const cv::Mat &R, float r, float g, float b, double s, const std::string& name);
 
+void AddLineToVisualizer(const std::vector<cv::Point3f>& pointCloud_1, const std::vector<cv::Point3f>& pointCloud_2, std::string name, const cv::Scalar &color);
 
 void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,std::string name,const std::vector<cv::Vec3b>& pointcloud_RGBColor);
 #endif // POINTCLOUDVIS_H

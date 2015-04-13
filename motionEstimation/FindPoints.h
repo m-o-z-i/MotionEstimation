@@ -9,6 +9,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 #include "Visualisation.h"
+#include "Utility.h"
 
 using namespace std;
 
@@ -28,6 +29,7 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
 
 void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2);
 
+void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2);
 
 
 

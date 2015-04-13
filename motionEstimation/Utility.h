@@ -15,4 +15,8 @@ void composeProjectionMat(const cv::Mat &T, const cv::Mat& R, cv::Mat& P);
 void rotatePointCloud(std::vector<cv::Point3f> &cloud);
 void rotatePointCloud(std::vector<cv::Point3f>& cloud, const cv::Mat P);
 
+void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Point2f>& ps);
+
+void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPoint>& kps);
+
 #endif // UTILITY_H

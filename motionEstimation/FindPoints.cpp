@@ -157,30 +157,30 @@ void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& p
     vector<cv::Point2f>::iterator iter_c3b = points2R.begin();
     for (unsigned int i = 0; i < size ; ++i ) {
         if (1 >= points1L[iter_c1a-points1L.begin()].x   &&
-            1 >= points1L[iter_c1a-points1L.begin()].y   ||
-            1 >= points1La[iter_c2a-points1La.begin()].x &&
-            1 >= points1La[iter_c2a-points1La.begin()].y ||
-            1 >= points2L[iter_c3a-points2L.begin()].x &&
-            1 >= points2L[iter_c3a-points2L.begin()].y ||
-            1 >= points1R[iter_c1b-points1R.begin()].x   &&
-            1 >= points1R[iter_c1b-points1R.begin()].y   ||
-            1 >= points1Ra[iter_c2b-points1Ra.begin()].x &&
-            1 >= points1Ra[iter_c2b-points1Ra.begin()].y ||
-            1 >= points2R[iter_c3b-points2R.begin()].x &&
-            1 >= points2R[iter_c3b-points2R.begin()].y ||
+                1 >= points1L[iter_c1a-points1L.begin()].y   ||
+                1 >= points1La[iter_c2a-points1La.begin()].x &&
+                1 >= points1La[iter_c2a-points1La.begin()].y ||
+                1 >= points2L[iter_c3a-points2L.begin()].x &&
+                1 >= points2L[iter_c3a-points2L.begin()].y ||
+                1 >= points1R[iter_c1b-points1R.begin()].x   &&
+                1 >= points1R[iter_c1b-points1R.begin()].y   ||
+                1 >= points1Ra[iter_c2b-points1Ra.begin()].x &&
+                1 >= points1Ra[iter_c2b-points1Ra.begin()].y ||
+                1 >= points2R[iter_c3b-points2R.begin()].x &&
+                1 >= points2R[iter_c3b-points2R.begin()].y ||
 
-            resX <= points1L[iter_c1a-points1L.begin()].x   &&
-            resY <= points1L[iter_c1a-points1L.begin()].y   ||
-            resX <= points1La[iter_c2a-points1La.begin()].x &&
-            resY <= points1La[iter_c2a-points1La.begin()].y ||
-            resX <= points2L[iter_c3a-points2L.begin()].x &&
-            resY <= points2L[iter_c3a-points2L.begin()].y ||
-            resX <= points1R[iter_c1b-points1R.begin()].x   &&
-            resY <= points1R[iter_c1b-points1R.begin()].y   ||
-            resX <= points1Ra[iter_c2b-points1Ra.begin()].x &&
-            resY <= points1Ra[iter_c2b-points1Ra.begin()].y ||
-            resX <= points2R[iter_c3b-points2R.begin()].x &&
-            resY <= points2R[iter_c3b-points2R.begin()].y )
+                resX <= points1L[iter_c1a-points1L.begin()].x   &&
+                resY <= points1L[iter_c1a-points1L.begin()].y   ||
+                resX <= points1La[iter_c2a-points1La.begin()].x &&
+                resY <= points1La[iter_c2a-points1La.begin()].y ||
+                resX <= points2L[iter_c3a-points2L.begin()].x &&
+                resY <= points2L[iter_c3a-points2L.begin()].y ||
+                resX <= points1R[iter_c1b-points1R.begin()].x   &&
+                resY <= points1R[iter_c1b-points1R.begin()].y   ||
+                resX <= points1Ra[iter_c2b-points1Ra.begin()].x &&
+                resY <= points1Ra[iter_c2b-points1Ra.begin()].y ||
+                resX <= points2R[iter_c3b-points2R.begin()].x &&
+                resY <= points2R[iter_c3b-points2R.begin()].y )
         {
             points1L.erase(iter_c1a);
             points1R.erase(iter_c1b);
@@ -206,7 +206,7 @@ void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2)
     vector<cv::Point2f>::iterator iter_p2 = points2.begin();
     for (unsigned int i = 0; i < size; ++i) {
         if ((0 == points1[iter_p1-points1.begin()].x && 0 == points1[iter_p1-points1.begin()].y) ||
-            (0 == points2[iter_p2-points2.begin()].x && 0 == points2[iter_p2-points2.begin()].y)){
+                (0 == points2[iter_p2-points2.begin()].x && 0 == points2[iter_p2-points2.begin()].y)){
             points1.erase(iter_p1);
             points2.erase(iter_p2);
         } else {
@@ -227,11 +227,11 @@ void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points
     vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
     for (unsigned int i = 0; i < size; ++i) {
         if ((0 == points1La[iter_p1La-points1La.begin()].x && 0 == points1La[iter_p1La-points1La.begin()].y) ||
-            (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
-            (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
-            (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
-            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
-            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
+                (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
+                (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
+                (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
+                (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+                (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
         {
             points1La.erase(iter_p1La);
             points1Lb.erase(iter_p1Lb);
@@ -259,9 +259,9 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
     vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
     for (unsigned int i = 0; i < size; ++i) {
         if ((0 == points1L[iter_p1L-points1L.begin()].x && 0 == points1L[iter_p1L-points1L.begin()].y) ||
-            (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
-            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
-            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
+                (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
+                (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+                (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
         {
             points1L.erase(iter_p1L);
             points1R.erase(iter_p1R);
@@ -289,11 +289,11 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
     vector<cv::Point3f>::iterator iter_cloud2  = cloud2.begin();
     for (unsigned int i = 0; i < size; ++i) {
         if ((0 == points1L[iter_p1L-points1L.begin()].x && 0 == points1L[iter_p1L-points1L.begin()].y) ||
-            (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
-            (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
-            (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y) ||
-            (0 == cloud1[iter_cloud1-cloud1.begin()].x  && 0 == cloud1[iter_cloud1-cloud1.begin()].y)  ||
-            (0 == cloud2[iter_cloud2-cloud2.begin()].x  && 0 == cloud2[iter_cloud2-cloud2.begin()].y))
+                (0 == points1R[iter_p1R-points1R.begin()].x && 0 == points1R[iter_p1R-points1R.begin()].y) ||
+                (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
+                (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y) ||
+                (0 == cloud1[iter_cloud1-cloud1.begin()].x  && 0 == cloud1[iter_cloud1-cloud1.begin()].y)  ||
+                (0 == cloud2[iter_cloud2-cloud2.begin()].x  && 0 == cloud2[iter_cloud2-cloud2.begin()].y))
         {
             points1L.erase(iter_p1L);
             points1R.erase(iter_p1R);
@@ -372,8 +372,8 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
     refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, points_L1a_temp, points_L2_temp);
     refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, points_R1a_temp, points_R2_temp);
 
-//    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
-//    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
+    //    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
+    //    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
 
 
     // delete in all frames points, that are not visible in each frames
@@ -386,5 +386,99 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
         points_L2.push_back(points_L2_temp[i]);
         points_R2.push_back(points_R2_temp[i]);
     }
+}
+
+void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2) {
+    vector<cv::DMatch> matches;
+
+    vector<cv::KeyPoint>left_keypoints,right_keypoints;
+
+    // Detect keypoints in the left and right images
+    cv::FastFeatureDetector ffd;
+    ffd.detect(frame_L1, left_keypoints);
+    ffd.detect(frame_R1, right_keypoints);
+
+    vector<cv::Point2f>left_points;
+    KeyPointsToPoints(left_keypoints,left_points);
+
+    vector<cv::Point2f>right_points(left_points.size());
+
+    // Calculate the optical flow field:
+    //  how each left_point moved across the 2 images
+    vector<uchar>vstatus; vector<float>verror;
+    cv::calcOpticalFlowPyrLK(frame_L1, frame_R1, left_points, right_points, vstatus, verror);
+
+    // First, filter out the points with high error
+    vector<cv::Point2f>right_points_to_find;
+    vector<int>right_points_to_find_back_index;
+    for (unsigned int i=0; i<vstatus.size(); i++) {
+        if (vstatus[i] &&verror[i] < 12.0) {
+            // Keep the original index of the point in the
+            // optical flow array, for future use
+            right_points_to_find_back_index.push_back(i);
+            // Keep the feature point itself
+            right_points_to_find.push_back(right_points[i]);
+        } else {
+            vstatus[i] = 0; // a bad flow
+        }
+    }
+
+    // for each right_point see which detected feature it belongs to
+    cv::Mat right_points_to_find_flat = cv::Mat(right_points_to_find).reshape(1,right_points_to_find.size()); //flatten array
+
+    vector<cv::Point2f>right_features; // detected features
+    KeyPointsToPoints(right_keypoints,right_features);
+
+    cv::Mat right_features_flat = cv::Mat(right_features).reshape(1,right_features.size());
+
+    //FlannBasedMatcher matcher;
+
+    // Look around each OF point in the right image
+    //  for any features that were detected in its area
+    //  and make a match.
+    cv::BFMatcher matcher(CV_L2);
+    vector<vector<cv::DMatch>>nearest_neighbors;
+    matcher.radiusMatch(
+                right_points_to_find_flat,
+                right_features_flat,
+                nearest_neighbors,
+                2.0f);
+
+    // Check that the found neighbors are unique (throw away neighbors
+    //  that are too close together, as they may be confusing)
+    std::set<int>found_in_right_points; // for duplicate prevention
+    for(int i=0;i<nearest_neighbors.size();i++) {
+        cv::DMatch _m;
+        if(nearest_neighbors[i].size()==1) {
+            _m = nearest_neighbors[i][0]; // only one neighbor
+        } else if(nearest_neighbors[i].size()>1) {
+            // 2 neighbors – check how close they are
+            double ratio = nearest_neighbors[i][0].distance / nearest_neighbors[i][1].distance;
+            if(ratio < 0.7) { // not too close
+                // take the closest (first) one
+                _m = nearest_neighbors[i][0];
+            } else { // too close – we cannot tell which is better
+                continue; // did not pass ratio test – throw away
+            }
+        } else {
+            continue; // no neighbors... :(
+        }
+
+        // prevent duplicates
+        if (found_in_right_points.find(_m.trainIdx) == found_in_right_points.end()) {
+            // The found neighbor was not yet used:
+            // We should match it with the original indexing
+            // ofthe left point
+            _m.queryIdx = right_points_to_find_back_index[_m.queryIdx];
+            matches.push_back(_m); // add this match
+            found_in_right_points.insert(_m.trainIdx);
+        }
+    }
+    cout<<"pruned "<< matches.size() <<" / "<<nearest_neighbors.size() <<" matches"<<endl;
+
+    cv::Mat img_out;
+    cv::drawMatches(frame_L1, left_keypoints, frame_R1, right_keypoints, matches, img_out);
+    cv::imshow("test fast matches", img_out);
+    cv::waitKey();
 }
 

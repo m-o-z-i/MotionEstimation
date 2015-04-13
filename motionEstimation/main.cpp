@@ -97,6 +97,8 @@ int main(){
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
+        fastFeatureMatcher(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
+
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
         normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);

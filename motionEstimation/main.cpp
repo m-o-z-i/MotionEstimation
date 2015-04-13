@@ -79,12 +79,12 @@ int main(){
         cout << "FRAME" <<  frame << endl;
 
         //stereo1
-        cv::Mat image_L1 = cv::imread(imagePath_L+filenames_left[frame],0);
-        cv::Mat image_R1 = cv::imread(imagePath_R+filenames_right[frame],0);
+        cv::Mat image_L1 = cv::imread(imagePath_L + filenames_left[frame],0);
+        cv::Mat image_R1 = cv::imread(imagePath_R + filenames_right[frame],0);
 
         //stereo2
-        cv::Mat image_L2 = cv::imread(imagePath_L+filenames_left[frame+1],0);
-        cv::Mat image_R2 = cv::imread(imagePath_R+filenames_right[frame+1],0);
+        cv::Mat image_L2 = cv::imread(imagePath_L + filenames_left[frame+1],0);
+        cv::Mat image_R2 = cv::imread(imagePath_R + filenames_right[frame+1],0);
 
         // Check for invalid input
         if(! image_L1.data || !image_R1.data || !image_R2.data || !image_L2.data) {
@@ -95,7 +95,7 @@ int main(){
 
         // find Points ...
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
-        findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, &points_L1, &points_R1, &points_L2, &points_R2);
+        findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
@@ -108,8 +108,8 @@ int main(){
         // triangulate both stereo setups..
         // find inliers from median value
         std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
-        getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &horizontal_L1, &horizontal_R1);
-        getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), &horizontal_L2, &horizontal_R2);
+        getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), horizontal_L1, horizontal_R1);
+        getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), horizontal_L2, horizontal_R2);
         deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
 
         if(0 == horizontal_L1.size()) {
@@ -136,13 +136,17 @@ int main(){
             RGBValues.push_back(cv::Vec3b(grey,grey,grey));
         }
 
-        //rotatePointCloud(pointCloud_inlier_1);
+        rotatePointCloud(pointCloud_inlier_1);
+        rotatePointCloud(pointCloud_inlier_2);
+
+        rotatePointCloud(pointCloud_inlier_1, currentPos_Stereo);
+        rotatePointCloud(pointCloud_inlier_2, currentPos_Stereo);
 
         drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
 
-        AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
+        //AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
 
-//#if 0
+#if 0
         // ######################## ESSENTIAL MAT ################################
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
@@ -183,7 +187,7 @@ int main(){
 
         //LEFT:
         cv::Mat newPos_ES_L;
-        getNewPos (currentPos_ES_L, T_E_L, R_E_L, newPos_ES_L);
+        getNewPos (currentPos_ES_L, T_E_L2, R_E_L, newPos_ES_L);
         std::stringstream left_ES;
         left_ES << "camera_ES_left" << frame;
 
@@ -196,7 +200,7 @@ int main(){
 
         //RIGHT:
         cv::Mat newPos_ES_R;
-        getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
+        getNewPos (currentPos_ES_R, T_E_R2, R_E_R, newPos_ES_R);
         std::stringstream right_ES;
         right_ES << "camera_ES_right" << frame;
 
@@ -208,9 +212,9 @@ int main(){
         currentPos_ES_L   = newPos_ES_L  ;
         currentPos_ES_R   = newPos_ES_R  ;
         // ##############################################################################
-//#endif
+#endif
 
-#if 0
+#if 1
         // ################################## PnP #######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
 

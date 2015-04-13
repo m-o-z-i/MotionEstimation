@@ -9,7 +9,7 @@ bool TestTriangulation (const cv::Mat& image_L1,
 {
     // find inliers from median value
     std::vector<cv::Point2f> inliers_L1, inliers_R1;
-    getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), &inliers_L1, &inliers_R1);
+    getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliers_L1, inliers_R1);
     deleteZeroLines(inliers_L1, inliers_R1);
 
     if (3 >= points_L1.size()) {

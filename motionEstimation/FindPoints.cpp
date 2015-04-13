@@ -28,7 +28,7 @@ vector<cv::Point2f> getStrongFeaturePoints(const cv::Mat& image, int number, flo
     return image_features;
 }
 
-void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features, vector<cv::Point2f> *points1, vector<cv::Point2f> *points2){
+void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, vector<cv::Point2f> frame1_features, vector<cv::Point2f> &points1, vector<cv::Point2f> &points2){
     /* Pyramidal Lucas Kanade Optical Flow! */
 
     /* This array will contain the locations of the points from frame 1 in frame 2. */
@@ -90,12 +90,12 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
         ++iter_f1;
         ++iter_f2;
 
-        points1->push_back(frame1_features[i]);
-        points2->push_back(frame2_features[i]);
+        points1.push_back(frame1_features[i]);
+        points2.push_back(frame2_features[i]);
     }
 }
 
-void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
+void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f> &inliers1, vector<cv::Point2f> &inliers2){
     vector<double> directions;
     vector<double> lengths;
 
@@ -119,26 +119,26 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
         double direction = atan2( (double) (features.first[j].y - features.second[j].y) , (double) (features.first[j].x - features.second[j].x) );
         double length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
         if (direction < median_direction + 0.05 && direction > median_direction - 0.05 && length < (median_lenght * 2) && length > (median_lenght * 0.5) ) {
-            inliers1->push_back(features.first[j]);
-            inliers2->push_back(features.second[j]);
+            inliers1.push_back(features.first[j]);
+            inliers2.push_back(features.second[j]);
         } else {
-            inliers1->push_back(cv::Point2f(0,0));
-            inliers2->push_back(cv::Point2f(0,0));
+            inliers1.push_back(cv::Point2f(0,0));
+            inliers2.push_back(cv::Point2f(0,0));
         }
     }
 }
 
-void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f>* inliers1, vector<cv::Point2f>* inliers2){
+void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f> &inliers1, vector<cv::Point2f> &inliers2){
     for(unsigned int j = 0; j < features.first.size(); ++j)
     {
         float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
 
         if (fabs(direction) < 0.4) {
-            inliers1->push_back(features.first[j]);
-            inliers2->push_back(features.second[j]);
+            inliers1.push_back(features.first[j]);
+            inliers2.push_back(features.second[j]);
         } else {
-            inliers1->push_back(cv::Point2f(0,0));
-            inliers2->push_back(cv::Point2f(0,0));
+            inliers1.push_back(cv::Point2f(0,0));
+            inliers2.push_back(cv::Point2f(0,0));
         }
     }
 }
@@ -359,7 +359,7 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
 }
 
 
-void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> *points_L1, vector<cv::Point2f> *points_R1, vector<cv::Point2f> *points_L2, vector<cv::Point2f> *points_R2){
+void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f> &points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2){
     // find corresponding points
     vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
     vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 500,0.001,5);
@@ -368,9 +368,9 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
         return;
     }
 
-    refindFeaturePoints(frame_L1, frame_R1, features, &points_L1_temp, &points_R1_temp);
-    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, &points_L1a_temp, &points_L2_temp);
-    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, &points_R1a_temp, &points_R2_temp);
+    refindFeaturePoints(frame_L1, frame_R1, features, points_L1_temp, points_R1_temp);
+    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, points_L1a_temp, points_L2_temp);
+    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, points_R1a_temp, points_R2_temp);
 
 //    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
 //    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
@@ -381,10 +381,10 @@ void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_
 
 
     for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
-        points_L1->push_back(points_L1_temp[i]);
-        points_R1->push_back(points_R1_temp[i]);
-        points_L2->push_back(points_L2_temp[i]);
-        points_R2->push_back(points_R2_temp[i]);
+        points_L1.push_back(points_L1_temp[i]);
+        points_R1.push_back(points_R1_temp[i]);
+        points_L2.push_back(points_L2_temp[i]);
+        points_R2.push_back(points_R2_temp[i]);
     }
 }
 

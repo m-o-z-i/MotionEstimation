@@ -136,7 +136,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
     deleteZeroLines(inliersF1, inliersF2);
 
     drawCorresPoints(image1, inliersF1, inliersF2, "inliers F", CV_RGB(0,255,0));
-    drawEpipolarLines(image1, inliersF1, F);
+    //drawEpipolarLines(image1, inliersF1, F);
 
     // normalisize all Points
     std::vector<cv::Point2f> normPoints1, normPoints2;
@@ -184,7 +184,6 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
 
     //estimate rotation
     //1. translate 3d points by theire mean vectors to origin
-
     cv::Point3f Xmean_1, Xmean_2;
     for (unsigned int i = 0; i < numberPts; ++i){
         Xmean_1 += pointCloud_1[i];

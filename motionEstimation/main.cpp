@@ -21,15 +21,21 @@
 //
 
 int main(){
-
     int frame=1;
+
+    //load file names
+    std::vector<string> filenames_left, filenames_right;
+    string dataPath = "data/moritz/";
+    getFiles(dataPath + "left/", filenames_left);
+    getFiles(dataPath + "right/", filenames_right);
+
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
-    loadIntrinsic(K_L, K_R, distCoeff_L, distCoeff_R);
+    loadIntrinsic(dataPath, K_L, K_R, distCoeff_L, distCoeff_R);
 
     // get extrinsic test parameter
     cv::Mat E_LR, F_LR, R_LR, T_LR;
-    loadExtrinsic(R_LR, T_LR, E_LR, F_LR);
+    loadExtrinsic(dataPath, R_LR, T_LR, E_LR, F_LR);
 
     // calculate inverse K
     cv::Mat KInv_L, KInv_R;
@@ -65,12 +71,6 @@ int main(){
     // currentPosition TRIANGULATION
     cv::Mat currentPos_Stereo = cv::Mat::eye(4, 4, CV_64F);
 
-    //load file names
-    std::vector<string> filenames_left, filenames_right;
-    string imagePath_L = "data/stereoImages/round-small/left/";
-    string imagePath_R = "data/stereoImages/round-small/right/";
-    getFiles(imagePath_L, filenames_left);
-    getFiles(imagePath_R, filenames_right);
 
     initVisualisation();
 
@@ -79,12 +79,12 @@ int main(){
         cout << "FRAME" <<  frame << endl;
 
         //stereo1
-        cv::Mat image_L1 = cv::imread(imagePath_L + filenames_left[frame],0);
-        cv::Mat image_R1 = cv::imread(imagePath_R + filenames_right[frame],0);
+        cv::Mat image_L1 = cv::imread(dataPath + "left/" + filenames_left[frame],0);
+        cv::Mat image_R1 = cv::imread(dataPath + "right/"+ filenames_right[frame],0);
 
         //stereo2
-        cv::Mat image_L2 = cv::imread(imagePath_L + filenames_left[frame+1],0);
-        cv::Mat image_R2 = cv::imread(imagePath_R + filenames_right[frame+1],0);
+        cv::Mat image_L2 = cv::imread(dataPath + "left/" + filenames_left[frame+1],0);
+        cv::Mat image_R2 = cv::imread(dataPath + "right/"+ filenames_right[frame+1],0);
 
         // Check for invalid input
         if(! image_L1.data || !image_R1.data || !image_R2.data || !image_L2.data) {
@@ -97,7 +97,7 @@ int main(){
         std::vector<cv::Point2f> points_L1, points_R1, points_L2, points_R2;
         findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
-        fastFeatureMatcher(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
+        //fastFeatureMatcher(image_L1, image_L2, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
@@ -135,7 +135,12 @@ int main(){
         std::vector<cv::Vec3b> RGBValues;
         for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
             uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
-            RGBValues.push_back(cv::Vec3b(grey,grey,grey));
+            RGBValues.push_back(cv::Vec3b(0,255,0));
+        }
+
+        std::vector<cv::Vec3b> RGBValues2;
+        for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
+            RGBValues2.push_back(cv::Vec3b(255,0,0));
         }
 
         rotatePointCloud(pointCloud_inlier_1);
@@ -146,7 +151,27 @@ int main(){
 
         drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
 
-        //AddPointcloudToVisualizer(pointCloud_inlier_1, std::to_string(frame), RGBValues);
+        int index = 0;
+        for (auto i : pointCloud_inlier_1) {
+            double length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+            cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
+            ++index;
+        }
+        std::vector<cv::Point3f> pcloud_CV;
+        TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
+
+        index = 0;
+        for (auto i : pcloud_CV) {
+            double length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+            cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
+            ++index;
+        }
+
+        AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
+        AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
+
+        //AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
+
 
 #if 0
         // ######################## ESSENTIAL MAT ################################
@@ -211,12 +236,12 @@ int main(){
         std::cout << "T_ES_right: " << translation_ES_R << std::endl;
         addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
 
-        currentPos_ES_L   = newPos_ES_L  ;
-        currentPos_ES_R   = newPos_ES_R  ;
+        currentPos_ES_L = newPos_ES_L;
+        currentPos_ES_R = newPos_ES_R;
         // ##############################################################################
 #endif
 
-#if 1
+#if 0
         // ################################## PnP #######################################
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
 

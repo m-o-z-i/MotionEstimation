@@ -4,8 +4,8 @@
 
 bool getRightProjectionMat( cv::Mat& E,
                             cv::Mat& P1,
-                            const vector<cv::Point2f>& normPoints2D_L,
-                            const vector<cv::Point2f>& normPoints2D_R,
+                            const vector<cv::Point2f>& normPoints2D_1,
+                            const vector<cv::Point2f>& normPoints2D_2,
                             std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
@@ -31,7 +31,7 @@ bool getRightProjectionMat( cv::Mat& E,
         // validation of E
         bool ValidationOfE = DecomposeEtoRandT(E,R1,R2,t1,t2);     // extract cameras [R|t]
         if (!ValidationOfE) return false;
-        if(determinant(R1)+1.0 < 1e-05) {
+        if(determinant(R1)+1.0 < 1e-05 || determinant(R2)+1.0 < 1e-05) {
             //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
             cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
             E = -E;
@@ -72,10 +72,10 @@ bool getRightProjectionMat( cv::Mat& E,
                 composeProjectionMat(T, R, P1);
 
                 //triangulate from Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ( P0, P1, normPoints2D_L, normPoints2D_R, 20, pcloud1);
+                TriangulatePointsHZ( P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud1);
 
-                double reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_L, pcloud1);
-                double reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_R, pcloud1);
+                double reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud1);
+                double reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud1);
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
                 if (positionCheck(P0, pcloud1) && positionCheck(P1, pcloud1)) {
@@ -160,9 +160,9 @@ bool DecomposeEtoRandT(const cv::Mat& E,
 
     //Using HZ E decomposition
     cv::SVD svd(E, cv::SVD::MODIFY_A);
-    cv::Mat svd_u = svd.u;
-    cv::Mat svd_vt = svd.vt;
-    cv::Mat svd_w = svd.w;
+    cv::Mat svd_u = svd.u;  // U
+    cv::Mat svd_w = svd.w; // D
+    cv::Mat svd_vt = svd.vt; // V transpose
 
     //check if first and second singular values are the same (as they should be)
     double singular_values_ratio = fabsf(svd_w.at<double>(0) / svd_w.at<double>(1));
@@ -260,9 +260,9 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
 
 
 //-----------------------------------------------------------------------------
-void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& distCoeff_R) {
+void loadIntrinsic(string path, cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& distCoeff_R) {
     //-----------------------------------------------------------------------------
-    cv::FileStorage fs("data/calibration/final/intrinsic.yml", cv::FileStorage::READ);
+    cv::FileStorage fs(path + "calibration/intrinsic.yml", cv::FileStorage::READ);
     fs["cameraMatrixLeft"] >> K_L;
     fs["cameraMatrixRight"] >> K_R;
     fs["distCoeffsLeft"] >> distCoeff_L;
@@ -271,9 +271,9 @@ void loadIntrinsic(cv::Mat& K_L, cv::Mat& K_R, cv::Mat& distCoeff_L, cv::Mat& di
 }
 
 //-----------------------------------------------------------------------------
-void loadExtrinsic(cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
+void loadExtrinsic(string path, cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F ) {
     //-----------------------------------------------------------------------------
-    cv::FileStorage fs("data/calibration/final/extrinsic.yml", cv::FileStorage::READ);
+    cv::FileStorage fs(path + "calibration/extrinsic.yml", cv::FileStorage::READ);
     fs["R"] >> R;
     fs["T"] >> T;
     fs["E"] >> E;

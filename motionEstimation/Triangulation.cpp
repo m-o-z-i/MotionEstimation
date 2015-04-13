@@ -8,31 +8,37 @@ void TriangulateOpenCV(const cv::Mat& P_L,
                        const vector<cv::Point2f>& inliersF2,
                        std::vector<cv::Point3f>& outCloud)
 {
+    int size = inliersF1.size();
+
     cv::Mat PK_L = K_L * P_L;
     cv::Mat PK_R = K_R * P_R;
 
-
-    //triangulate Points:
+    cv::Mat points3D_h(1,size, CV_64FC4);
     cv::Mat points1 = cv::Mat(inliersF1);
     cv::Mat points2 = cv::Mat(inliersF2);
 
-    cv::Mat points3D_h = cv::Mat::zeros(1,inliersF1.size(), CV_32FC4);
+    cv::Mat points1_r = points1.reshape(1,2);
+    cv::Mat points2_r = points2.reshape(1,2);
 
-    for (auto i : inliersF1){
-        cout << i << endl;
-    }
-    cout << "2d \n" << points1 << endl;
-    cout << "3d \n" << points3D_h << endl;
 
-    cv::triangulatePoints(PK_L, PK_R, points1, points2, points3D_h);
-    cout << "3d triangulated \n" << points3D_h << endl;
+    points1_r.convertTo(points1_r, CV_64FC2);
+    points2_r.convertTo(points2_r, CV_64FC2);
 
-    // get cartesian coordinates
-    vector<cv::Point3f> points3D;
-    cv::convertPointsFromHomogeneous(points3D_h.reshape(4,1), points3D);
+    //triangulate Points:
+    cv::triangulatePoints(PK_L, PK_R, points1_r, points2_r, points3D_h);
 
-    for (unsigned int i=0; i<points3D.size(); i++) {
-        outCloud.push_back(points3D[i]);
+    cout << "3d triangulated h \n\n" << points3D_h << endl;
+
+    for (unsigned int i=0; i < size; i++) {
+        // get cartesian coordinates
+        double w = points3D_h.at<double>(3,i);
+        double x = points3D_h.at<double>(0,i)/w;
+        double y = points3D_h.at<double>(1,i)/w;
+        double z = points3D_h.at<double>(2,i)/w;
+
+        cv::Point3f p(x,y,z);
+        cout << p << endl;
+        outCloud.push_back(p);
     }
 }
 
@@ -103,19 +109,19 @@ cv::Mat_<double> LinearLSTriangulation(
     //assume X = (x,y,z,1), for Linear-LS method
     //which turns it into a AX = B system, where A is 4x3, X is 3x1 and B is 4x1
     cv::Matx43d A(
-        u.x*P(2,0)-P(0,0),    u.x*P(2,1)-P(0,1),      u.x*P(2,2)-P(0,2),
-        u.y*P(2,0)-P(1,0),    u.y*P(2,1)-P(1,1),      u.y*P(2,2)-P(1,2),
-        u1.x*P1(2,0)-P1(0,0), u1.x*P1(2,1)-P1(0,1),   u1.x*P1(2,2)-P1(0,2),
-        u1.y*P1(2,0)-P1(1,0), u1.y*P1(2,1)-P1(1,1),   u1.y*P1(2,2)-P1(1,2)
-    );
+                u.x*P(2,0)-P(0,0),    u.x*P(2,1)-P(0,1),      u.x*P(2,2)-P(0,2),
+                u.y*P(2,0)-P(1,0),    u.y*P(2,1)-P(1,1),      u.y*P(2,2)-P(1,2),
+                u1.x*P1(2,0)-P1(0,0), u1.x*P1(2,1)-P1(0,1),   u1.x*P1(2,2)-P1(0,2),
+                u1.y*P1(2,0)-P1(1,0), u1.y*P1(2,1)-P1(1,1),   u1.y*P1(2,2)-P1(1,2)
+                );
 
     //build B vector
     cv::Mat_<double> B = (cv::Mat_<double>(4,1) <<
-                  -(u.x*P(2,3)      -P(0,3)),
-                  -(u.y*P(2,3)      -P(1,3)),
-                  -(u1.x*P1(2,3)    -P1(0,3)),
-                  -(u1.y*P1(2,3)    -P1(1,3))
-    );
+                          -(u.x*P(2,3)      -P(0,3)),
+                          -(u.y*P(2,3)      -P(1,3)),
+                          -(u1.x*P1(2,3)    -P1(0,3)),
+                          -(u1.y*P1(2,3)    -P1(1,3))
+                          );
 
     //solve for X
     cv::Mat_<double> X;
@@ -137,13 +143,16 @@ void TriangulatePointsHZ(
     if (0 == numberOfTriangulations) {
         numberOfTriangulations = points1.size();
     }
+
+    int interval = (points1.size() / numberOfTriangulations);
+
     pointcloud.clear();
 
     vector<cv::Point3f> points1_h, points2_h;
     cv::convertPointsToHomogeneous(points1, points1_h);
     cv::convertPointsToHomogeneous(points2, points2_h);
 
-    for (unsigned int i=0; i < numberOfTriangulations; ++i ){
+    for (unsigned int i=0; i < numberOfTriangulations; i += interval ){
         cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
     }
@@ -316,9 +325,9 @@ double calculateReprojectionErrorHZ(const cv::Mat& P,
                                     const std::vector<cv::Point3f>& points3D)
 {
     vector<double> reproj_error;
-//    cv::Mat P_(P);
-//    P_.convertTo(P_, CV_64F);
-//    cv::Mat_<double> KP = K * P_;
+    //    cv::Mat P_(P);
+    //    P_.convertTo(P_, CV_64F);
+    //    cv::Mat_<double> KP = K * P_;
 
     for (unsigned int i=0; i < points3D.size(); i++) {
         // convert to homogenious 3D point

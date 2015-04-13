@@ -300,9 +300,9 @@ void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, 
 }
 
 void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  double& u, double& v) {
-    cv::Mat A(3, 2, CV_32F);
-    cv::Mat B(3, 1, CV_32F);
-    cv::Mat x(2, 1, CV_32F);
+    cv::Mat A(3, 2, CV_64F);
+    cv::Mat B(3, 1, CV_64F);
+    cv::Mat x(2, 1, CV_64F);
 
     cv::hconcat(T_L, -(R_LR*T_R), A);
     B = T_LR -(R_L*T_LR);

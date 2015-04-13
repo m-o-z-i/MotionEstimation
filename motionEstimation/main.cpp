@@ -311,8 +311,8 @@ int main(){
         cv::Mat T_Stereo, R_Stereo;
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
         if (!poseEstimationFoundStereo){
-            T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
-            R_Stereo = cv::Mat::eye(3, 3, CV_32F);
+            T_Stereo = cv::Mat::zeros(3, 1, CV_64F);
+            R_Stereo = cv::Mat::eye(3, 3, CV_64F);
         }
 
         //STEREO:

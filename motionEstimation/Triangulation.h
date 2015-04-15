@@ -13,8 +13,8 @@ using namespace std;
 #define EPSILON 0.0001
 
 
-cv::Mat_<double> LinearLSTriangulation(cv::Point3d u,cv::Matx34d P,
-                                       cv::Point3d u1, cv::Matx34d P1);
+cv::Mat_<float> LinearLSTriangulation(cv::Point3f u,cv::Matx34f P,
+                                       cv::Point3f u1, cv::Matx34f P1);
 
 void TriangulatePointsHZ(const cv::Matx34f& P0, const cv::Matx34f& P1,
                          const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2,
@@ -26,8 +26,8 @@ void TriangulateOpenCV(const cv::Mat& P_L, const cv::Mat& P_R,
                        const vector<cv::Point2f>& inliersF1, const vector<cv::Point2f>& inliersF2,
                        std::vector<cv::Point3f>& outCloud);
 
-cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h, cv::Matx34d P0,
-                                                cv::Point3d point2d2_h, cv::Matx34d P1);
+cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h, cv::Matx34f P0,
+                                                cv::Point3f point2d2_h, cv::Matx34f P1);
 
 void triangulate(const cv::Mat& P0, const cv::Mat& P1,
                  const vector<cv::Point2f>& x0, const vector<cv::Point2f>& x1,
@@ -52,12 +52,12 @@ void computeReprojectionError(const cv::Mat& P,
                               vector<cv::Point2f>& reprojectionErrors,
                               cv::Point2f& avgReprojectionError);
 
-double calculateReprojectionErrorOpenCV(const cv::Mat& P,
+float calculateReprojectionErrorOpenCV(const cv::Mat& P,
                                         const cv::Mat& K, const cv::Mat distCoeff,
                                         const vector<cv::Point2f>& points2D,
                                         const std::vector<cv::Point3f>& points3D);
 
-double calculateReprojectionErrorHZ(const cv::Mat& P,
+float calculateReprojectionErrorHZ(const cv::Mat& P,
                                     const vector<cv::Point2f> &NormPoints2D,
                                     const std::vector<cv::Point3f>& points3D);
 

@@ -1,6 +1,6 @@
 #include "FindPoints.h"
 
-inline static double square(int a)
+inline static float square(int a)
 {
     return a * a;
 }
@@ -96,28 +96,28 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
 }
 
 void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f> &inliers1, vector<cv::Point2f> &inliers2){
-    vector<double> directions;
-    vector<double> lengths;
+    vector<float> directions;
+    vector<float> lengths;
 
     for (unsigned int i = 0; i < features.first.size(); ++i){
-        double direction = atan2( (double) (features.first[i].y - features.second[i].y) , (double) (features.first[i].x - features.second[i].x) );
+        float direction = atan2( (float) (features.first[i].y - features.second[i].y) , (float) (features.first[i].x - features.second[i].x) );
         directions.push_back(direction);
 
-        double length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
+        float length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
         lengths.push_back(length);
     }
 
     sort(directions.begin(), directions.end());
-    double median_direction = directions[(int)(directions.size()/2)];
+    float median_direction = directions[(int)(directions.size()/2)];
 
     sort(lengths.begin(),lengths.end());
-    double median_lenght = lengths[(int)(lengths.size()/2)];
+    float median_lenght = lengths[(int)(lengths.size()/2)];
 
 
     for(unsigned int j = 0; j < features.first.size(); ++j)
     {
-        double direction = atan2( (double) (features.first[j].y - features.second[j].y) , (double) (features.first[j].x - features.second[j].x) );
-        double length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
+        float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
+        float length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
         if (direction < median_direction + 0.05 && direction > median_direction - 0.05 && length < (median_lenght * 2) && length > (median_lenght * 0.5) ) {
             inliers1.push_back(features.first[j]);
             inliers2.push_back(features.second[j]);
@@ -319,14 +319,14 @@ void normalizePoints(const cv::Mat& KInv, const vector<cv::Point2f>& points1, co
     cv::convertPointsToHomogeneous(points1, points1_h);
     cv::convertPointsToHomogeneous(points2, points2_h);
 
-    KInv.convertTo(KInv, CV_64F);
+    KInv.convertTo(KInv, CV_32F);
 
     for(unsigned int i = 0; i < points1.size(); ++i){
         cv::Mat matPoint1_h(points1_h[i]);
-        matPoint1_h.convertTo(matPoint1_h, CV_64F);
+        matPoint1_h.convertTo(matPoint1_h, CV_32F);
 
         cv::Mat matPoint2_h(points2_h[i]);
-        matPoint2_h.convertTo(matPoint2_h, CV_64F);
+        matPoint2_h.convertTo(matPoint2_h, CV_32F);
 
         points1_h[i] = cv::Point3f(cv::Mat(KInv * matPoint1_h));
         points2_h[i] = cv::Point3f(cv::Mat(KInv * matPoint2_h));
@@ -341,15 +341,9 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
     cv::convertPointsToHomogeneous(points_L, points_Lh);
     cv::convertPointsToHomogeneous(points_R, points_Rh);
 
-    KLInv.convertTo(KLInv, CV_64F);
-    KRInv.convertTo(KRInv, CV_64F);
-
     for(unsigned int i = 0; i < points_L.size(); ++i){
         cv::Mat matPoint_Lh(points_Lh[i]);
-        matPoint_Lh.convertTo(matPoint_Lh, CV_64F);
-
         cv::Mat matPoint_Rh(points_Rh[i]);
-        matPoint_Rh.convertTo(matPoint_Rh, CV_64F);
 
         points_Lh[i] = cv::Point3f(cv::Mat(KLInv * matPoint_Lh));
         points_Rh[i] = cv::Point3f(cv::Mat(KRInv * matPoint_Rh));
@@ -455,7 +449,7 @@ void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const 
             _m = nearest_neighbors[i][0]; // only one neighbor
         } else if(nearest_neighbors[i].size()>1) {
             // 2 neighbors – check how close they are
-            double ratio = nearest_neighbors[i][0].distance / nearest_neighbors[i][1].distance;
+            float ratio = nearest_neighbors[i][0].distance / nearest_neighbors[i][1].distance;
             if(ratio < 0.7) { // not too close
                 // take the closest (first) one
                 _m = nearest_neighbors[i][0];

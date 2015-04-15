@@ -19,6 +19,6 @@ void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Poi
 
 void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPoint>& kps);
 
-void decomposeRotMat(const cv::Mat& R, double& x, double& y, double& z);
+void decomposeRotMat(const cv::Mat& R, float& x, float& y, float& z);
 
 #endif // UTILITY_H

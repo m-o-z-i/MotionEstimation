@@ -10,7 +10,7 @@ bool getRightProjectionMat( cv::Mat& E,
 {
     // no rotation or translation for the left projection matrix
     //projection matrix of first camera P0 = K[I|0]
-    cv::Mat P0 = (cv::Mat_<double>(3,4) <<
+    cv::Mat P0 = (cv::Mat_<float>(3,4) <<
                   1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0 );
@@ -21,10 +21,10 @@ bool getRightProjectionMat( cv::Mat& E,
         return false;
     }
 
-    cv::Mat_<double> R1(3,3);
-    cv::Mat_<double> R2(3,3);
-    cv::Mat_<double> t1(1,3);
-    cv::Mat_<double> t2(1,3);
+    cv::Mat_<float> R1(3,3);
+    cv::Mat_<float> R2(3,3);
+    cv::Mat_<float> t1(1,3);
+    cv::Mat_<float> t2(1,3);
 
     //decompose E to P1 , HZ (9.19)
     {
@@ -42,8 +42,8 @@ bool getRightProjectionMat( cv::Mat& E,
             return false;
         }
 
-        std::vector<cv::Mat_<double>> Rotations{R1,R2};
-        std::vector<cv::Mat_<double>> Translations{t1,t2};
+        std::vector<cv::Mat_<float>> Rotations{R1,R2};
+        std::vector<cv::Mat_<float>> Translations{t1,t2};
 
         int counter = 0;
         std::vector<cv::Point3f> pcloud, pcloud1, worldCoordinates;
@@ -56,7 +56,7 @@ bool getRightProjectionMat( cv::Mat& E,
                 break;
             }
 
-            cv::Mat_<double> R = Rotations[i];
+            cv::Mat_<float> R = Rotations[i];
             if (!CheckCoherentRotation(R)) {
                 cout << "resulting rotation R is not coherent\n";
                 counter += 2;
@@ -65,7 +65,7 @@ bool getRightProjectionMat( cv::Mat& E,
 
             for (unsigned int j = 0; j < 2; ++j) {
                 pcloud.clear(); pcloud1.clear(); worldCoordinates.clear();
-                cv::Mat_<double> T = Translations[j];
+                cv::Mat_<float> T = Translations[j];
                 //cout << "\n************ Testing P"<< i<<j<< " **************" << endl;
 
                 //projection matrix of second camera: P1  = K[R|t]
@@ -74,8 +74,8 @@ bool getRightProjectionMat( cv::Mat& E,
                 //triangulate from Richard Hartley and Andrew Zisserman
                 TriangulatePointsHZ( P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud1);
 
-                double reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud1);
-                double reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud1);
+                float reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud1);
+                float reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud1);
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
                 if (positionCheck(P0, pcloud1) && positionCheck(P1, pcloud1)) {
@@ -116,7 +116,7 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
     }
     int count = cv::countNonZero(status);
 
-    double percentage = ((double)count / (double)points3D.size());
+    float percentage = ((float)count / (float)points3D.size());
     std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
         //less than 55% of the points are in front of the camera
@@ -126,10 +126,10 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
 }
 
 bool DecomposeEtoRandT(const cv::Mat& E,
-                       cv::Mat_<double>& R1,
-                       cv::Mat_<double>& R2,
-                       cv::Mat_<double>& t1,
-                       cv::Mat_<double>& t2)
+                       cv::Mat_<float>& R1,
+                       cv::Mat_<float>& R2,
+                       cv::Mat_<float>& t1,
+                       cv::Mat_<float>& t2)
 {
 #if 0
     // decompose the essential matrix to P', HZ 9.19
@@ -142,8 +142,8 @@ bool DecomposeEtoRandT(const cv::Mat& E,
                   1, 0, 0,
                   0, 0, 1);
 
-    cv::Mat_<double> R = svd_u * cv::Mat(w) * svd_vt; // HZ 9.19
-    cv::Mat_<double> T = svd_u.col(2); // u3
+    cv::Mat_<float> R = svd_u * cv::Mat(w) * svd_vt; // HZ 9.19
+    cv::Mat_<float> T = svd_u.col(2); // u3
 
     if (!CheckCoherentRotation(R)) {
         std::cout << "resulting rotation is not coherent" << std::endl;
@@ -152,8 +152,8 @@ bool DecomposeEtoRandT(const cv::Mat& E,
 
     // P' the second camera matrix, in the form of R|t
     // (rotation & translation)
-    cv::Matx34d P1;
-    P1 = cv::Matx34d(R(0, 0), R(0, 1), R(0, 2), T(0),
+    cv::Matx34f P1;
+    P1 = cv::Matx34f(R(0, 0), R(0, 1), R(0, 2), T(0),
                      R(1, 0), R(1, 1), R(1, 2), T(1),
                      R(2, 0), R(2, 1), R(2, 2), T(2));
 #endif
@@ -165,7 +165,7 @@ bool DecomposeEtoRandT(const cv::Mat& E,
     cv::Mat svd_vt = svd.vt; // V transpose
 
     //check if first and second singular values are the same (as they should be)
-    double singular_values_ratio = fabsf(svd_w.at<double>(0) / svd_w.at<double>(1));
+    float singular_values_ratio = fabsf(svd_w.at<float>(0) / svd_w.at<float>(1));
     if(singular_values_ratio>1.0) singular_values_ratio = 1.0/singular_values_ratio; // flip ratio to keep it [0,1]
     if (singular_values_ratio < 0.7) {
         cout << "singular values are too far apart\n";
@@ -239,8 +239,8 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
             cv::Mat point1 (homogenouse1[i]);
             cv::Mat point2 (homogenouse2[i]);
             cv::transpose(point2, point2);
-            point1.convertTo(point1, CV_64F);
-            point2.convertTo(point2, CV_64F);
+            point1.convertTo(point1, CV_32F);
+            point2.convertTo(point2, CV_32F);
 
             if ((point2 * F * point1).s[0] <= 0.1){
                 inliers1->push_back(points1[i]);
@@ -282,14 +282,14 @@ void loadExtrinsic(string path, cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F )
 }
 
 
-void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R, const vector<cv::Point2f>& normPoints_L1, const vector<cv::Point2f>&normPoints_R1, const vector<cv::Point2f>&normPoints_L2, const vector<cv::Point2f>& normPoints_R2, double& u, double& v) {
+void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R, const vector<cv::Point2f>& normPoints_L1, const vector<cv::Point2f>&normPoints_R1, const vector<cv::Point2f>&normPoints_L2, const vector<cv::Point2f>& normPoints_R2, float& u, float& v) {
     std::vector<cv::Point3f> X, X_L, X_R;
     TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 5, X);
     TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 5, X_L);
     TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 5, X_R);
 
-    double sum_L = 0;
-    double sum_R = 0;
+    float sum_L = 0;
+    float sum_R = 0;
     for (unsigned int i = 0; i < X.size(); ++i) {
         sum_L += ((cv::norm(X[i])*1.0) / cv::norm(X_L[i])*1.0);
         sum_R += ((cv::norm(X[i])*1.0) / cv::norm(X_R[i])*1.0);
@@ -299,10 +299,10 @@ void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, 
     v = 1.0/X.size() * sum_R;
 }
 
-void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  double& u, double& v) {
-    cv::Mat A(3, 2, CV_64F);
-    cv::Mat B(3, 1, CV_64F);
-    cv::Mat x(2, 1, CV_64F);
+void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  float& u, float& v) {
+    cv::Mat A(3, 2, CV_32F);
+    cv::Mat B(3, 1, CV_32F);
+    cv::Mat x(2, 1, CV_32F);
 
     cv::hconcat(T_L, -(R_LR*T_R), A);
     B = T_LR -(R_L*T_LR);
@@ -313,7 +313,7 @@ void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_
 
     //solve Ax = B
     cv::solve(A, B, x, cv::DECOMP_SVD);
-    u = x.at<double>(0,0);
-    v = x.at<double>(1,0);
+    u = x.at<float>(0,0);
+    v = x.at<float>(1,0);
 }
 

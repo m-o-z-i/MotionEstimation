@@ -2,7 +2,7 @@
 #include "FindPoints.h"
 #include "FindCameraMatrices.h"
 
-inline static double square(int a)
+inline static float square(int a)
 {
     return a * a;
 }
@@ -155,12 +155,12 @@ void drawCorresPoints(const cv::Mat& image, const vector<cv::Point2f>& inliers1,
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
 
     int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
-    double fontScale = 0.3;
+    float fontScale = 0.3;
     int thickness = 1;
 
     for(unsigned int i = 0; i < inliers1.size(); i++)
     {
-        double angle;		angle = atan2( (double) inliers1[i].y - inliers2[i].y, (double) inliers1[i].x - inliers2[i].x );
+        float angle;		angle = atan2( (float) inliers1[i].y - inliers2[i].y, (float) inliers1[i].x - inliers2[i].x );
         drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
         //cv::Point2f point (0.5*(inliers2[i] - inliers1[i]) );
         cv::putText (color_image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[0], color[1], color[2]), thickness);

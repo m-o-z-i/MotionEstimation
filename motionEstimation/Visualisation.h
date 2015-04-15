@@ -7,7 +7,7 @@
 
 using namespace std;
 
-static const double pi = 3.14159265358979323846;
+static const float pi = 3.14159265358979323846;
 
 
 void drawLine(IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, cv::Scalar const& color = CV_RGB(0,0,0), int line_thickness = 1);

@@ -13,7 +13,7 @@ void TriangulateOpenCV(const cv::Mat& P_L,
     cv::Mat PK_L = K_L * P_L;
     cv::Mat PK_R = K_R * P_R;
 
-    cv::Mat points3D_h(1,size, CV_64FC4);
+    cv::Mat points3D_h(1,size, CV_32FC4);
     cv::Mat points1 = cv::Mat(inliersF1);
     cv::Mat points2 = cv::Mat(inliersF2);
 
@@ -21,8 +21,8 @@ void TriangulateOpenCV(const cv::Mat& P_L,
     cv::Mat points2_r = points2.reshape(1,2);
 
 
-    points1_r.convertTo(points1_r, CV_64FC2);
-    points2_r.convertTo(points2_r, CV_64FC2);
+    points1_r.convertTo(points1_r, CV_32FC2);
+    points2_r.convertTo(points2_r, CV_32FC2);
 
     //triangulate Points:
     cv::triangulatePoints(PK_L, PK_R, points1_r, points2_r, points3D_h);
@@ -31,10 +31,10 @@ void TriangulateOpenCV(const cv::Mat& P_L,
 
     for (unsigned int i=0; i < size; i++) {
         // get cartesian coordinates
-        double w = points3D_h.at<double>(3,i);
-        double x = points3D_h.at<double>(0,i)/w;
-        double y = points3D_h.at<double>(1,i)/w;
-        double z = points3D_h.at<double>(2,i)/w;
+        float w = points3D_h.at<float>(3,i);
+        float x = points3D_h.at<float>(0,i)/w;
+        float y = points3D_h.at<float>(1,i)/w;
+        float z = points3D_h.at<float>(2,i)/w;
 
         cv::Point3f p(x,y,z);
         cout << p << endl;
@@ -45,23 +45,23 @@ void TriangulateOpenCV(const cv::Mat& P_L,
 /**
  From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997
  */
-cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h,         //homogenous image point (u,v,1)
-                                                cv::Matx34d P0,             	//camera 1 matrix
-                                                cv::Point3d point2d2_h,			//homogenous image point in 2nd camera
-                                                cv::Matx34d P1              	//camera 2 matrix
+cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h,         //homogenous image point (u,v,1)
+                                                cv::Matx34f P0,             	//camera 1 matrix
+                                                cv::Point3f point2d2_h,			//homogenous image point in 2nd camera
+                                                cv::Matx34f P1              	//camera 2 matrix
                                                 ) {
-    double wi = 1, wi1 = 1;
-    cv::Mat_<double> X(4,1);
+    float wi = 1, wi1 = 1;
+    cv::Mat_<float> X(4,1);
     for (int i=0; i<10; i++) { //Hartley suggests 10 iterations at most
-        cv::Mat_<double> X_ = LinearLSTriangulation(point2d1_h,P0,point2d2_h,P1);
+        cv::Mat_<float> X_ = LinearLSTriangulation(point2d1_h,P0,point2d2_h,P1);
         X(0) = X_(0);
         X(1) = X_(1);
         X(2) = X_(2);
         X(3) = 1.0;
 
         //recalculate weights
-        double p2x = cv::Mat_<double>(cv::Mat_<double>(P0).row(2)*X)(0);
-        double p2x1 = cv::Mat_<double>(cv::Mat_<double>(P1).row(2)*X)(0);
+        float p2x = cv::Mat_<float>(cv::Mat_<float>(P0).row(2)*X)(0);
+        float p2x1 = cv::Mat_<float>(cv::Mat_<float>(P1).row(2)*X)(0);
 
         //breaking point
         if(fabsf(wi - p2x) <= EPSILON && fabsf(wi1 - p2x1) <= EPSILON) break;
@@ -70,14 +70,14 @@ cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h,         
         wi1 = p2x1;
 
         //reweight equations and solve
-        cv::Matx43d A(
+        cv::Matx43f A(
                     (point2d1_h.x*P0(2,0)-P0(0,0))/wi,	(point2d1_h.x*P0(2,1)-P0(0,1))/wi,	(point2d1_h.x*P0(2,2)-P0(0,2))/wi,
                     (point2d1_h.y*P0(2,0)-P0(1,0))/wi,	(point2d1_h.y*P0(2,1)-P0(1,1))/wi,	(point2d1_h.y*P0(2,2)-P0(1,2))/wi,
                     (point2d2_h.x*P1(2,0)-P1(0,0))/wi1,	(point2d2_h.x*P1(2,1)-P1(0,1))/wi1,	(point2d2_h.x*P1(2,2)-P1(0,2))/wi1,
                     (point2d2_h.y*P1(2,0)-P1(1,0))/wi1,	(point2d2_h.y*P1(2,1)-P1(1,1))/wi1,	(point2d2_h.y*P1(2,2)-P1(1,2))/wi1
                     );
 
-        cv::Mat_<double> B = (cv::Mat_<double>(4,1) <<
+        cv::Mat_<float> B = (cv::Mat_<float>(4,1) <<
                               -(point2d1_h.x*P0(2,3)	-P0(0,3))/wi,
                               -(point2d1_h.y*P0(2,3)	-P0(1,3))/wi,
                               -(point2d2_h.x*P1(2,3)	-P1(0,3))/wi1,
@@ -98,17 +98,17 @@ cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d point2d1_h,         
 /**
  From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997
  */
-cv::Mat_<double> LinearLSTriangulation(
-        cv::Point3d u,//homogenous image point (u,v,1)
-        cv::Matx34d P,//camera 1 matrix
-        cv::Point3d u1,//homogenous image point in 2nd camera
-        cv::Matx34d P1//camera 2 matrix
+cv::Mat_<float> LinearLSTriangulation(
+        cv::Point3f u,//homogenous image point (u,v,1)
+        cv::Matx34f P,//camera 1 matrix
+        cv::Point3f u1,//homogenous image point in 2nd camera
+        cv::Matx34f P1//camera 2 matrix
         )
 {
     //build matrix A for homogenous equation system Ax = 0
     //assume X = (x,y,z,1), for Linear-LS method
     //which turns it into a AX = B system, where A is 4x3, X is 3x1 and B is 4x1
-    cv::Matx43d A(
+    cv::Matx43f A(
                 u.x*P(2,0)-P(0,0),    u.x*P(2,1)-P(0,1),      u.x*P(2,2)-P(0,2),
                 u.y*P(2,0)-P(1,0),    u.y*P(2,1)-P(1,1),      u.y*P(2,2)-P(1,2),
                 u1.x*P1(2,0)-P1(0,0), u1.x*P1(2,1)-P1(0,1),   u1.x*P1(2,2)-P1(0,2),
@@ -116,7 +116,7 @@ cv::Mat_<double> LinearLSTriangulation(
                 );
 
     //build B vector
-    cv::Mat_<double> B = (cv::Mat_<double>(4,1) <<
+    cv::Mat_<float> B = (cv::Mat_<float>(4,1) <<
                           -(u.x*P(2,3)      -P(0,3)),
                           -(u.y*P(2,3)      -P(1,3)),
                           -(u1.x*P1(2,3)    -P1(0,3)),
@@ -124,7 +124,7 @@ cv::Mat_<double> LinearLSTriangulation(
                           );
 
     //solve for X
-    cv::Mat_<double> X;
+    cv::Mat_<float> X;
     cv::solve(A,B,X,cv::DECOMP_SVD);
 
     return X;
@@ -153,7 +153,7 @@ void TriangulatePointsHZ(
     cv::convertPointsToHomogeneous(points2, points2_h);
 
     for (unsigned int i=0; i < numberOfTriangulations; i += interval ){
-        cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
+        cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
     }
 }
@@ -182,7 +182,7 @@ void TriangulatePointsWithInlier(
     cv::convertPointsToHomogeneous(normPoints2, points2_h);
 
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
-        cv::Mat_<double> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
+        cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
         if (0 < X(2)){
             pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
             inlier1.push_back(points1[i]);
@@ -201,7 +201,7 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>
 
     for(uint i = 0; i < x0.size(); i++) {
         //set up a system of linear equations from x = PX and x' = P'X
-        cv::Mat A(4, 4, CV_64FC1);
+        cv::Mat A(4, 4, CV_32FC1);
         A.row(0) = x0[i].x * P0.row(2) - P0.row(0);
         A.row(1) = x0[i].y * P0.row(2) - P0.row(1);
         A.row(2) = x1[i].x * P1.row(2) - P1.row(0);
@@ -210,14 +210,14 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>
 
         //normalize each row of A with its L2 norm, i.e. |row| = sqrt(sum_j(row[j]^2)) to improve condition of the system
         for (int i = 0; i < A.rows; i++) {
-            double dsquared = 0;
+            float dsquared = 0;
             for(int j = 0; j < 4; j++) {
-                dsquared = dsquared + pow(A.at<double>(i, j), 2);
+                dsquared = dsquared + pow(A.at<float>(i, j), 2);
             }
             A.row(i) = A.row(i) * (1 / sqrt(dsquared));
         }
 
-        double detA = cv::determinant(A);
+        float detA = cv::determinant(A);
         //cout << setprecision(3) << "det(A): " << detA << endl;
         if(detA < 0.0) {
             //workaround SVD ambiguity if det < 0
@@ -229,10 +229,10 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1, const vector<cv::Point2f>
 
         //homogeneous least-square solution corresponds to least singular vector of A, that is the last column of V or last row of V^T
         //i.e. [x,y,z,w] = V^T.row(3)
-        float x = static_cast<float>(decomposition.vt.at<double>(3, 0));
-        float y = static_cast<float>(decomposition.vt.at<double>(3, 1));
-        float z = static_cast<float>(decomposition.vt.at<double>(3, 2));
-        float w = static_cast<float>(decomposition.vt.at<double>(3, 3));
+        float x = static_cast<float>(decomposition.vt.at<float>(3, 0));
+        float y = static_cast<float>(decomposition.vt.at<float>(3, 1));
+        float z = static_cast<float>(decomposition.vt.at<float>(3, 2));
+        float w = static_cast<float>(decomposition.vt.at<float>(3, 3));
         //convert homogeneous to cartesian coordinates
         result3D.push_back(cv::Point3f(x/w, y/w, z/w));
 
@@ -255,19 +255,19 @@ void computeReprojectionError(const cv::Mat& P,
     for(uint i = 0; i < points.size(); i++) {
 
         //build homogeneous coordinate for projection
-        cv::Mat WorldCoordinate_h = cv::Mat(4, 1, CV_64FC1);
-        WorldCoordinate_h.at<double>(0,0) = worldCoordinates[i].x;
-        WorldCoordinate_h.at<double>(1,0) = worldCoordinates[i].y;
-        WorldCoordinate_h.at<double>(2,0) = worldCoordinates[i].z;
-        WorldCoordinate_h.at<double>(3,0) = 1.0;
+        cv::Mat WorldCoordinate_h = cv::Mat(4, 1, CV_32FC1);
+        WorldCoordinate_h.at<float>(0,0) = worldCoordinates[i].x;
+        WorldCoordinate_h.at<float>(1,0) = worldCoordinates[i].y;
+        WorldCoordinate_h.at<float>(2,0) = worldCoordinates[i].z;
+        WorldCoordinate_h.at<float>(3,0) = 1.0;
 
         //perform simple reprojection by multiplication with projection matrix
         cv::Mat pReprojected_h = P * WorldCoordinate_h; //homogeneous image coordinates 3x1
 
         //convert reprojected image point to carthesian coordinates
-        float w = static_cast<float>(pReprojected_h.at<double>(2,0));
-        float x_r = static_cast<float>(pReprojected_h.at<double>(0,0) / w); //x = x/w
-        float y_r = static_cast<float>(pReprojected_h.at<double>(1,0) / w); //y = y/w
+        float w = static_cast<float>(pReprojected_h.at<float>(2,0));
+        float x_r = static_cast<float>(pReprojected_h.at<float>(0,0) / w); //x = x/w
+        float y_r = static_cast<float>(pReprojected_h.at<float>(1,0) / w); //y = y/w
 
         pReprojected.push_back(cv::Point3f(x_r, y_r, w)); //reprojected cartesian image coordinate with depth value
 
@@ -287,20 +287,20 @@ void computeReprojectionError(const cv::Mat& P,
     avgReprojectionError.y /= reprojectionErrors.size();
 }
 
-double calculateReprojectionErrorOpenCV(const cv::Mat& P,
+float calculateReprojectionErrorOpenCV(const cv::Mat& P,
                                         const cv::Mat& K,
                                         const cv::Mat distCoeff,
                                         const vector<cv::Point2f>& points2D,
                                         const std::vector<cv::Point3f>& points3D)
 {
-    vector<double> reproj_error;
+    vector<float> reproj_error;
 
     cv::Matx34f P_(P);
-    cv::Mat_<double> R = (cv::Mat_<double>(3,3) <<
+    cv::Mat_<float> R = (cv::Mat_<float>(3,3) <<
                           P_(0,0),P_(0,1),P_(0,2),
                           P_(1,0),P_(1,1),P_(1,2),
                           P_(2,0),P_(2,1),P_(2,2));
-    cv::Mat_<double> T = (cv::Mat_<double>(1,3) << P_(0,3),P_(1,3),P_(2,3));
+    cv::Mat_<float> T = (cv::Mat_<float>(1,3) << P_(0,3),P_(1,3),P_(2,3));
 
     //calculate reprojection
     cv::Vec3d rvec;
@@ -308,7 +308,7 @@ double calculateReprojectionErrorOpenCV(const cv::Mat& P,
     cv::Vec3d tvec(T);
 
     vector<cv::Point2f> reprojected_points2D;
-    vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
+    vector<float > distCoeffVec; //just use empty vector.. images are allready undistorted..
     cv::projectPoints(points3D, rvec, tvec, K, distCoeff, reprojected_points2D);
 
     for (unsigned int i=0; i<points3D.size(); i++) {
@@ -320,25 +320,25 @@ double calculateReprojectionErrorOpenCV(const cv::Mat& P,
     return mse[0];
 }
 
-double calculateReprojectionErrorHZ(const cv::Mat& P,
+float calculateReprojectionErrorHZ(const cv::Mat& P,
                                     const vector<cv::Point2f>& NormPoints2D,
                                     const std::vector<cv::Point3f>& points3D)
 {
-    vector<double> reproj_error;
+    vector<float> reproj_error;
     //    cv::Mat P_(P);
-    //    P_.convertTo(P_, CV_64F);
-    //    cv::Mat_<double> KP = K * P_;
+    //    P_.convertTo(P_, CV_32F);
+    //    cv::Mat_<float> KP = K * P_;
 
     for (unsigned int i=0; i < points3D.size(); i++) {
         // convert to homogenious 3D point
-        cv::Mat_<double> point3D_h(4, 1);
-        point3D_h(0) = points3D[i].x;
-        point3D_h(1) = points3D[i].y;
-        point3D_h(2) = points3D[i].z;
-        point3D_h(3) = 1.0;
+        cv::Mat_<float> Point3f_h(4, 1);
+        Point3f_h(0) = points3D[i].x;
+        Point3f_h(1) = points3D[i].y;
+        Point3f_h(2) = points3D[i].z;
+        Point3f_h(3) = 1.0;
 
         // calculate reprojection error ((( KP * points3D[i] ???)))
-        cv::Mat_<double> reprojectedPoint_h = P * point3D_h;
+        cv::Mat_<float> reprojectedPoint_h = P * Point3f_h;
 
         // convert reprojected image point to carthesian coordinates
         cv::Point2f reprojectedPoint(reprojectedPoint_h(0) / reprojectedPoint_h(2), reprojectedPoint_h(1) / reprojectedPoint_h(2));

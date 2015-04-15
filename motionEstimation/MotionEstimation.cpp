@@ -73,10 +73,10 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
     double minVal,maxVal;
     cv::minMaxIdx(imgPoints,&minVal,&maxVal);
 
-    vector<double > distCoeffVec; //just use empty vector.. images are allready undistorted..
+    vector<float > distCoeffVec; //just use empty vector.. images are allready undistorted..
 
     //can't work.. a cloud and points...?!
-    cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);
+    cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (float)(imgPoints.size()), inliers, CV_EPNP);
 
     // calculate reprojection error and define inliers
     std::vector<cv::Point2f> projected3D;
@@ -88,7 +88,7 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
         }
     }
 
-    if(inliers.size() < (double)(imgPoints.size())/5.0) {
+    if(inliers.size() < (float)(imgPoints.size())/5.0) {
         cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
         return false;
     }
@@ -214,10 +214,10 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
     cv::Mat svd_s = svd.w;
     cv::Mat svd_v = svd.vt;
 
-    cv::Mat S_diag = cv::Mat::eye(3, 3, CV_64F); // 3 x 3 mat
+    cv::Mat S_diag = cv::Mat::eye(3, 3, CV_32F); // 3 x 3 mat
 
     if (cv::determinant(svd_u) * cv::determinant(svd_v) < 0){ // det(v) == det(v.t())?
-        S_diag.at<double>(8) = -1;
+        S_diag.at<float>(8) = -1;
     }
 
     cv::Mat R_temp = svd_u * S_diag * svd_v;

@@ -35,7 +35,7 @@ void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, c
     cv::Mat temp, deltaPos;
     composeProjectionMat(T, R, temp);
 
-    cv::Mat_<double> temp2 = (cv::Mat_<double>(1,4) << 0,0,0,1);
+    cv::Mat_<float> temp2 = (cv::Mat_<float>(1,4) << 0,0,0,1);
 
     if (temp.type() != temp2.type()){
         temp.convertTo(temp, temp2.type());
@@ -43,21 +43,21 @@ void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, c
 
     cv::vconcat(temp, temp2, deltaPos);
 
-    deltaPos.convertTo(deltaPos, CV_64F);
+    deltaPos.convertTo(deltaPos, CV_32F);
 
     newPos = currentPos * deltaPos;
 }
 
 
 void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R){
-    R = (cv::Mat_<double>(3,3) <<
-         P.at<double>(0,0),	P.at<double>(0,1),	P.at<double>(0,2),
-         P.at<double>(1,0),	P.at<double>(1,1),	P.at<double>(1,2),
-         P.at<double>(2,0),	P.at<double>(2,1),	P.at<double>(2,2));
-    T = (cv::Mat_<double>(3,1) <<
-         P.at<double>(0, 3),
-         P.at<double>(1, 3),
-         P.at<double>(2, 3));
+    R = (cv::Mat_<float>(3,3) <<
+         P.at<float>(0,0),	P.at<float>(0,1),	P.at<float>(0,2),
+         P.at<float>(1,0),	P.at<float>(1,1),	P.at<float>(1,2),
+         P.at<float>(2,0),	P.at<float>(2,1),	P.at<float>(2,2));
+    T = (cv::Mat_<float>(3,1) <<
+         P.at<float>(0, 3),
+         P.at<float>(1, 3),
+         P.at<float>(2, 3));
 }
 
 
@@ -65,14 +65,14 @@ void composeProjectionMat(const cv::Mat& T, const cv::Mat& R, cv::Mat& P){
     cv::hconcat(R, T, P);
 }
 
-void decomposeRotMat(const cv::Mat& R, double& x, double& y, double& z){
-    x = atan2(R.at<double>(2,1), R.at<double>(2,2)) * (180 / M_PI);
-    y = atan2(R.at<double>(2,0), sqrt(pow(R.at<double>(2,1),2)+pow(R.at<double>(2,2),2))) * (180 / M_PI);
-    z = atan2(R.at<double>(1,0), R.at<double>(0,0)) * (180 / M_PI);
+void decomposeRotMat(const cv::Mat& R, float& x, float& y, float& z){
+    x = atan2(R.at<float>(2,1), R.at<float>(2,2)) * (180 / M_PI);
+    y = atan2(R.at<float>(2,0), sqrt(pow(R.at<float>(2,1),2)+pow(R.at<float>(2,2),2))) * (180 / M_PI);
+    z = atan2(R.at<float>(1,0), R.at<float>(0,0)) * (180 / M_PI);
 }
 
 void rotatePointCloud(std::vector<cv::Point3f>& cloud){
-    cv::Mat R = (cv::Mat_<double>(3,3) <<
+    cv::Mat R = (cv::Mat_<float>(3,3) <<
                 -1, 0, 0,
                  0,-1, 0,
                  0, 0, 1);

@@ -213,9 +213,15 @@ void drawLine (IplImage* ref, cv::Point2f p, cv::Point2f q, float angle, const c
 void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, cv::Scalar const& color) {
     cv::Mat colorImg;
     cv::cvtColor(image, colorImg, CV_GRAY2RGB);
-    for (auto i : points) {
+
+    int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
+    float fontScale = 0.5;
+    int thickness = 1;
+
+    for (unsigned int i = 0; i<points.size(); ++i) {
         // draw a circle at each inlier location
-        cv::circle(colorImg,i,3,color,1);
+        cv::circle(colorImg,points[i],3,color,1);
+        cv::putText (colorImg, to_string(i), points[i] , fontFace, fontScale, color, thickness);
     }
     cv::imshow(windowName, colorImg);
 }

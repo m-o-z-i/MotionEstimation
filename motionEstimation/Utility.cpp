@@ -39,7 +39,6 @@ void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, c
 
     if (temp.type() != temp2.type()){
         temp.convertTo(temp, temp2.type());
-        std::cout << "convert" << std::endl;
     }
 
     cv::vconcat(temp, temp2, deltaPos);
@@ -64,6 +63,12 @@ void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R){
 
 void composeProjectionMat(const cv::Mat& T, const cv::Mat& R, cv::Mat& P){
     cv::hconcat(R, T, P);
+}
+
+void decomposeRotMat(const cv::Mat& R, double& x, double& y, double& z){
+    x = atan2(R.at<double>(2,1), R.at<double>(2,2)) * (180 / M_PI);
+    y = atan2(R.at<double>(2,0), sqrt(pow(R.at<double>(2,1),2)+pow(R.at<double>(2,2),2))) * (180 / M_PI);
+    z = atan2(R.at<double>(1,0), R.at<double>(0,0)) * (180 / M_PI);
 }
 
 void rotatePointCloud(std::vector<cv::Point3f>& cloud){

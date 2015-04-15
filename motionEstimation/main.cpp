@@ -21,11 +21,11 @@
 //
 
 int main(){
-    int frame=1;
+    int frame=0;
 
     //load file names
     std::vector<string> filenames_left, filenames_right;
-    string dataPath = "data/moritz/";
+    string dataPath = "data/maliksupertest/";
     getFiles(dataPath + "left/", filenames_left);
     getFiles(dataPath + "right/", filenames_right);
 
@@ -37,6 +37,13 @@ int main(){
     cv::Mat E_LR, F_LR, R_LR, T_LR;
     loadExtrinsic(dataPath, R_LR, T_LR, E_LR, F_LR);
 
+    // load q matrix
+    cv::Mat Q;
+    cv::FileStorage fs(dataPath + "disparity/disparity_0.yml", cv::FileStorage::READ);
+    fs["Q"] >> Q;
+    fs.release();
+    cout << Q << endl;
+
     //convert all to single precission
     K_L.convertTo(K_L, CV_32F);
     K_R.convertTo(K_R, CV_32F);
@@ -46,6 +53,7 @@ int main(){
     F_LR.convertTo(F_LR, CV_32F);
     R_LR.convertTo(R_LR, CV_32F);
     T_LR.convertTo(T_LR, CV_32F);
+    Q.convertTo(Q, CV_32F);
 
     // calculate inverse K
     cv::Mat KInv_L, KInv_R;
@@ -107,6 +115,12 @@ int main(){
         findCorresPoints_LucasKanade(image_L1, image_R1, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
         //fastFeatureMatcher(image_L1, image_L2, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
+
+        std::vector<cv::Point2f> inlier_median_L1, inlier_median_R1, inlier_median_L2, inlier_median_R2;
+        getInliersFromMedianValue(make_pair(points_L1, points_R1), inlier_median_L1, inlier_median_R1);
+        getInliersFromMedianValue(make_pair(points_L2, points_R2), inlier_median_L2, inlier_median_R2);
+        deleteZeroLines(inlier_median_L1, inlier_median_R1, inlier_median_L2, inlier_median_R2);
+
 
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
@@ -175,8 +189,8 @@ int main(){
             ++index;
         }
 
-        AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
-        AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
+        //AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
+        //AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
 
         //AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
 
@@ -314,10 +328,55 @@ int main(){
 #if 1
         // ################################# STEREO #####################################
         // for cv::waitKey input:
-        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "triangulated inlier", cv::Scalar(255,0,0));
+//        drawPoints(image_L1, inlier_median_L1, "points links", cv::Scalar(255,0,0));
+//        drawPoints(image_R1, inlier_median_R1, "points rechts", cv::Scalar(255,0,0));
+
+        //load disparity map
+        cv::Mat dispMap1;
+        cv::FileStorage fs_dist1(dataPath + "disparity/disparity_"+to_string(frame)+".yml", cv::FileStorage::READ);
+        fs_dist1["disparity"] >> dispMap1;
+        fs_dist1.release();
+
+        cv::Mat dispMap2;
+        cv::FileStorage fs_dist2(dataPath + "disparity/disparity_"+to_string(frame+1)+".yml", cv::FileStorage::READ);
+        fs_dist2["disparity"] >> dispMap2;
+        fs_dist2.release();
+
+        dispMap1.convertTo(dispMap1, CV_32F);
+        dispMap2.convertTo(dispMap2, CV_32F);
+
+        vector <cv::Mat_<float>> cloud1;
+        vector <cv::Mat_<float>> cloud2;
+        for(unsigned int i = 0; i < inlier_median_L1.size(); ++i){
+            cv::Mat_<float> point3D1(1,4);
+            cv::Mat_<float> point3D2(1,4);
+            calcCoordinate(point3D1, Q, dispMap1, inlier_median_L1[i].x, inlier_median_L1[i].y);
+            calcCoordinate(point3D2, Q, dispMap2, inlier_median_L2[i].x, inlier_median_L2[i].y);
+            cloud1.push_back(point3D1);
+            cloud2.push_back(point3D2);
+        }
+
+        std::vector<cv::Point3f> pcloud1, pcloud2;
+        std::vector<cv::Vec3b> rgb1, rgb2;
+        for (unsigned int i = 0; i < cloud1.size(); ++i) {
+            if (!cloud1[i].empty() && !cloud2[i].empty()){
+                pcloud1.push_back(cv::Point3f(cloud1[i](0), cloud1[i](1), cloud1[i](2) ));
+                pcloud2.push_back(cv::Point3f(cloud2[i](0), cloud2[i](1), cloud2[i](2) ));
+                rgb1.push_back(cv::Vec3b(255,0,0));
+                rgb2.push_back(cv::Vec3b(0,255,0));
+            }
+        }
+
+        AddPointcloudToVisualizer(pcloud1, "pcloud1", rgb1);
+        AddPointcloudToVisualizer(pcloud2, "pcloud2", rgb2);
+
+
+
+
+
 
         cv::Mat T_Stereo, R_Stereo;
-        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
+        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pcloud1, pcloud2, T_Stereo, R_Stereo);
         if (!poseEstimationFoundStereo){
             T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
             R_Stereo = cv::Mat::eye(3, 3, CV_32F);
@@ -352,6 +411,7 @@ int main(){
 
         RunVisualization();
         ++frame;
+        cv::waitKey();
 
         // To Do:
         // swap image files...

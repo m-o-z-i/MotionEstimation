@@ -20,5 +20,6 @@ void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Poi
 void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPoint>& kps);
 
 void decomposeRotMat(const cv::Mat& R, float& x, float& y, float& z);
+bool calcCoordinate(cv::Mat_<float> &toReturn,cv::Mat const& Q, cv::Mat const& disparityMap,int x,int y);
 
 #endif // UTILITY_H

@@ -106,4 +106,25 @@ void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPo
     for (unsigned int i=0; i<ps.size(); i++) kps.push_back(cv::KeyPoint(ps[i],1.0f));
 }
 
+bool calcCoordinate(cv::Mat_<float> &toReturn,cv::Mat const& Q, cv::Mat const& disparityMap,int x,int y)
+{
+    double d = static_cast<float>(disparityMap.at<short>(y,x));
+    d/=16.0;
+    if(d > 0)
+    {
+      toReturn(0)=x;
+      toReturn(1)=y;
+      toReturn(2)=d;
+      toReturn(3)=1;
+
+      toReturn = Q*toReturn.t();
+      toReturn/=toReturn(3);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+}
+
 

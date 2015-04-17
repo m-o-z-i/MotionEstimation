@@ -106,7 +106,7 @@ void SORFilter() {
 void AddPointcloudToVisualizer(const std::vector<cv::Point3f>& pointcloud,
                                std::string name,
                                const std::vector<cv::Vec3b>& pointcloud_RGBColor) {
-    cout << "add pointcloud " << name << "  size: "  << pointcloud.size() <<  endl;
+    //cout << "add pointcloud " << name << "  size: "  << pointcloud.size() <<  endl;
 
     PopulatePCLPointCloud(pointcloud,pointcloud_RGBColor);
     //SORFilter();
@@ -127,7 +127,6 @@ void RunVisualization() {
     // draw pointclouds
 
     for (auto p : point_clouds) {
-        std::cout << "test" << endl;
         viewer.addPointCloud(p.second, p.first);
     }
 

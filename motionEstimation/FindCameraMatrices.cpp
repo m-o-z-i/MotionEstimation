@@ -16,7 +16,7 @@ bool getRightProjectionMat( cv::Mat& E,
                   0.0, 0.0, 1.0, 0.0 );
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
-    if(fabsf(determinant(E)) > 1e-03) {
+    if(fabsf(determinant(E)) > 1) { // > 1e-03
         cout << "det(E) != 0 : " << determinant(E) << "\n";
         return false;
     }
@@ -46,7 +46,7 @@ bool getRightProjectionMat( cv::Mat& E,
         std::vector<cv::Mat_<float>> Translations{t1,t2};
 
         int counter = 0;
-        std::vector<cv::Point3f> pcloud, pcloud1, worldCoordinates;
+        std::vector<cv::Point3f> pcloud, worldCoordinates;
         bool foundPerspectiveMatrix = false;
 
         // find right solution of 4 possible translations and rotations
@@ -64,7 +64,7 @@ bool getRightProjectionMat( cv::Mat& E,
             }
 
             for (unsigned int j = 0; j < 2; ++j) {
-                pcloud.clear(); pcloud1.clear(); worldCoordinates.clear();
+                pcloud.clear();
                 cv::Mat_<float> T = Translations[j];
                 //cout << "\n************ Testing P"<< i<<j<< " **************" << endl;
 
@@ -72,15 +72,15 @@ bool getRightProjectionMat( cv::Mat& E,
                 composeProjectionMat(T, R, P1);
 
                 //triangulate from Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ( P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud1);
+                TriangulatePointsHZ( P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud);
 
-                float reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud1);
-                float reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud1);
+                float reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud);
+                float reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud);
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
-                if (positionCheck(P0, pcloud1) && positionCheck(P1, pcloud1)) {
-                    cout << "############## use this perspective Matrix " << "P"<< i << j << "################" << endl;
-                    cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
+                if (positionCheck(P0, pcloud) && positionCheck(P1, pcloud)) {
+                    //cout << "############## use this perspective Matrix " << "P"<< i << j << "################" << endl;
+                    //cout << "HZ: reprojection ERROR:  left:  " <<  reproj_error_L << "  right  " << reproj_error_R << endl;
                     foundPerspectiveMatrix = true;
                     break;
                 }
@@ -93,8 +93,8 @@ bool getRightProjectionMat( cv::Mat& E,
             return false;
         }
 
-        for (unsigned int i=0; i<pcloud1.size(); i++) {
-            outCloud.push_back(pcloud1[i]);
+        for (unsigned int i=0; i<pcloud.size(); i++) {
+            outCloud.push_back(pcloud[i]);
         }
     }
 
@@ -173,11 +173,11 @@ bool DecomposeEtoRandT(const cv::Mat& E,
     }
 
     //HZ 9.13
-    cv::Matx33d W(0,-1,0,
+    cv::Matx33f W(0,-1,0,
                   1,0,0,
                   0,0,1);
 
-    cv::Matx33d Wt(0,1,0,
+    cv::Matx33f Wt(0,1,0,
                    -1,0,0,
                    0,0,1);
 
@@ -218,7 +218,7 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
     F = cv::findFundamentalMat(
                 cv::Mat(points1), cv::Mat(points2),   // matching points
                 inliers_fundamental,                             // match status (inlier ou outlier)
-                cv::FM_8POINT,                                   // RANSAC method
+                cv::FM_RANSAC,                                   // RANSAC method
                 5.,                                              // distance to epipolar line
                 .01);                                            // confidence probability
 
@@ -233,16 +233,18 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
     cv::convertPointsToHomogeneous(points1, homogenouse1);
     cv::convertPointsToHomogeneous(points2, homogenouse2);
 
+    F.convertTo(F, CV_32F);
+
     //get Inlier
     for(unsigned i = 0; i<points1.size(); ++i){
         if (inliers_fundamental[i] == 1) {
             cv::Mat point1 (homogenouse1[i]);
             cv::Mat point2 (homogenouse2[i]);
-            cv::transpose(point2, point2);
-            point1.convertTo(point1, CV_32F);
-            point2.convertTo(point2, CV_32F);
 
-            if ((point2 * F * point1).s[0] <= 0.1){
+            cv::Mat calc = point2.t() * F * point1;
+
+            // get value of calculation point2.t() * F * point1 should be 0
+            if (calc.at<float>(0,0) <= 0.1){
                 inliers1->push_back(points1[i]);
                 inliers2->push_back(points2[i]);
             } else {

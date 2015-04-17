@@ -27,7 +27,7 @@ void TriangulateOpenCV(const cv::Mat& P_L,
     //triangulate Points:
     cv::triangulatePoints(PK_L, PK_R, points1_r, points2_r, points3D_h);
 
-    cout << "3d triangulated h \n\n" << points3D_h << endl;
+    //cout << "3d triangulated h \n\n" << points3D_h << endl;
 
     for (unsigned int i=0; i < size; i++) {
         // get cartesian coordinates
@@ -37,7 +37,7 @@ void TriangulateOpenCV(const cv::Mat& P_L,
         float z = points3D_h.at<float>(2,i)/w;
 
         cv::Point3f p(x,y,z);
-        cout << p << endl;
+        //cout << p << endl;
         outCloud.push_back(p);
     }
 }
@@ -64,7 +64,9 @@ cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h,         /
         float p2x1 = cv::Mat_<float>(cv::Mat_<float>(P1).row(2)*X)(0);
 
         //breaking point
-        if(fabsf(wi - p2x) <= EPSILON && fabsf(wi1 - p2x1) <= EPSILON) break;
+        if(fabsf(wi - p2x) <= EPSILON && fabsf(wi1 - p2x1) <= EPSILON){
+            break;
+        }
 
         wi = p2x;
         wi1 = p2x1;
@@ -145,6 +147,9 @@ void TriangulatePointsHZ(
     }
 
     int interval = (points1.size() / numberOfTriangulations);
+    if (1 > interval) {
+        interval = 1;
+    }
 
     pointcloud.clear();
 
@@ -152,9 +157,11 @@ void TriangulatePointsHZ(
     cv::convertPointsToHomogeneous(points1, points1_h);
     cv::convertPointsToHomogeneous(points2, points2_h);
 
-    for (unsigned int i=0; i < numberOfTriangulations; i += interval ){
-        cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
+    int index = 0;
+    for (unsigned int i=0; i < numberOfTriangulations; ++i ){
+        cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[index],P0,points2_h[index],P1);
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
+        index+=interval;
     }
 }
 

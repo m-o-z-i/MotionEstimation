@@ -46,7 +46,7 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
     vector<float> optical_flow_feature_error;
 
     /* This is the window size to use to avoid the aperture problem (see slide "Optical Flow: Overview"). */
-    CvSize optical_flow_window = cvSize(15,15);
+    CvSize optical_flow_window = cvSize(5,5);
 
     /* 0-based maximal pyramid level number; if set to 0, pyramids are not used (single level),
      * if set to 1, two levels are used, and so on; if pyramids are passed to input then algorithm
@@ -59,7 +59,7 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
      * work pretty well in many situations.
      */
     cv::TermCriteria optical_flow_termination_criteria
-            = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, .3 );
+            = cv::TermCriteria( cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 100, 0.0001 );
 
     /* Actually run Pyramidal Lucas Kanade Optical Flow!!
      * "prev_image" is the first frame with the known features. pyramid constructed by buildOpticalFlowPyramid()
@@ -80,19 +80,164 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
                              optical_flow_termination_criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
 
-    vector<cv::Point2f>::iterator iter_f1 = frame1_features.begin();
-    vector<cv::Point2f>::iterator iter_f2 = frame2_features.begin();
     for (unsigned i = 0; i < frame1_features.size(); ++i){
-        if ( optical_flow_found_feature[i] == 0 ){
-            frame1_features[i] = cv::Point2f(0,0);
-            frame2_features[i] = cv::Point2f(0,0);
+        if ( optical_flow_found_feature[i] == 1 ){
+            points1.push_back(frame1_features[i]);
+            points2.push_back(frame2_features[i]);
+        } else {
+            points1.push_back(cv::Point2f(0,0));
+            points2.push_back(cv::Point2f(0,0));
         }
-        ++iter_f1;
-        ++iter_f2;
-
-        points1.push_back(frame1_features[i]);
-        points2.push_back(frame2_features[i]);
     }
+}
+
+
+
+
+void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f> &points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2){
+    // find corresponding points
+    vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
+    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 100,0.001,20);
+
+    if (0 == features.size()){
+        return;
+    }
+
+    refindFeaturePoints(frame_L1, frame_R1, features, points_L1_temp, points_R1_temp);
+    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, points_L1a_temp, points_L2_temp);
+    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, points_R1a_temp, points_R2_temp);
+
+    // delete in all frames points, that are not visible in each frames
+    deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
+
+#if 0
+
+    cv::namedWindow("All", CV_WINDOW_NORMAL);
+    cv::Mat L1R1, L2R2, All;
+    cv::hconcat(frame_L1, frame_R1, L1R1);
+    cv::hconcat(frame_L2, frame_R2, L2R2);
+    cv::vconcat(L1R1, L2R2, All);
+    cv::imshow("All", All);
+    drawPoints(frame_L1, features, "feaures found" , cv::Scalar(2,55,212));
+    cv::waitKey();
+
+    drawCorresPoints(frame_L1, points_L1_temp, points_R1_temp, "correspoints l1 r1 temp" , cv::Scalar(2,55,212));
+    cv::waitKey();
+
+    drawCorresPoints(frame_L1, points_L1a_temp, points_L2_temp, "correspoints l1 l2" , cv::Scalar(2,55,212));
+    cv::waitKey();
+
+    drawCorresPoints(frame_R1, points_R1a_temp, points_R2_temp, "correspoints r1 r2" , cv::Scalar(2,55,212));
+    cv::waitKey();
+
+    drawPoints(frame_R1, points_R1a_temp, "feaures right 1 found" , cv::Scalar(2,55,212));
+    drawPoints(frame_R2, points_R2_temp,  "feaures right 2 found" , cv::Scalar(2,55,212));
+    cv::waitKey();
+
+#endif
+
+    for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
+        points_L1.push_back(points_L1a_temp[i]);
+        points_R1.push_back(points_R1a_temp[i]);
+        points_L2.push_back(points_L2_temp[i]);
+        points_R2.push_back(points_R2_temp[i]);
+    }
+}
+
+void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2) {
+    vector<cv::DMatch> matches;
+
+    vector<cv::KeyPoint>left_keypoints,right_keypoints;
+
+    // Detect keypoints in the left and right images
+    cv::FastFeatureDetector ffd;
+    ffd.detect(frame_L1, left_keypoints);
+    ffd.detect(frame_R1, right_keypoints);
+
+    vector<cv::Point2f>left_points;
+    KeyPointsToPoints(left_keypoints,left_points);
+
+    vector<cv::Point2f>right_points(left_points.size());
+
+    // Calculate the optical flow field:
+    //  how each left_point moved across the 2 images
+    vector<uchar>vstatus; vector<float>verror;
+    cv::calcOpticalFlowPyrLK(frame_L1, frame_R1, left_points, right_points, vstatus, verror);
+
+    // First, filter out the points with high error
+    vector<cv::Point2f>right_points_to_find;
+    vector<int>right_points_to_find_back_index;
+    for (unsigned int i=0; i<vstatus.size(); i++) {
+        if (vstatus[i] &&verror[i] < 12.0) {
+            // Keep the original index of the point in the
+            // optical flow array, for future use
+            right_points_to_find_back_index.push_back(i);
+            // Keep the feature point itself
+            right_points_to_find.push_back(right_points[i]);
+        } else {
+            vstatus[i] = 0; // a bad flow
+        }
+    }
+
+    drawCorresPoints(frame_L1, left_points, right_points, "left right fast", cv::Scalar(255,0,0));
+
+    // for each right_point see which detected feature it belongs to
+    cv::Mat right_points_to_find_flat = cv::Mat(right_points_to_find).reshape(1,right_points_to_find.size()); //flatten array
+
+    vector<cv::Point2f>right_features; // detected features
+    KeyPointsToPoints(right_keypoints,right_features);
+
+    cv::Mat right_features_flat = cv::Mat(right_features).reshape(1,right_features.size());
+
+    //FlannBasedMatcher matcher;
+
+    // Look around each OF point in the right image
+    //  for any features that were detected in its area
+    //  and make a match.
+    cv::BFMatcher matcher(CV_L2);
+    vector<vector<cv::DMatch>>nearest_neighbors;
+    matcher.radiusMatch(
+                right_points_to_find_flat,
+                right_features_flat,
+                nearest_neighbors,
+                2.0f);
+
+    // Check that the found neighbors are unique (throw away neighbors
+    //  that are too close together, as they may be confusing)
+    std::set<int>found_in_right_points; // for duplicate prevention
+    for(int i=0;i<nearest_neighbors.size();i++) {
+        cv::DMatch _m;
+        if(nearest_neighbors[i].size()==1) {
+            _m = nearest_neighbors[i][0]; // only one neighbor
+        } else if(nearest_neighbors[i].size()>1) {
+            // 2 neighbors – check how close they are
+            float ratio = nearest_neighbors[i][0].distance / nearest_neighbors[i][1].distance;
+            if(ratio < 0.7) { // not too close
+                // take the closest (first) one
+                _m = nearest_neighbors[i][0];
+            } else { // too close – we cannot tell which is better
+                continue; // did not pass ratio test – throw away
+            }
+        } else {
+            continue; // no neighbors... :(
+        }
+
+        // prevent duplicates
+        if (found_in_right_points.find(_m.trainIdx) == found_in_right_points.end()) {
+            // The found neighbor was not yet used:
+            // We should match it with the original indexing
+            // ofthe left point
+            _m.queryIdx = right_points_to_find_back_index[_m.queryIdx];
+            matches.push_back(_m); // add this match
+            found_in_right_points.insert(_m.trainIdx);
+        }
+    }
+    cout<<"pruned "<< matches.size() <<" / "<<nearest_neighbors.size() <<" matches"<<endl;
+
+    cv::Mat img_out;
+    cv::drawMatches(frame_L1, left_keypoints, frame_R1, right_keypoints, matches, img_out);
+    cv::imshow("test fast matches", img_out);
+    cv::waitKey();
 }
 
 void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f> &inliers1, vector<cv::Point2f> &inliers2){
@@ -350,130 +495,4 @@ void normalizePoints(const cv::Mat& KLInv, const cv::Mat& KRInv, const vector<cv
     }
     cv::convertPointsFromHomogeneous(points_Lh, normPoints_L);
     cv::convertPointsFromHomogeneous(points_Rh, normPoints_R);
-}
-
-
-void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f> &points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2){
-    // find corresponding points
-    vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
-    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 20,0.001,5);
-
-    if (0 == features.size()){
-        return;
-    }
-
-    refindFeaturePoints(frame_L1, frame_R1, features, points_L1_temp, points_R1_temp);
-    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, points_L1a_temp, points_L2_temp);
-    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, points_R1a_temp, points_R2_temp);
-
-    //    drawPoints(frame_L1, features, "feaures left found" , cv::Scalar(2,55,212));
-    //    drawPoints(frame_R1, points_R1_temp, "feaures right found" , cv::Scalar(2,55,212));
-
-
-    // delete in all frames points, that are not visible in each frames
-    deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
-
-
-    for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
-        points_L1.push_back(points_L1_temp[i]);
-        points_R1.push_back(points_R1_temp[i]);
-        points_L2.push_back(points_L2_temp[i]);
-        points_R2.push_back(points_R2_temp[i]);
-    }
-}
-
-void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2) {
-    vector<cv::DMatch> matches;
-
-    vector<cv::KeyPoint>left_keypoints,right_keypoints;
-
-    // Detect keypoints in the left and right images
-    cv::FastFeatureDetector ffd;
-    ffd.detect(frame_L1, left_keypoints);
-    ffd.detect(frame_R1, right_keypoints);
-
-    vector<cv::Point2f>left_points;
-    KeyPointsToPoints(left_keypoints,left_points);
-
-    vector<cv::Point2f>right_points(left_points.size());
-
-    // Calculate the optical flow field:
-    //  how each left_point moved across the 2 images
-    vector<uchar>vstatus; vector<float>verror;
-    cv::calcOpticalFlowPyrLK(frame_L1, frame_R1, left_points, right_points, vstatus, verror);
-
-    // First, filter out the points with high error
-    vector<cv::Point2f>right_points_to_find;
-    vector<int>right_points_to_find_back_index;
-    for (unsigned int i=0; i<vstatus.size(); i++) {
-        if (vstatus[i] &&verror[i] < 12.0) {
-            // Keep the original index of the point in the
-            // optical flow array, for future use
-            right_points_to_find_back_index.push_back(i);
-            // Keep the feature point itself
-            right_points_to_find.push_back(right_points[i]);
-        } else {
-            vstatus[i] = 0; // a bad flow
-        }
-    }
-
-    drawCorresPoints(frame_L1, left_points, right_points, "left right fast", cv::Scalar(255,0,0));
-
-    // for each right_point see which detected feature it belongs to
-    cv::Mat right_points_to_find_flat = cv::Mat(right_points_to_find).reshape(1,right_points_to_find.size()); //flatten array
-
-    vector<cv::Point2f>right_features; // detected features
-    KeyPointsToPoints(right_keypoints,right_features);
-
-    cv::Mat right_features_flat = cv::Mat(right_features).reshape(1,right_features.size());
-
-    //FlannBasedMatcher matcher;
-
-    // Look around each OF point in the right image
-    //  for any features that were detected in its area
-    //  and make a match.
-    cv::BFMatcher matcher(CV_L2);
-    vector<vector<cv::DMatch>>nearest_neighbors;
-    matcher.radiusMatch(
-                right_points_to_find_flat,
-                right_features_flat,
-                nearest_neighbors,
-                2.0f);
-
-    // Check that the found neighbors are unique (throw away neighbors
-    //  that are too close together, as they may be confusing)
-    std::set<int>found_in_right_points; // for duplicate prevention
-    for(int i=0;i<nearest_neighbors.size();i++) {
-        cv::DMatch _m;
-        if(nearest_neighbors[i].size()==1) {
-            _m = nearest_neighbors[i][0]; // only one neighbor
-        } else if(nearest_neighbors[i].size()>1) {
-            // 2 neighbors – check how close they are
-            float ratio = nearest_neighbors[i][0].distance / nearest_neighbors[i][1].distance;
-            if(ratio < 0.7) { // not too close
-                // take the closest (first) one
-                _m = nearest_neighbors[i][0];
-            } else { // too close – we cannot tell which is better
-                continue; // did not pass ratio test – throw away
-            }
-        } else {
-            continue; // no neighbors... :(
-        }
-
-        // prevent duplicates
-        if (found_in_right_points.find(_m.trainIdx) == found_in_right_points.end()) {
-            // The found neighbor was not yet used:
-            // We should match it with the original indexing
-            // ofthe left point
-            _m.queryIdx = right_points_to_find_back_index[_m.queryIdx];
-            matches.push_back(_m); // add this match
-            found_in_right_points.insert(_m.trainIdx);
-        }
-    }
-    cout<<"pruned "<< matches.size() <<" / "<<nearest_neighbors.size() <<" matches"<<endl;
-
-    cv::Mat img_out;
-    cv::drawMatches(frame_L1, left_keypoints, frame_R1, right_keypoints, matches, img_out);
-    cv::imshow("test fast matches", img_out);
-    cv::waitKey();
 }

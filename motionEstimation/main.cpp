@@ -21,11 +21,11 @@
 //
 
 int main(){
-    int frame=1;
+    int frame=0;
 
     //load file names
     std::vector<string> filenames_left, filenames_right;
-    string dataPath = "data/moritz/";
+    string dataPath = "data/maliksupertest/";
     getFiles(dataPath + "left/", filenames_left);
     getFiles(dataPath + "right/", filenames_right);
 
@@ -172,6 +172,8 @@ int main(){
         //        rotatePointCloud(pointCloud_inlier_1, currentPos_Stereo);
         //        rotatePointCloud(pointCloud_inlier_2, currentPos_Stereo);
 
+        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
+
         int index = 0;
         for (auto i : pointCloud_inlier_1) {
             float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
@@ -179,7 +181,6 @@ int main(){
             ++index;
         }
 
-        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers triangulation", cv::Scalar(0,255,0));
 
         std::vector<cv::Point3f> pcloud_CV;
         TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
@@ -191,8 +192,8 @@ int main(){
             ++index;
         }
 
-        //AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
-        //AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
+        AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
+        AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
 
         //AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
 
@@ -327,12 +328,16 @@ int main(){
         // ##############################################################################
 #endif
 
-#if 0
+#if 1
         // ################################# STEREO #####################################
         // for cv::waitKey input:
-//        drawPoints(image_L1, inlier_median_L1, "points links", cv::Scalar(255,0,0));
-//        drawPoints(image_R1, inlier_median_R1, "points rechts", cv::Scalar(255,0,0));
+        drawPoints(image_L1, inlier_median_L1, "points 1 links", cv::Scalar(0,255,0));
+        drawPoints(image_R1, inlier_median_R1, "points 1 rechts", cv::Scalar(0,255,0));
+        drawPoints(image_L2, inlier_median_L2, "points 2 links", cv::Scalar(0,255,0));
+        drawPoints(image_R2, inlier_median_R2, "points 2 rechts", cv::Scalar(0,255,0));
 
+
+#if 1
         //load disparity map
         cv::Mat dispMap1;
         cv::FileStorage fs_dist1(dataPath + "disparity/disparity_"+to_string(frame)+".yml", cv::FileStorage::READ);
@@ -371,14 +376,11 @@ int main(){
 
         AddPointcloudToVisualizer(pcloud1, "pcloud1", rgb1);
         AddPointcloudToVisualizer(pcloud2, "pcloud2", rgb2);
-
-
-
-
-
+#endif
 
         cv::Mat T_Stereo, R_Stereo;
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pcloud1, pcloud2, T_Stereo, R_Stereo);
+        //bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
         if (!poseEstimationFoundStereo){
             T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
             R_Stereo = cv::Mat::eye(3, 3, CV_32F);

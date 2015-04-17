@@ -21,11 +21,11 @@
 //
 
 int main(){
-    int frame=0;
+    int frame=1;
 
     //load file names
     std::vector<string> filenames_left, filenames_right;
-    string dataPath = "data/maliksupertest/";
+    string dataPath = "data/moritz/";
     getFiles(dataPath + "left/", filenames_left);
     getFiles(dataPath + "right/", filenames_right);
 
@@ -179,6 +179,8 @@ int main(){
             ++index;
         }
 
+        drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers triangulation", cv::Scalar(0,255,0));
+
         std::vector<cv::Point3f> pcloud_CV;
         TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
 
@@ -325,7 +327,7 @@ int main(){
         // ##############################################################################
 #endif
 
-#if 1
+#if 0
         // ################################# STEREO #####################################
         // for cv::waitKey input:
 //        drawPoints(image_L1, inlier_median_L1, "points links", cv::Scalar(255,0,0));

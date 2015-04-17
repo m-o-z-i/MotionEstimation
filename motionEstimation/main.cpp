@@ -352,8 +352,8 @@ int main(){
         dispMap1.convertTo(dispMap1, CV_32F);
         dispMap2.convertTo(dispMap2, CV_32F);
 
-        vector <cv::Mat_<float>> cloud1;
-        vector <cv::Mat_<float>> cloud2;
+        std::vector <cv::Mat_<float>> cloud1;
+        std::vector <cv::Mat_<float>> cloud2;
         for(unsigned int i = 0; i < inlier_median_L1.size(); ++i){
             cv::Mat_<float> point3D1(1,4);
             cv::Mat_<float> point3D2(1,4);
@@ -376,11 +376,15 @@ int main(){
 
         AddPointcloudToVisualizer(pcloud1, "pcloud1", rgb1);
         AddPointcloudToVisualizer(pcloud2, "pcloud2", rgb2);
-#endif
 
         cv::Mat T_Stereo, R_Stereo;
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pcloud1, pcloud2, T_Stereo, R_Stereo);
-        //bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
+
+#else
+        cv::Mat T_Stereo, R_Stereo;
+        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
+#endif
+
         if (!poseEstimationFoundStereo){
             T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
             R_Stereo = cv::Mat::eye(3, 3, CV_32F);

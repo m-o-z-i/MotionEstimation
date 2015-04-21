@@ -22,4 +22,7 @@ void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPo
 void decomposeRotMat(const cv::Mat& R, float& x, float& y, float& z);
 bool calcCoordinate(cv::Mat_<float> &toReturn,cv::Mat const& Q, cv::Mat const& disparityMap,int x,int y);
 
+
+void rotateRandT(cv::Mat& Trans, cv::Mat& Rot);
+
 #endif // UTILITY_H

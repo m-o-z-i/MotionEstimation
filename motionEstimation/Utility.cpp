@@ -96,6 +96,18 @@ void rotatePointCloud(std::vector<cv::Point3f>& cloud, const cv::Mat P){
         i = cv::Point3f(newPoint);
     }
 }
+
+void rotateRandT(cv::Mat& Trans, cv::Mat& Rot){
+    // Rotate R and T Mat
+    cv::Mat R = (cv::Mat_<float>(3,3) <<
+                -1, 0, 0,
+                 0,-1, 0,
+                 0, 0, 1);
+
+    Trans = R * Trans;
+    Rot = R * Rot;
+}
+
 void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Point2f>& ps) {
     ps.clear();
     for (unsigned int i=0; i<kps.size(); i++) ps.push_back(kps[i].pt);

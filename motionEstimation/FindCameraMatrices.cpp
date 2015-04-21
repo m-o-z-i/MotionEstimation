@@ -31,14 +31,14 @@ bool getRightProjectionMat( cv::Mat& E,
         // validation of E
         bool ValidationOfE = DecomposeEtoRandT(E,R1,R2,t1,t2);     // extract cameras [R|t]
         if (!ValidationOfE) return false;
-        if(determinant(R1)+1.0 < 1e-05 || determinant(R2)+1.0 < 1e-05) {
+        if(determinant(R1)+1.0 < 1e-03 || determinant(R2)+1.0 < 1e-03) {
             //according to http://en.wikipedia.org/wiki/Essential_matrix#Showing_that_it_is_valid
             cout << "det(R) == -1 ["<<determinant(R1)<<"]: flip E's sign" << endl;
             E = -E;
             DecomposeEtoRandT(E,R1,R2,t1,t2);
         }
         if (!CheckCoherentRotation(R1) && !CheckCoherentRotation(R2)) {
-            cout << "resulting rotations are not coherent\n";
+            cout << "det(R) != +-1.0, this is not a rotation matrix" << endl;
             return false;
         }
 
@@ -46,7 +46,7 @@ bool getRightProjectionMat( cv::Mat& E,
         std::vector<cv::Mat_<float>> Translations{t1,t2};
 
         int counter = 0;
-        std::vector<cv::Point3f> pcloud, worldCoordinates;
+        std::vector<cv::Point3f> pcloud;
         bool foundPerspectiveMatrix = false;
 
         // find right solution of 4 possible translations and rotations
@@ -166,20 +166,20 @@ bool DecomposeEtoRandT(const cv::Mat& E,
 
     //check if first and second singular values are the same (as they should be)
     float singular_values_ratio = fabsf(svd_w.at<float>(0) / svd_w.at<float>(1));
-    if(singular_values_ratio>1.0) singular_values_ratio = 1.0/singular_values_ratio; // flip ratio to keep it [0,1]
-    if (singular_values_ratio < 0.7) {
-        cout << "singular values are too far apart\n";
+    if((singular_values_ratio < 0.8 || singular_values_ratio > 1.2) && svd_w.at<float>(2) < 1e-04){
+        std::cout << "#####################################################" << std::endl;
+        std::cout << "singular values are too far apart... no rot and trans for this frame" << std::endl;
         return false;
     }
 
     //HZ 9.13
-    cv::Matx33f W(0,-1,0,
-                  1,0,0,
-                  0,0,1);
+    cv::Matx33f W(0,-1, 0,
+                  1, 0, 0,
+                  0, 0, 1);
 
-    cv::Matx33f Wt(0,1,0,
-                   -1,0,0,
-                   0,0,1);
+    cv::Matx33f Wt(0, 1, 0,
+                  -1, 0, 0,
+                   0, 0, 1);
 
     R1 = svd_u * cv::Mat(W) * svd_vt; //HZ 9.19
     R2 = svd_u * cv::Mat(Wt) * svd_vt; //HZ 9.19
@@ -198,8 +198,7 @@ bool DecomposeEtoRandT(const cv::Mat& E,
  * we can simply do the following:
  */
 bool CheckCoherentRotation(cv::Mat const& R) {
-    if(fabsf(determinant(R))-1.0 > 1e-07) {
-        cerr<<"det(R) != +-1.0, this is not a rotation matrix"<<endl;
+    if(fabsf(determinant(R))-1.0 > 1e-03) {
         return false;
     }
     return true;
@@ -257,7 +256,8 @@ bool getFundamentalMatrix(vector<cv::Point2f>  const& points1, vector<cv::Point2
             inliers2->push_back(cv::Point2f(0,0));
         }
     }
-    return true;
+
+   return true;
 }
 
 

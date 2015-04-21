@@ -43,6 +43,8 @@ void initVisualisation(){
 
     //do not hack!!!!
     viewer.addActorToRenderer(planeActor);
+
+    //viewer.addSphere(pcl::PointXYZ(1000,2500,5000), 50, 255, 0 ,0, "sphere");
 }
 
 void PopulatePCLPointCloud(const std::vector<cv::Point3f> &pointcloud,
@@ -130,22 +132,6 @@ void RunVisualization() {
         viewer.addPointCloud(p.second, p.first);
     }
 
-    // draw cams
-    for (auto c : cam_meshes){
-        viewer.addPolygonMesh(c.second, c.first);
-    }
-
-    // draw camera direction
-    for (auto l : linesToShow){
-        std::vector<Eigen::Matrix<float,6,1> > oneline = l.second;
-        pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
-                B(oneline[1][3],oneline[1][4],oneline[1][5]);
-        for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
-        viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,l.first);
-    }
-
-    cam_meshes.clear();
-    linesToShow.clear();
     point_clouds.clear();
 
 
@@ -171,35 +157,17 @@ void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, 
         line_name = ss.str();
     }
 
-    Eigen::Vector3f t = -R.transpose() * _t;
-
-    Eigen::Vector3f vright = R.row(0).normalized() * s;
-    Eigen::Vector3f vup = -R.row(1).normalized() * s;
     Eigen::Vector3f vforward = R.row(2).normalized() * s;
 
-    Eigen::Vector3f rgb(r,g,b);
+    Eigen::Quaternionf RotQ(R);
+    viewer.addCube(_t, RotQ, 10,10,10,name_);
 
-    pcl::PointCloud<pcl::PointXYZRGB> mesh_cld;
-    mesh_cld.push_back(Eigen2PointXYZRGB(t,rgb));
-    mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward + vright/2.0 + vup/2.0,rgb));
-    mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward + vright/2.0 - vup/2.0,rgb));
-    mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward - vright/2.0 + vup/2.0,rgb));
-    mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward - vright/2.0 - vup/2.0,rgb));
 
-    //TODO Mutex acquire
-    pcl::PolygonMesh pm;
-    pm.polygons.resize(6);
-    for(int i=0;i<6;i++)
-        for(int _v=0;_v<3;_v++)
-            pm.polygons[i].vertices.push_back(ipolygon[i*3 + _v]);
-    pcl::toROSMsg(mesh_cld,pm.cloud);
-    bShowCam = true;
-    cam_meshes.push_back(std::make_pair(name_,pm));
-    //TODO mutex release
+    pcl::PointXYZ point1(_t(0), _t(1), _t(2));
+    Eigen::Vector3f temp = _t+vforward;
+    pcl::PointXYZ point2(temp(0), temp(1), temp(2));
 
-    linesToShow.push_back(std::make_pair(line_name,
-                                         AsVector(Eigen2Eigen(t,rgb),Eigen2Eigen(t + vforward*3.0,rgb))
-                                         ));
+    viewer.addLine(point1, point2, r,g,b, line_name);
 }
 void addCameraToVisualizer(const float R[9], const float t[3], float r, float g, float b) {
     addCameraToVisualizer(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b);

@@ -16,7 +16,7 @@ bool getRightProjectionMat( cv::Mat& E,
                   0.0, 0.0, 1.0, 0.0 );
 
     //according to http://en.wikipedia.org/wiki/Essential_matrix#Properties_of_the_essential_matrix
-    if(fabsf(determinant(E)) > 1) { // > 1e-03
+    if(fabsf(determinant(E)) > 5) { // > 1e-03
         cout << "det(E) != 0 : " << determinant(E) << "\n";
         return false;
     }
@@ -89,7 +89,7 @@ bool getRightProjectionMat( cv::Mat& E,
         }
 
         if (4 == counter) {
-            cout << "Shit. Can't found any right perspective Mat" << endl;
+            cout << "NO MOVEMENT: Can't find any right perspective Mat" << endl;
             return false;
         }
 
@@ -159,7 +159,7 @@ bool DecomposeEtoRandT(const cv::Mat& E,
 #endif
 
     //Using HZ E decomposition
-    cv::SVD svd(E, cv::SVD::MODIFY_A);
+    cv::SVD svd(E, cv::SVD::FULL_UV); //MODIFY_A
     cv::Mat svd_u = svd.u;  // U
     cv::Mat svd_w = svd.w; // D
     cv::Mat svd_vt = svd.vt; // V transpose

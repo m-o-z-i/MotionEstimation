@@ -48,6 +48,10 @@ void getNewPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, c
     newPos = currentPos * deltaPos;
 }
 
+void getNewTrans3D (cv::Mat const& T, cv::Mat const& R, cv::Mat& position){
+    position = -R.t() * T;
+}
+
 
 void decomposeProjectionMat(const cv::Mat& P, cv::Mat& T, cv::Mat& R){
     R = (cv::Mat_<float>(3,3) <<
@@ -100,9 +104,9 @@ void rotatePointCloud(std::vector<cv::Point3f>& cloud, const cv::Mat P){
 void rotateRandT(cv::Mat& Trans, cv::Mat& Rot){
     // Rotate R and T Mat
     cv::Mat R = (cv::Mat_<float>(3,3) <<
-                -1, 0, 0,
-                 0,-1, 0,
-                 0, 0, 1);
+                -1, 0,  0,
+                 0, 1,  0,
+                 0, 0, -1);
 
     Trans = R * Trans;
     Rot = R * Rot;

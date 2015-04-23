@@ -92,7 +92,6 @@ int main(){
     initVisualisation();
 
     while (true){
-
         cout << "FRAME" <<  frame << endl;
 
         //stereo1
@@ -107,7 +106,7 @@ int main(){
         if(! image_L1.data || !image_R1.data || !image_R2.data || !image_L2.data) {
             cout <<  "Could not open or find the image: "  << std::endl ;
             ++frame;
-            continue;
+            break;
         }
 
         // find Points ...
@@ -171,11 +170,11 @@ int main(){
                 RGBValues2.push_back(cv::Vec3b(255,0,0));
             }
 
-            rotatePointCloud(pointCloud_inlier_1);
-            rotatePointCloud(pointCloud_inlier_2);
+//            rotatePointCloud(pointCloud_inlier_1);
+//            rotatePointCloud(pointCloud_inlier_2);
 
-            rotatePointCloud(pointCloud_inlier_1, currentPos_ES_L);
-            rotatePointCloud(pointCloud_inlier_2, currentPos_ES_L);
+//            rotatePointCloud(pointCloud_inlier_1, currentPos_ES_L);
+//            rotatePointCloud(pointCloud_inlier_2, currentPos_ES_L);
 
             //drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
 
@@ -197,8 +196,8 @@ int main(){
 //                ++index;
 //            }
 
-            AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
-            AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
+//            AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
+//            AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
 
         }
 
@@ -245,9 +244,17 @@ int main(){
 //        cout << "u links  2: " << u_L2 << endl;
 //        cout << "u rechts 2: " << u_R2 << endl;
 
+
         //LEFT:
+        //rotateRandT(T_E_L, R_E_L);
+
+        cv::Mat newTrans3D_E_L;
+        getNewTrans3D( T_E_L, R_E_L, newTrans3D_E_L);
+
         cv::Mat newPos_ES_L;
-        getNewPos (currentPos_ES_L, T_E_L, R_E_L, newPos_ES_L);
+        getNewPos (currentPos_ES_L, newTrans3D_E_L, R_E_L, newPos_ES_L);
+
+
         std::stringstream left_ES;
         left_ES << "camera_ES_left" << frame;
 
@@ -258,19 +265,21 @@ int main(){
         addCameraToVisualizer(translation_ES_L, rotation_ES_L, 255, 0, 0, 20, left_ES.str());
 
 
-        //RIGHT:
-        cv::Mat newPos_ES_R;
-        getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
-        std::stringstream right_ES;
-        right_ES << "camera_ES_right" << frame;
+//        //RIGHT:
+//        rotateRandT(T_E_R, R_E_R);
 
-        cv::Mat rotation_ES_R, translation_ES_R;
-        decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
-        //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
-        addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
+//        cv::Mat newPos_ES_R;
+//        getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
+//        std::stringstream right_ES;
+//        right_ES << "camera_ES_right" << frame;
+
+//        cv::Mat rotation_ES_R, translation_ES_R;
+//        decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
+//        //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
+//        addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
 
         currentPos_ES_L = newPos_ES_L;
-        currentPos_ES_R = newPos_ES_R;
+//        currentPos_ES_R = newPos_ES_R;
         // ##############################################################################
 #endif
 
@@ -345,7 +354,7 @@ int main(){
         drawPoints(image_R2, inlierTriang_R2, "points 2 rechts", cv::Scalar(0,255,0));
 
 
-#if 0
+#if 1
         //load disparity map
         cv::Mat dispMap1;
         cv::FileStorage fs_dist1(dataPath + "disparity/disparity_"+to_string(frame)+".yml", cv::FileStorage::READ);
@@ -393,8 +402,8 @@ int main(){
         bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
 #endif
 
-        T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
         if (!poseEstimationFoundStereo){
+            T_Stereo = cv::Mat::zeros(3, 1, CV_32F);
             R_Stereo = cv::Mat::eye(3, 3, CV_32F);
         }
 
@@ -425,12 +434,13 @@ int main(){
         // ##############################################################################
 #endif
 
-        RunVisualization();
         ++frame;
-        cv::waitKey();
 
         // To Do:
         // swap image files...
+        RunVisualization();
     }
+    cv::namedWindow("etst", cv::WINDOW_NORMAL);
+    cv::waitKey();
     return 0;
 }

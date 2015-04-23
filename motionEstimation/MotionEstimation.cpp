@@ -9,7 +9,7 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
 {
     if(pointCloud_1LR.size() <= 7 || imgPoints.size() <= 7 || pointCloud_1LR.size() != imgPoints.size()) {
         //something went wrong aligning 3D to 2D points..
-        cerr << "couldn't find [enough] corresponding cloud points... (only " << pointCloud_1LR.size() << ")" <<endl;
+        cerr << "NO MOVEMENT: couldn't find [enough] corresponding cloud points... (only " << pointCloud_1LR.size() << ")" <<endl;
         return false;
     }
 
@@ -37,19 +37,19 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
     }
 
     if(inliers.size() < (float)(imgPoints.size())/5.0) {
-        cerr << "not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
+        cerr << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
         return false;
     }
 
     if(cv::norm(T) > 2000.0) {
         // this is bad...
-        cerr << "estimated camera movement is too big, skip this camera\r\n";
+        cerr << "NO MOVEMENT: estimated camera movement is too big, skip this camera\r\n";
         return false;
     }
 
     cv::Rodrigues(rvec, R);
     if(!CheckCoherentRotation(R)) {
-        cerr << "rotation is incoherent. we should try a different base view..." << endl;
+        cerr << "NO MOVEMENT: rotation is incoherent. we should try a different base view..." << endl;
         return false;
     }
 
@@ -64,7 +64,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
                                    cv::Mat& T, cv::Mat& R)
 {
     if (8 > points1.size()) {
-        cout << "to less points found" << endl;
+        cout << "NO MOVEMENT: to less points found" << endl;
         return false;
     }
 
@@ -77,7 +77,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
 
     // can't find fundamental Mat
     if (!foundF){
-        std::cout << "can't find F" << std::endl;
+        std::cout << "NO MOVEMENT: can't find F" << std::endl;
         return false;
     }
 
@@ -111,7 +111,7 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
     bool goodPFound = getRightProjectionMat(E, P, normPoints1, normPoints2, pointCloud);
 
     if (!goodPFound) {
-        cout << "can't estimate motion no perspective Mat Found" << endl;
+        cout << "NO MOVEMENT: no perspective Mat Found" << endl;
         return false;
     }
 

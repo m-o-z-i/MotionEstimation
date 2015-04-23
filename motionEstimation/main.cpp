@@ -115,26 +115,26 @@ int main(){
 
         //fastFeatureMatcher(image_L1, image_L2, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
-        std::vector<cv::Point2f> inlier_median_L1, inlier_median_R1, inlier_median_L2, inlier_median_R2;
-        getInliersFromMedianValue(make_pair(points_L1, points_R1), inlier_median_L1, inlier_median_R1);
-        getInliersFromMedianValue(make_pair(points_L2, points_R2), inlier_median_L2, inlier_median_R2);
-        deleteZeroLines(inlier_median_L1, inlier_median_R1, inlier_median_L2, inlier_median_R2);
 
-
+#if 0
+        // ######################## TRIANGULATION TEST ################################
+        // NORMALIZE POINTS
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
         normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
 
-        std::vector<cv::Point3f> pointCloud_1;
+        // TRIANGULATE POINTS
+        std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
         TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+        TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
 
 
-        // triangulate both stereo setups..
-        // find inliers from median value
+        // STEREO INLIER (POINTS HAVE TO BE LOCATED ON A HORIZONTAL LINE)
         std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
         getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), horizontal_L1, horizontal_R1);
         getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), horizontal_L2, horizontal_R2);
         deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
+
 
         if(0 == horizontal_L1.size()) {
             cout <<  "horizontal inlier: can't find any corresponding points in all 4 frames' "  << std::endl ;
@@ -142,10 +142,12 @@ int main(){
             continue;
         }
 
+        // NORMALIZE HORIZONTAL POINTS
         std::vector<cv::Point2f> normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian;
         normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1_Trian, normP_R1_Trian);
         normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2_Trian, normP_R2_Trian);
 
+        // TRIANGULATE HORIZONTAL POINTS AND GET INLIER
         std::vector<cv::Point3f> pointCloud_inlier_1, pointCloud_inlier_2;
         std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
         TriangulatePointsWithInlier(P_0, P_LR, normP_L1_Trian, normP_R1_Trian, 0, pointCloud_inlier_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
@@ -157,56 +159,59 @@ int main(){
             cout <<  "no translation? (triangulation fails by no translation)"  << std::endl ;
             ++frame;
             continue;
-        } else {
-            // get RGB values for pointcloud representation
-            std::vector<cv::Vec3b> RGBValues;
-            for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
-                uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
-                RGBValues.push_back(cv::Vec3b(0,255,0));
-            }
-
-            std::vector<cv::Vec3b> RGBValues2;
-            for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
-                RGBValues2.push_back(cv::Vec3b(255,0,0));
-            }
-
-//            rotatePointCloud(pointCloud_inlier_1);
-//            rotatePointCloud(pointCloud_inlier_2);
-
-//            rotatePointCloud(pointCloud_inlier_1, currentPos_ES_L);
-//            rotatePointCloud(pointCloud_inlier_2, currentPos_ES_L);
-
-            //drawCorresPoints(image_L1, inlierTriang_L1, inlierTriang_R1, "inliers Triangulation", CV_RGB(0,255,0));
-
-//            int index = 0;
-//            for (auto i : pointCloud_inlier_1) {
-//                float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-//                cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
-//                ++index;
-//            }
-
-
-//            std::vector<cv::Point3f> pcloud_CV;
-//            TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
-
-//            index = 0;
-//            for (auto i : pcloud_CV) {
-//                float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-//                cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
-//                ++index;
-//            }
-
-//            AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
-//            AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
-
+         }
+        // get RGB values for pointcloud representation
+        std::vector<cv::Vec3b> RGBValues;
+        for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
+            uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+            RGBValues.push_back(cv::Vec3b(0,255,0));
         }
 
+        std::vector<cv::Vec3b> RGBValues2;
+        for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
+            RGBValues2.push_back(cv::Vec3b(255,0,0));
+        }
 
-        //AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
+        rotatePointCloud(pointCloud_inlier_1);
+        rotatePointCloud(pointCloud_inlier_2);
+
+        rotatePointCloud(pointCloud_inlier_1, currentPos_ES_L);
+        rotatePointCloud(pointCloud_inlier_2, currentPos_ES_L);
+
+        int index = 0;
+        for (auto i : pointCloud_inlier_1) {
+            float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+            cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
+            ++index;
+        }
+
+        std::vector<cv::Point3f> pcloud_CV;
+        TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
+
+        index = 0;
+        for (auto i : pcloud_CV) {
+            float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+            cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
+            ++index;
+        }
+
+        AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
+        AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
+
+        AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
+#endif
 
 
-#if 1
+
+
+
+#if 0
         // ######################## ESSENTIAL MAT ################################
+        // NORMALIZE POINTS
+        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+        normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+        normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
         cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
         // UP TO SCALE!!!
         bool poseEstimationFoundES_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_E_L, R_E_L);
@@ -228,7 +233,7 @@ int main(){
         cv::Mat P_L, P_R;
         composeProjectionMat(T_E_L, R_E_L, P_L);
         composeProjectionMat(T_E_R, R_E_R, P_R);
-        getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian, u_L1, u_R1);
+        getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
         cv::Mat T_E_L1 = T_E_L * u_L1;
         cv::Mat T_E_R1 = T_E_R * u_R1;
 
@@ -285,6 +290,17 @@ int main(){
 
 #if 0
         // ################################## PnP #######################################
+        // NORMALIZE POINTS
+        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+        normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+        normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
+        // TRIANGULATE POINTS
+        std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+        TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+        TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+
+
         cv::Mat T_PnP_L, R_PnP_L, T_PnP_R, R_PnP_R;
 
         // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
@@ -313,10 +329,12 @@ int main(){
             R_PnP_R = cv::Mat::eye(3, 3, CV_32F);
         }
 
+        cv::Mat newTrans3D_PnP_L;
+        getNewTrans3D( T_PnP_L, R_PnP_L, newTrans3D_PnP_L);
 
         //LEFT:
         cv::Mat newPos_PnP_L;
-        getNewPos (currentPos_PnP_L, T_PnP_L, R_PnP_L, newPos_PnP_L);
+        getNewPos (currentPos_PnP_L, newTrans3D_PnP_L, R_PnP_L, newPos_PnP_L);
         std::stringstream left_PnP;
         left_PnP << "camera_PnP_left" << frame;
 
@@ -325,36 +343,80 @@ int main(){
         std::cout << "T_PnP_left: " << translation_PnP_L << std::endl;
 
         addCameraToVisualizer(translation_PnP_L, rotation_PnP_L, 0, 255, 0, 20, left_PnP.str());
-
-
-        //RIGHT:
-        cv::Mat newPos_PnP_R;
-        getNewPos (currentPos_PnP_R, T_PnP_R, R_PnP_R, newPos_PnP_R);
-        std::stringstream right_PnP;
-        right_PnP << "camera_PnP_right" << frame;
-
-        cv::Mat rotation_PnP_R, translation_PnP_R;
-        decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
-        std::cout << "T_PnP_left: " << translation_PnP_R << std::endl;
-
-        addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
-
-
         currentPos_PnP_L  = newPos_PnP_L ;
-        currentPos_PnP_R  = newPos_PnP_R ;
+
+
+//        //RIGHT:
+//        cv::Mat newPos_PnP_R;
+//        getNewPos (currentPos_PnP_R, T_PnP_R, R_PnP_R, newPos_PnP_R);
+//        std::stringstream right_PnP;
+//        right_PnP << "camera_PnP_right" << frame;
+
+//        cv::Mat rotation_PnP_R, translation_PnP_R;
+//        decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
+//        std::cout << "T_PnP_left: " << translation_PnP_R << std::endl;
+
+//        addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
+
+
+        //currentPos_PnP_R  = newPos_PnP_R ;
         // ##############################################################################
 #endif
 
 #if 0
         // ################################# STEREO #####################################
+
+        // NORMALIZE POINTS
+        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+        normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+        normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
+        // TRIANGULATE POINTS
+        std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+        TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+        TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+
+
+        // STEREO INLIER (POINTS HAVE TO BE LOCATED ON A HORIZONTAL LINE)
+        std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
+        getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), horizontal_L1, horizontal_R1);
+        getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), horizontal_L2, horizontal_R2);
+        deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
+
+
+        if(0 == horizontal_L1.size()) {
+            cout <<  "horizontal inlier: can't find any corresponding points in all 4 frames' "  << std::endl ;
+            ++frame;
+            continue;
+        }
+
+        // NORMALIZE HORIZONTAL POINTS
+        std::vector<cv::Point2f> normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian;
+        normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1_Trian, normP_R1_Trian);
+        normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2_Trian, normP_R2_Trian);
+
+        // TRIANGULATE HORIZONTAL POINTS AND GET INLIER
+        std::vector<cv::Point3f> pointCloud_inlier_1, pointCloud_inlier_2;
+        std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L1_Trian, normP_R1_Trian, 0, pointCloud_inlier_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
+        TriangulatePointsWithInlier(P_0, P_LR, normP_L2_Trian, normP_R2_Trian, 0, pointCloud_inlier_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
+        deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_inlier_1, pointCloud_inlier_2);
+
+        if(0 == inlierTriang_L1.size()) {
+            cout <<  "triangulation inlier: can't find inlier"  << std::endl ;
+            cout <<  "no translation? (triangulation fails by no translation)"  << std::endl ;
+            ++frame;
+            continue;
+         }
+
         // for cv::waitKey input:
-        drawPoints(image_L1, inlierTriang_L1, "points 1 links", cv::Scalar(0,255,0));
-        drawPoints(image_R1, inlierTriang_R1, "points 1 rechts", cv::Scalar(0,255,0));
-        drawPoints(image_L2, inlierTriang_L2, "points 2 links", cv::Scalar(0,255,0));
-        drawPoints(image_R2, inlierTriang_R2, "points 2 rechts", cv::Scalar(0,255,0));
+        drawPoints(image_L1, points_L1, "points 1 links", cv::Scalar(0,255,0));
+        drawPoints(image_R1, points_R1, "points 1 rechts", cv::Scalar(0,255,0));
+        drawPoints(image_L2, points_L2, "points 2 links", cv::Scalar(0,255,0));
+        drawPoints(image_R2, points_R2, "points 2 rechts", cv::Scalar(0,255,0));
 
 
-#if 1
+#if 0
         //load disparity map
         cv::Mat dispMap1;
         cv::FileStorage fs_dist1(dataPath + "disparity/disparity_"+to_string(frame)+".yml", cv::FileStorage::READ);
@@ -399,7 +461,7 @@ int main(){
 
 #else
         cv::Mat T_Stereo, R_Stereo;
-        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_inlier_1, pointCloud_inlier_2, T_Stereo, R_Stereo);
+        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);
 #endif
 
         if (!poseEstimationFoundStereo){
@@ -418,9 +480,12 @@ int main(){
         cout << "y angle:"<< y_angle << endl;
         cout << "z angle:"<< z_angle << endl;
 
+        cv::Mat newTrans3D_Stereo;
+        getNewTrans3D( T_Stereo, R_Stereo, newTrans3D_Stereo);
+
         //STEREO:
         cv::Mat newPos_Stereo;
-        getNewPos (currentPos_Stereo, T_Stereo, R_Stereo, newPos_Stereo);
+        getNewPos (currentPos_Stereo, newTrans3D_Stereo, R_Stereo, newPos_Stereo);
         std::stringstream stereo;
         stereo << "camera_Stereo" << frame;
 

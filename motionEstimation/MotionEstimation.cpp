@@ -1,58 +1,6 @@
 #include "MotionEstimation.h"
 
 
-bool TestTriangulation (const cv::Mat& image_L1,
-                        const std::vector<cv::Point2f>& points_L1,
-                        const std::vector<cv::Point2f>& points_R1,
-                        const cv::Mat& P_0, const cv::Mat& P_LR,
-                        const cv::Mat& KInv_L, const cv::Mat& KInv_R)
-{
-    // find inliers from median value
-    std::vector<cv::Point2f> inliers_L1, inliers_R1;
-    getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliers_L1, inliers_R1);
-    deleteZeroLines(inliers_L1, inliers_R1);
-
-    if (3 >= points_L1.size()) {
-        cout << "to less points found" << endl;
-        return false;
-    }
-
-    cv::Mat color_image;
-    cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
-    drawCorresPoints(color_image, inliers_L1, inliers_R1, "test triangulation normalized points ", CV_RGB(255,0,255));
-
-    std::vector<cv::Point2f> normP_L1, normP_R1;
-    normalizePoints(KInv_L, KInv_R, inliers_L1, inliers_R1, normP_L1, normP_R1);
-
-    std::vector<cv::Vec3b> RGBValues1, RGBValues2, RGBValues3;
-    for (unsigned int i = 0; i < normP_L1.size(); ++i){
-        uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
-        RGBValues1.push_back(cv::Vec3b(grey,grey,grey));
-        //RGBValues1.push_back(cv::Vec3b(255,0,0));
-        //RGBValues2.push_back(cv::Vec3b(0,255,0));
-        //RGBValues3.push_back(cv::Vec3b(0,0,255));
-    }
-
-    std::vector<cv::Point3f> pCloudTest1, pCloudTest2, pCloudTest3;
-    TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pCloudTest1);
-    //triangulate(P0, P_LR, normP_L1, normP_R1,pCloudTest2);
-    //TriangulateOpenCV(P0, P_LR, K_L, K_R, points_L1, points_R1, pCloudTest3);
-    //            int index = 0;
-    //            for (unsigned int i = 0; i < pCloudTest1.size(); ++i){
-    //                cout<< index << ":  HZ: " << pCloudTest1[i] << endl;
-    //                cout<< index << ":  ST: " << pCloudTest2[i] << endl;
-    //                cout<< index << ":  CV: " << pCloudTest3[i] << endl << endl;
-    //                ++index;
-    //            }
-    //AddPointcloudToVisualizer(pCloudTest1, std::to_string(frame)+"HZ", RGBValues1);
-    //AddPointcloudToVisualizer(pCloudTest2, std::to_string(frame)+"ST", RGBValues2);
-    //AddPointcloudToVisualizer(pCloudTest3, std::to_string(frame)+"CV", RGBValues3);
-
-    //addCameraToVisualizer(R_0, T_0, 0, 255, 0, 50, "camL");
-    //addCameraToVisualizer(R_LR, T_LR, 255, 0, 0, 50, "camR");
-}
-
-
 // find pose estimation using orientation mapping of pointcloud with ransac
 bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
                           const std::vector<cv::Point3f>& pointCloud_1LR,
@@ -135,6 +83,17 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
 
     // make sure that there are all inliers in all frames.
     deleteZeroLines(inliersF1, inliersF2);
+
+// compute F again for better results?!
+//    std::vector<uchar> inliers_fundamental2(inliersF1.size(),0);
+//    cv::Mat F2 = cv::findFundamentalMat(
+//                cv::Mat(inliersF1), cv::Mat(inliersF2),   // matching points
+//                inliers_fundamental2,                             // match status (inlier ou outlier)
+//                cv::FM_8POINT,                                   // RANSAC method
+//                5.,                                              // distance to epipolar line
+//                .01);                                            // confidence probability
+
+//    F2.convertTo(F2, CV_32F);
 
     drawCorresPoints(image1, inliersF1, inliersF2, "inliers 1 to 2", CV_RGB(0,255,0));
     //drawEpipolarLines(image1, inliersF1, F);

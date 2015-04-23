@@ -36,10 +36,4 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
                           const cv::Mat& K,
                           cv::Mat& T, cv::Mat& R);
 
-bool TestTriangulation(const std::vector<cv::Point2f>& points_L1,
-                        const std::vector<cv::Point2f>& points_R1,
-                        const cv::Mat& P_LR, const cv::Mat& KInv_L,
-                        const cv::Mat& KInv_R);
-
-
 #endif // MOTIONESTIMATION_H

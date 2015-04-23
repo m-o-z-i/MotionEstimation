@@ -363,18 +363,24 @@ int main(){
         // ##############################################################################
 #endif
 
-#if 0
+#if 1
         // ################################# STEREO #####################################
+        std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
+        std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
+        cv::Mat F_L, F_R;
+        bool foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
+        bool foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
+        deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
 
-        // NORMALIZE POINTS
-        std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-        normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-        normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+        // NORMALIZE FUMDAMENTAL POINTS
+        std::vector<cv::Point2f> normPF_L1, normPF_R1, normPF_L2, normPF_R2;
+        normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normPF_L1, normPF_R1);
+        normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normPF_L2, normPF_R2);
 
         // TRIANGULATE POINTS
-        std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-        TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-        TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+        std::vector<cv::Point3f> pointCloud_F_1, pointCloud_F_2;
+        TriangulatePointsHZ(P_0, P_LR, normPF_L1, normPF_R1, 0, pointCloud_F_1);
+        TriangulatePointsHZ(P_0, P_LR, normPF_L2, normPF_R2, 0, pointCloud_F_2);
 
 
         // STEREO INLIER (POINTS HAVE TO BE LOCATED ON A HORIZONTAL LINE)
@@ -410,10 +416,8 @@ int main(){
          }
 
         // for cv::waitKey input:
-        drawPoints(image_L1, points_L1, "points 1 links", cv::Scalar(0,255,0));
-        drawPoints(image_R1, points_R1, "points 1 rechts", cv::Scalar(0,255,0));
-        drawPoints(image_L2, points_L2, "points 2 links", cv::Scalar(0,255,0));
-        drawPoints(image_R2, points_R2, "points 2 rechts", cv::Scalar(0,255,0));
+        drawCorresPoints(image_L1, inliersF_L1, inliersF_R1, "inlier F1 links rechts", cv::Scalar(255,255,0));
+        drawCorresPoints(image_L2, inliersF_L2, inliersF_R2, "inlier F2 links rechts", cv::Scalar(255,255,0));
 
 
 #if 0
@@ -461,7 +465,7 @@ int main(){
 
 #else
         cv::Mat T_Stereo, R_Stereo;
-        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);
+        bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_F_1, pointCloud_F_2, T_Stereo, R_Stereo);
 #endif
 
         if (!poseEstimationFoundStereo){

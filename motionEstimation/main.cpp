@@ -23,6 +23,12 @@
 int main(){
     int frame=0;
 
+    //config file
+    int mode = 0;
+    cv::FileStorage config("data/config.yml", cv::FileStorage::READ);
+    config["mode"] >> mode;
+    config.release();
+
     //load file names
     std::vector<string> filenames_left, filenames_right;
     string dataPath = "data/stereoImages/dbl/";
@@ -116,8 +122,8 @@ int main(){
         //fastFeatureMatcher(image_L1, image_L2, image_L2, image_R2, points_L1, points_R1, points_L2, points_R2);
 
 
-#if 0
         // ######################## ESSENTIAL MAT ################################
+if(1 == mode) {
         // NORMALIZE POINTS
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
         normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
@@ -197,9 +203,9 @@ int main(){
         currentPos_ES_L = newPos_ES_L;
 //        currentPos_ES_R = newPos_ES_R;
         // ##############################################################################
-#endif
+}
 
-#if 1
+if (2 == mode) {
         // ################################## PnP #######################################
         // NORMALIZE POINTS
         std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
@@ -275,9 +281,9 @@ int main(){
         //currentPos_PnP_R  = newPos_PnP_R ;
 
         // ##############################################################################
-#endif
+}
 
-#if 0
+if (3 == mode) {
         // ################################# STEREO #####################################
         std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
         std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
@@ -415,7 +421,7 @@ int main(){
 
         currentPos_Stereo = newPos_Stereo;
         // ##############################################################################
-#endif
+}
 
 #if 0
         // ######################## TRIANGULATION TEST ################################
@@ -508,7 +514,8 @@ int main(){
         // swap image files...
         RunVisualization();
     }
-    cv::namedWindow("etst", cv::WINDOW_NORMAL);
+    cv::namedWindow("waitkey", cv::WINDOW_NORMAL);
+    cv::waitKey();
     cv::waitKey();
     return 0;
 }

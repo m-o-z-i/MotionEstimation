@@ -163,7 +163,7 @@ void drawCorresPoints(const cv::Mat& image, const vector<cv::Point2f>& inliers1,
         float angle;		angle = atan2( (float) inliers1[i].y - inliers2[i].y, (float) inliers1[i].x - inliers2[i].x );
         drawLine(color_image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
         //cv::Point2f point (0.5*(inliers2[i] - inliers1[i]) );
-        cv::putText (color_image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[0], color[1], color[2]), thickness);
+        cv::putText (color_image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[2], color[1], color[0]), thickness);
     }
 
     cv::imshow(name, color_image);

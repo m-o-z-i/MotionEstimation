@@ -1,10 +1,5 @@
 #include "FindPoints.h"
 
-inline static float square(int a)
-{
-    return a * a;
-}
-
 vector<cv::Point2f> getStrongFeaturePoints(const cv::Mat& image, int number, float minQualityLevel, float minDistance) {
     /* Shi and Tomasi Feature Tracking! */
 
@@ -196,7 +191,7 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
         float direction = atan2( (float) (features.first[i].y - features.second[i].y) , (float) (features.first[i].x - features.second[i].x) );
         directions.push_back(direction);
 
-        float length = sqrt( square(features.first[i].y - features.second[i].y) + square(features.first[i].x - features.second[i].x) );
+        float length = sqrt( std::pow((features.first[i].y - features.second[i].y),2) + std::pow((features.first[i].x - features.second[i].x),2) );
         lengths.push_back(length);
     }
 
@@ -210,7 +205,7 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
     for(unsigned int j = 0; j < features.first.size(); ++j)
     {
         float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
-        float length = sqrt( square(features.first[j].y - features.second[j].y) + square(features.first[j].x - features.second[j].x) );
+        float length = sqrt( std::pow((features.first[j].y - features.second[j].y),2) + std::pow((features.first[j].x - features.second[j].x),2) );
         if (direction < median_direction + 0.05 && direction > median_direction - 0.05 && length < (median_lenght * 2) && length > (median_lenght * 0.5) ) {
             inliers1.push_back(features.first[j]);
             inliers2.push_back(features.second[j]);
@@ -222,14 +217,29 @@ void getInliersFromMedianValue (const pair<vector<cv::Point2f>, vector<cv::Point
 }
 
 void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<cv::Point2f> >& features, vector<cv::Point2f> &inliers1, vector<cv::Point2f> &inliers2){
-    for(unsigned int j = 0; j < features.first.size(); ++j)
-    {
-        float direction = atan2( (float) (features.first[j].y - features.second[j].y) , (float) (features.first[j].x - features.second[j].x) );
+    vector<float> lengths;
 
-        if (fabs(direction) < 0.4) {
-            inliers1.push_back(features.first[j]);
-            inliers2.push_back(features.second[j]);
+    for (unsigned int j = 0; j < features.first.size(); ++j){
+        float length = sqrt( std::pow((features.first[j].y - features.second[j].y),2) + std::pow((features.first[j].x - features.second[j].x),2) );
+        lengths.push_back(length);
+    }
+
+    sort(lengths.begin(),lengths.end());
+    float median_lenght = lengths[(int)(lengths.size()/2)];
+
+
+    for(unsigned int i = 0; i < features.first.size(); ++i)
+    {
+        float direction = atan2( (float) (features.first[i].y - features.second[i].y) , (float) (features.first[i].x - features.second[i].x) ) * 180 / M_PI ;
+        float length = sqrt( std::pow((features.first[i].y - features.second[i].y),2) + std::pow((features.first[i].x - features.second[i].x),2) );
+
+        // ignore points with length < 10 pixels.. and take inlier if angle < 10 degree
+        if ((length < (median_lenght * 2) && length > (median_lenght * 0.5) && fabs(direction) < 10 ) || fabs(length) < 10 ) {
+            std::cout << i << ":  " << direction << "     length: " << length  << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << std::endl;
+            inliers1.push_back(features.first[i]);
+            inliers2.push_back(features.second[i]);
         } else {
+            std::cout << i << ":  " << direction << "     length: " << length << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << "   FAILS" << std::endl;
             inliers1.push_back(cv::Point2f(0,0));
             inliers2.push_back(cv::Point2f(0,0));
         }
@@ -349,39 +359,6 @@ void deleteZeroLines(vector<cv::Point2f>& points1, vector<cv::Point2f>& points2)
     }
 }
 
-void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb, vector<cv::Point2f>& points1Ra,
-                     vector<cv::Point2f>& points1Rb, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R){
-    int size = points1La.size();
-    vector<cv::Point2f>::iterator iter_p1La = points1La.begin();
-    vector<cv::Point2f>::iterator iter_p1Lb = points1Lb.begin();
-    vector<cv::Point2f>::iterator iter_p1Ra = points1Ra.begin();
-    vector<cv::Point2f>::iterator iter_p1Rb = points1Rb.begin();
-    vector<cv::Point2f>::iterator iter_p2L  = points2L.begin();
-    vector<cv::Point2f>::iterator iter_p2R  = points2R.begin();
-    for (unsigned int i = 0; i < size; ++i) {
-        if ((0 == points1La[iter_p1La-points1La.begin()].x && 0 == points1La[iter_p1La-points1La.begin()].y) ||
-                (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
-                (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
-                (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
-                (0 == points2L[iter_p2L-points2L.begin()].x && 0 == points2L[iter_p2L-points2L.begin()].y) ||
-                (0 == points2R[iter_p2R-points2R.begin()].x && 0 == points2R[iter_p2R-points2R.begin()].y))
-        {
-            points1La.erase(iter_p1La);
-            points1Lb.erase(iter_p1Lb);
-            points1Ra.erase(iter_p1Ra);
-            points1Rb.erase(iter_p1Rb);
-            points2L.erase(iter_p2L);
-            points2R.erase(iter_p2R);
-        } else {
-            ++iter_p1La ;
-            ++iter_p1Lb ;
-            ++iter_p1Ra ;
-            ++iter_p1Rb ;
-            ++iter_p2L  ;
-            ++iter_p2R  ;
-        }
-    }
-}
 
 void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,
                      vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R){
@@ -408,6 +385,51 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
         }
     }
 }
+
+void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb,
+                     vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points1Rb,
+                     vector<cv::Point2f>& points2La, vector<cv::Point2f>& points2Lb,
+                     vector<cv::Point2f>& points2Ra, vector<cv::Point2f>& points2Rb){
+    int size = points1La.size();
+    vector<cv::Point2f>::iterator iter_p1La = points1La.begin();
+    vector<cv::Point2f>::iterator iter_p1Lb = points1Lb.begin();
+    vector<cv::Point2f>::iterator iter_p1Ra = points1Ra.begin();
+    vector<cv::Point2f>::iterator iter_p1Rb = points1Rb.begin();
+    vector<cv::Point2f>::iterator iter_p2La  = points2La.begin();
+    vector<cv::Point2f>::iterator iter_p2Lb  = points2Lb.begin();
+    vector<cv::Point2f>::iterator iter_p2Ra  = points2Ra.begin();
+    vector<cv::Point2f>::iterator iter_p2Rb  = points2Rb.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if (    (0 == points1La[iter_p1La-points1La.begin()].x && 0 == points1La[iter_p1La-points1La.begin()].y) ||
+                (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
+                (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
+                (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
+                (0 == points2La[iter_p2La-points2La.begin()].x && 0 == points2La[iter_p2La-points2La.begin()].y) ||
+                (0 == points2Lb[iter_p2Lb-points2Lb.begin()].x && 0 == points2Lb[iter_p2Lb-points2Lb.begin()].y) ||
+                (0 == points2Ra[iter_p2Ra-points2Ra.begin()].x && 0 == points2Ra[iter_p2Ra-points2Ra.begin()].y) ||
+                (0 == points2Rb[iter_p2Rb-points2Rb.begin()].x && 0 == points2Rb[iter_p2Rb-points2Rb.begin()].y))
+        {
+            points1La.erase(iter_p1La);
+            points1Lb.erase(iter_p1Lb);
+            points1Ra.erase(iter_p1Ra);
+            points1Rb.erase(iter_p1Rb);
+            points2La.erase(iter_p2La);
+            points2Lb.erase(iter_p2Lb);
+            points2Ra.erase(iter_p2Ra);
+            points2Rb.erase(iter_p2Rb);
+        } else {
+            ++iter_p1La;
+            ++iter_p1Lb;
+            ++iter_p1Ra;
+            ++iter_p1Rb;
+            ++iter_p2La;
+            ++iter_p2Lb;
+            ++iter_p2Ra;
+            ++iter_p2Rb;
+        }
+    }
+}
+
 
 void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R,
                      vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R,

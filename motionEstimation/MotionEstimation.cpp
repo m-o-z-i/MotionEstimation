@@ -16,15 +16,18 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
     cv::Mat rvec;
     cv::Rodrigues(R, rvec);
 
-    vector<int> inliers;
+    std::vector<int> inliers;
 
     double minVal,maxVal;
     cv::minMaxIdx(imgPoints,&minVal,&maxVal);
 
-    vector<float > distCoeffVec; //just use empty vector.. images are allready undistorted..
+    std::vector<float > distCoeffVec; //just use empty vector.. images are allready undistorted..
 
     //can't work.. a cloud and points...?!
+    //cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T);
     cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (float)(imgPoints.size()), inliers, CV_EPNP);
+    rvec.convertTo(rvec, CV_32F);
+    T.convertTo(T, CV_32F);
 
     // calculate reprojection error and define inliers
     std::vector<cv::Point2f> projected3D;
@@ -37,19 +40,20 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
     }
 
     if(inliers.size() < (float)(imgPoints.size())/5.0) {
-        cerr << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")"<< endl;
+        std::cout << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")" << std::endl;
         return false;
     }
 
     if(cv::norm(T) > 2000.0) {
         // this is bad...
-        cerr << "NO MOVEMENT: estimated camera movement is too big, skip this camera\r\n";
+        std::cout << "NO MOVEMENT: estimated camera movement is too big, skip this camera.. T = " << cv::norm(T) << std::endl;
         return false;
     }
 
     cv::Rodrigues(rvec, R);
+    R.convertTo(R, CV_32F);
     if(!CheckCoherentRotation(R)) {
-        cerr << "NO MOVEMENT: rotation is incoherent. we should try a different base view..." << endl;
+        std::cout <<  "NO MOVEMENT: rotation is incoherent..." << std::endl;
         return false;
     }
 

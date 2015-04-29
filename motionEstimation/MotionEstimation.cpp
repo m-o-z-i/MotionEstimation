@@ -57,47 +57,12 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
 }
 
 
-bool motionEstimationEssentialMat (const cv::Mat& image1,
-                                   const std::vector<cv::Point2f>& points1,
-                                   const std::vector<cv::Point2f>& points2,
+bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& inliersF1,
+                                   const std::vector<cv::Point2f>& inliersF2,
+                                   const cv::Mat& F,
                                    const cv::Mat& K, const cv::Mat& KInv,
                                    cv::Mat& T, cv::Mat& R)
 {
-    if (8 > points1.size()) {
-        cout << "NO MOVEMENT: to less points found" << endl;
-        return false;
-    }
-
-    // compute fundemental matrix FL1L2
-    drawCorresPoints(image1, points1, points2, "F points 1 to 2", CV_RGB(0,255,0));
-    cv::Mat F;
-    bool foundF;
-    std::vector<cv::Point2f> inliersF1, inliersF2;
-    foundF = getFundamentalMatrix(points1, points2, &inliersF1, &inliersF2, F);
-
-    // can't find fundamental Mat
-    if (!foundF){
-        std::cout << "NO MOVEMENT: can't find F" << std::endl;
-        return false;
-    }
-
-    // make sure that there are all inliers in all frames.
-    deleteZeroLines(inliersF1, inliersF2);
-
-// compute F again for better results?!
-//    std::vector<uchar> inliers_fundamental2(inliersF1.size(),0);
-//    cv::Mat F2 = cv::findFundamentalMat(
-//                cv::Mat(inliersF1), cv::Mat(inliersF2),   // matching points
-//                inliers_fundamental2,                             // match status (inlier ou outlier)
-//                cv::FM_8POINT,                                   // RANSAC method
-//                5.,                                              // distance to epipolar line
-//                .01);                                            // confidence probability
-
-//    F2.convertTo(F2, CV_32F);
-
-    drawCorresPoints(image1, inliersF1, inliersF2, "inliers 1 to 2", CV_RGB(0,255,0));
-    //drawEpipolarLines(image1, inliersF1, F);
-
     // normalisize all Points
     std::vector<cv::Point2f> normPoints1, normPoints2;
     normalizePoints(KInv, inliersF1, inliersF2, normPoints1, normPoints2);

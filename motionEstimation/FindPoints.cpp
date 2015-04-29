@@ -235,11 +235,11 @@ void getInliersFromHorizontalDirection (const pair<vector<cv::Point2f>, vector<c
 
         // ignore points with length < 10 pixels.. and take inlier if angle < 10 degree
         if ((length < (median_lenght * 2) && length > (median_lenght * 0.5) && fabs(direction) < 10 ) || fabs(length) < 10 ) {
-            std::cout << i << ":  " << direction << "     length: " << length  << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << std::endl;
+            //std::cout << i << ":  " << direction << "     length: " << length  << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << std::endl;
             inliers1.push_back(features.first[i]);
             inliers2.push_back(features.second[i]);
         } else {
-            std::cout << i << ":  " << direction << "     length: " << length << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << "   FAILS" << std::endl;
+            //std::cout << i << ":  " << direction << "     length: " << length << "   POS: [" << features.first[i].x << ", " << features.first[i].y << "]" << "   FAILS" << std::endl;
             inliers1.push_back(cv::Point2f(0,0));
             inliers2.push_back(cv::Point2f(0,0));
         }

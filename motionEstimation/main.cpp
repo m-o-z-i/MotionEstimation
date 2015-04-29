@@ -176,16 +176,90 @@ int main(){
 
 
             // ######################## ESSENTIAL MAT ################################
-            if(1 == mode) {
+            if (1 == mode) {
+                // compute F and get inliers from Ransac
+
+                // skip frames if there are too less points found
+                if (8 > points_L1.size()) {
+                    cout << "NO MOVEMENT: to less points found" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                // get inlier from stereo constraints
+                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
+                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
+                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
+                //delete all points that are not correctly found in stereo setup
+                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
+
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > inliersHorizontal_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                // compute fundemental matrix F_L1L2
+                cv::Mat F_L;
+                bool foundF_L;
+                std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
+                foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
+
+                // compute fundemental matrix F_R1R2
+                cv::Mat F_R;
+                bool foundF_R;
+                std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
+                foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
+
+                // make sure that there are all inliers in all frames.
+                deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
+
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > inliersF_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find enough ransac inlier" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                //            drawCorresPoints(image_L1, inliersHorizontal_L1, inliersHorizontal_R1, "inlier HORI 1 " , CV_RGB(0,0,255));
+                //            drawCorresPoints(image_L2, inliersHorizontal_L2, inliersHorizontal_R2, "inlier HORI 2 " , CV_RGB(0,0,255));
+                //            drawCorresPoints(image_L1, points_L1, points_L2, "hori left " , CV_RGB(0,0,255));
+                //            drawCorresPoints(image_L1, points_R1, points_R2, "hori right " , CV_RGB(0,0,255));
+                drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
+                drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
+
+                cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
+                // UP TO SCALE!!!
+                bool poseEstimationFoundES_L = false;
+                bool poseEstimationFoundES_R = false;
+
+                if(foundF_L){
+                    poseEstimationFoundES_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, KInv_L, T_E_L, R_E_L);
+                }
+
+                if(foundF_R){
+                    poseEstimationFoundES_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_E_R, R_E_R);
+                }
+
+                if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
+                    skipFrame = true;
+                    continue;
+                } else if (!poseEstimationFoundES_L){
+                    T_E_L = cv::Mat::zeros(3, 1, CV_32F);
+                    R_E_L = cv::Mat::eye(3, 3, CV_32F);
+                } else if (!poseEstimationFoundES_R){
+                    T_E_R = cv::Mat::zeros(3, 1, CV_32F);
+                    R_E_R = cv::Mat::eye(3, 3, CV_32F);
+                }
+
+                // find scale factors
+                // find right scale factors u und v (according to rodehorst paper)
+
                 // NORMALIZE POINTS
                 std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
                 normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
                 normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
-
-                cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
-                // UP TO SCALE!!!
-                bool poseEstimationFoundES_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_E_L, R_E_L);
-                bool poseEstimationFoundES_R = motionEstimationEssentialMat(image_R1, points_R1, points_R2, K_R, KInv_R, T_E_R, R_E_R);
 
                 if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
                     skipFrame = true;
@@ -266,21 +340,75 @@ int main(){
 
             if (2 == mode) {
                 // ################################## PnP #######################################
+
+                // compute F and get inliers from Ransac
+
+                // skip frames if there are too less points found
+                if (8 > points_L1.size()) {
+                    cout << "NO MOVEMENT: to less points found" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                // get inlier from stereo constraints
+                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
+                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
+                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
+                //delete all points that are not correctly found in stereo setup
+                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
+
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > inliersHorizontal_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                // compute fundemental matrix F_L1L2
+                cv::Mat F_L;
+                bool foundF_L;
+                std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
+                foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
+
+                // compute fundemental matrix F_R1R2
+                cv::Mat F_R;
+                bool foundF_R;
+                std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
+                foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
+
+                // make sure that there are all inliers in all frames.
+                deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
+
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > inliersF_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find enough ransac inlier" << endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
+                drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
+
                 // NORMALIZE POINTS
                 std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+                normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_L2, normP_L1, normP_R1);
+                normalizePoints(KInv_L, KInv_R, inliersF_R1, inliersF_R2, normP_L2, normP_R2);
 
                 // TRIANGULATE POINTS
                 std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
                 TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
                 TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
 
-                //LEFT:
-                cv::Mat T_PnP_L, R_PnP_L;
 
-                // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
-                bool poseEstimationFoundTemp_L = motionEstimationEssentialMat(image_L1, points_L1, points_L2, K_L, KInv_L, T_PnP_L, R_PnP_L);
+
+                //LEFT:
+                bool poseEstimationFoundTemp_L = false;
+
+                cv::Mat T_PnP_L, R_PnP_L;
+                if(foundF_L){
+                    // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
+                    poseEstimationFoundTemp_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, KInv_L, T_PnP_L, R_PnP_L);
+                }
 
                 if (!poseEstimationFoundTemp_L){
                     skipFrame = true;
@@ -288,7 +416,7 @@ int main(){
                 }
 
                 // use initial guess values for pose estimation
-                bool poseEstimationFoundPnP_L = motionEstimationPnP(points_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
+                bool poseEstimationFoundPnP_L = motionEstimationPnP(inliersF_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
 
                 if (!poseEstimationFoundPnP_L){
                     skipFrame = true;
@@ -299,7 +427,7 @@ int main(){
                 getNewTrans3D( T_PnP_L, R_PnP_L, newTrans3D_PnP_L);
 
                 cv::Mat newPos_PnP_L;
-                getAbsPos (currentPos_PnP_L, newTrans3D_PnP_L, R_PnP_L, newPos_PnP_L);
+                getAbsPos(currentPos_PnP_L, newTrans3D_PnP_L, R_PnP_L, newPos_PnP_L);
 
                 cv::Mat rotation_PnP_L, translation_PnP_L;
                 decomposeProjectionMat(newPos_PnP_L, translation_PnP_L, rotation_PnP_L);
@@ -310,33 +438,41 @@ int main(){
                 currentPos_PnP_L  = newPos_PnP_L ;
 
 
+
                 //RIGHT:
-                //        cv::Mat T_PnP_R, R_PnP_R;
-                //        bool poseEstimationFoundTemp_R = motionEstimationEssentialMat(image_R1, points_R1, points_R2, K_R, KInv_R, T_PnP_R, R_PnP_R);
+                bool poseEstimationFoundTemp_R = false;
 
-                //        if (!poseEstimationFoundTemp_R){
-                //            T_PnP_R = cv::Mat::zeros(3, 1, CV_32F);
-                //            R_PnP_R = cv::Mat::eye(3, 3, CV_32F);
-                //        }
+                cv::Mat T_PnP_R, R_PnP_R;
+                if(foundF_R){
+                    poseEstimationFoundTemp_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_PnP_R, R_PnP_R);
+                }
 
-                //        bool poseEstimationFoundPnP_R = motionEstimationPnP(points_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
+                if (!poseEstimationFoundTemp_R){
+                    skipFrame = true;
+                    continue;
+                }
 
-                //        if (!poseEstimationFoundPnP_R){
-                //            T_PnP_R = cv::Mat::zeros(3, 1, CV_32F);
-                //            R_PnP_R = cv::Mat::eye(3, 3, CV_32F);
-                //        }
+                bool poseEstimationFoundPnP_R = motionEstimationPnP(points_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
 
-                //        cv::Mat newPos_PnP_R;
-                //        getNewPos (currentPos_PnP_R, T_PnP_R, R_PnP_R, newPos_PnP_R);
-                //        std::stringstream right_PnP;
-                //        right_PnP << "camera_PnP_right" << frame;
+                if (!poseEstimationFoundPnP_R){
+                    skipFrame = true;
+                    continue;
+                }
 
-                //        cv::Mat rotation_PnP_R, translation_PnP_R;
-                //        decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
-                //        std::cout << "T_PnP_left: " << translation_PnP_R << std::endl;
 
-                //        addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
-                //currentPos_PnP_R  = newPos_PnP_R ;
+                cv::Mat newTrans3D_PnP_R;
+                getNewTrans3D( T_PnP_R, R_PnP_R, newTrans3D_PnP_R);
+
+                cv::Mat newPos_PnP_R;
+                getAbsPos(currentPos_PnP_R, newTrans3D_PnP_R, R_PnP_R, newPos_PnP_R);
+
+                cv::Mat rotation_PnP_R, translation_PnP_R;
+                decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
+
+                std::stringstream right_PnP;
+                right_PnP << "camera_PnP_right" << frame1;
+                addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
+                currentPos_PnP_R  = newPos_PnP_R ;
 
                 // ##############################################################################
             }

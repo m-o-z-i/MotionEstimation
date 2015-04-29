@@ -155,7 +155,7 @@ void drawCorresPoints(const cv::Mat& image, const vector<cv::Point2f>& inliers1,
     cv::cvtColor(image, color_image, CV_GRAY2RGB);
 
     int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
-    float fontScale = 0.3;
+    float fontScale = 0.4;
     int thickness = 1;
 
     for(unsigned int i = 0; i < inliers1.size(); i++)

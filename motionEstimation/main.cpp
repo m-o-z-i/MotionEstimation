@@ -93,6 +93,11 @@ int main(){
 
     initVisualisation();
 
+    // key input
+    // stop and play with space and with n go to next frame
+    char key = 0;
+    bool loop = true;
+
     while (true){
         cout << "\n\n########################## FRAME "<<  frame << " ###################################" << endl;
 
@@ -508,7 +513,24 @@ if (3 == mode) {
 
         // To Do:
         // swap image files...
-        RunVisualization();
+
+        key = cv::waitKey(10);
+        if (char(key) == 32) {
+            loop = !loop;
+        }
+
+        while (loop){
+            RunVisualization();
+
+            //to register a event key, you have to make sure that a opencv named Window is open
+            key = cv::waitKey(10);
+            if (char(key) == 'n') {
+                loop = true;
+                break;
+            } else if (char(key) == 32) {
+                loop = false;
+            }
+        }
     }
     cv::namedWindow("waitkey", cv::WINDOW_NORMAL);
     cv::waitKey();

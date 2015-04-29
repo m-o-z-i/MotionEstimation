@@ -127,25 +127,13 @@ void AddLineToVisualizer(const std::vector<cv::Point3f>& pointCloud_1, const std
 
 void RunVisualization() {
     // draw pointclouds
-
     for (auto p : point_clouds) {
         viewer.addPointCloud(p.second, p.first);
     }
 
     point_clouds.clear();
 
-
-    // break loop with key-event n
-    char key = 0;
-    bool loop = true;
-    while (loop){
-        viewer.spinOnce();
-        //to register a event key, you have to make sure that a opencv named Window is open
-        key = cv::waitKey(10);
-        if (char(key) == 'n') {
-            loop = false;
-        }
-    }
+    viewer.spinOnce();
 }
 
 void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, float s, const std::string& name) {

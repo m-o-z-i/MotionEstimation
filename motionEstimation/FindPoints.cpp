@@ -92,58 +92,6 @@ void refindFeaturePoints(cv::Mat const& prev_image, cv::Mat const& next_image, v
 }
 
 
-
-
-void findCorresPoints_LucasKanade(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f> &points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2){
-    // find corresponding points
-    vector<cv::Point2f> points_L1_temp, points_R1_temp, points_L1a_temp, points_R1a_temp, points_L2_temp, points_R2_temp;
-    vector<cv::Point2f> features = getStrongFeaturePoints(frame_L1, 100,0.001,20);
-
-    if (0 == features.size()){
-        return;
-    }
-
-    refindFeaturePoints(frame_L1, frame_R1, features, points_L1_temp, points_R1_temp);
-    refindFeaturePoints(frame_L1, frame_L2, points_L1_temp, points_L1a_temp, points_L2_temp);
-    refindFeaturePoints(frame_R1, frame_R2, points_R1_temp, points_R1a_temp, points_R2_temp);
-
-    // delete in all frames points, that are not visible in each frames
-    deleteUnvisiblePoints(points_L1_temp, points_L1a_temp, points_R1_temp, points_R1a_temp, points_L2_temp, points_R2_temp, frame_L1.cols, frame_L1.rows);
-
-#if 0
-
-    cv::namedWindow("All", CV_WINDOW_NORMAL);
-    cv::Mat L1R1, L2R2, All;
-    cv::hconcat(frame_L1, frame_R1, L1R1);
-    cv::hconcat(frame_L2, frame_R2, L2R2);
-    cv::vconcat(L1R1, L2R2, All);
-    cv::imshow("All", All);
-    drawPoints(frame_L1, features, "feaures found" , cv::Scalar(2,55,212));
-    cv::waitKey();
-
-    drawCorresPoints(frame_L1, points_L1_temp, points_R1_temp, "correspoints l1 r1 temp" , cv::Scalar(2,55,212));
-    cv::waitKey();
-
-    drawCorresPoints(frame_L1, points_L1a_temp, points_L2_temp, "correspoints l1 l2" , cv::Scalar(2,55,212));
-    cv::waitKey();
-
-    drawCorresPoints(frame_R1, points_R1a_temp, points_R2_temp, "correspoints r1 r2" , cv::Scalar(2,55,212));
-    cv::waitKey();
-
-    drawPoints(frame_R1, points_R1a_temp, "feaures right 1 found" , cv::Scalar(2,55,212));
-    drawPoints(frame_R2, points_R2_temp,  "feaures right 2 found" , cv::Scalar(2,55,212));
-    cv::waitKey();
-
-#endif
-
-    for (unsigned int i = 0; i < points_L1_temp.size(); ++i){
-        points_L1.push_back(points_L1a_temp[i]);
-        points_R1.push_back(points_R1a_temp[i]);
-        points_L2.push_back(points_L2_temp[i]);
-        points_R2.push_back(points_R2_temp[i]);
-    }
-}
-
 void fastFeatureMatcher(const cv::Mat& frame_L1, const cv::Mat& frame_R1, const cv::Mat& frame_L2, const cv::Mat& frame_R2, vector<cv::Point2f> &points_L1, vector<cv::Point2f>& points_R1, vector<cv::Point2f> &points_L2, vector<cv::Point2f> &points_R2) {
     vector<cv::DMatch> matches;
 
@@ -339,6 +287,46 @@ void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& p
             ++iter_c1b;
             ++iter_c2a;
             ++iter_c2b;
+            ++iter_c3a;
+            ++iter_c3b;
+        }
+    }
+}
+
+void deleteUnvisiblePoints(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1R, vector<cv::Point2f>& points2L, vector<cv::Point2f>& points2R, int resX, int resY){
+    int size = points1L.size();
+    // iterate over all points and delete points, that are not in all frames visible;
+    vector<cv::Point2f>::iterator iter_c1a = points1L.begin();
+    vector<cv::Point2f>::iterator iter_c1b = points1R.begin();
+    vector<cv::Point2f>::iterator iter_c3a = points2L.begin();
+    vector<cv::Point2f>::iterator iter_c3b = points2R.begin();
+    for (unsigned int i = 0; i < size ; ++i ) {
+        if (1 >= points1L[iter_c1a-points1L.begin()].x &&
+            1 >= points1L[iter_c1a-points1L.begin()].y ||
+            1 >= points2L[iter_c3a-points2L.begin()].x &&
+            1 >= points2L[iter_c3a-points2L.begin()].y ||
+            1 >= points1R[iter_c1b-points1R.begin()].x &&
+            1 >= points1R[iter_c1b-points1R.begin()].y ||
+            1 >= points2R[iter_c3b-points2R.begin()].x &&
+            1 >= points2R[iter_c3b-points2R.begin()].y ||
+
+            resX <= points1L[iter_c1a-points1L.begin()].x &&
+            resY <= points1L[iter_c1a-points1L.begin()].y ||
+            resX <= points2L[iter_c3a-points2L.begin()].x &&
+            resY <= points2L[iter_c3a-points2L.begin()].y ||
+            resX <= points1R[iter_c1b-points1R.begin()].x &&
+            resY <= points1R[iter_c1b-points1R.begin()].y ||
+            resX <= points2R[iter_c3b-points2R.begin()].x &&
+            resY <= points2R[iter_c3b-points2R.begin()].y )
+        {
+            points1L.erase(iter_c1a);
+            points1R.erase(iter_c1b);
+            points2L.erase(iter_c3a);
+            points2R.erase(iter_c3b);
+        } else
+        {
+            ++iter_c1a;
+            ++iter_c1b;
             ++iter_c3a;
             ++iter_c3b;
         }

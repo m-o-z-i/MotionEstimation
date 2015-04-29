@@ -23,15 +23,16 @@
 int main(){
     int frame=0;
 
-    //config file
+    //load config file
     int mode = 0;
+    string dataPath;
     cv::FileStorage config("data/config.yml", cv::FileStorage::READ);
     config["mode"] >> mode;
+    config["path"] >> dataPath;
     config.release();
 
     //load file names
     std::vector<string> filenames_left, filenames_right;
-    string dataPath = "data/stereoImages/dbl/";
     getFiles(dataPath + "left/", filenames_left);
     getFiles(dataPath + "right/", filenames_right);
 
@@ -79,10 +80,6 @@ int main(){
     cv::Mat R_0, T_0;
     decomposeProjectionMat(P_0, R_0, T_0);
 
-    // define image size
-    int resX = 752;
-    int resY = 480;
-
     // currentPosition E Mat
     cv::Mat currentPos_ES_L = cv::Mat::eye(4, 4, CV_32F);
     cv::Mat currentPos_ES_R = cv::Mat::eye(4, 4, CV_32F);
@@ -93,7 +90,6 @@ int main(){
 
     // currentPosition TRIANGULATION
     cv::Mat currentPos_Stereo = cv::Mat::eye(4, 4, CV_32F);
-
 
     initVisualisation();
 

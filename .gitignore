@@ -3,6 +3,10 @@
 *.tmp
 *.swp
 *.autosave
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
 
 # Vim session files
 *.vim

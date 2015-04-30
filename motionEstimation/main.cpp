@@ -457,60 +457,55 @@ int main(){
 
             if (3 == mode) {
                 // ################################# STEREO #####################################
-                std::vector<cv::Point2f> inliersF_L1, inliersF_L2;
-                std::vector<cv::Point2f> inliersF_R1, inliersF_R2;
-                cv::Mat F_L, F_R;
-                bool foundF_L = getFundamentalMatrix(points_L1, points_L2, &inliersF_L1, &inliersF_L2, F_L);
-                bool foundF_R = getFundamentalMatrix(points_R1, points_R2, &inliersF_R1, &inliersF_R2, F_R);
-                deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
+                // get inlier from stereo constraints
+                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
+                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
+                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
+                //delete all points that are not correctly found in stereo setup
+                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
 
-                // NORMALIZE FUMDAMENTAL POINTS
-                std::vector<cv::Point2f> normPF_L1, normPF_R1, normPF_L2, normPF_R2;
-                normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normPF_L1, normPF_R1);
-                normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normPF_L2, normPF_R2);
-
-                // TRIANGULATE POINTS
-                std::vector<cv::Point3f> pointCloud_F_1, pointCloud_F_2;
-                TriangulatePointsHZ(P_0, P_LR, normPF_L1, normPF_R1, 0, pointCloud_F_1);
-                TriangulatePointsHZ(P_0, P_LR, normPF_L2, normPF_R2, 0, pointCloud_F_2);
-
-
-                // STEREO INLIER (POINTS HAVE TO BE LOCATED ON A HORIZONTAL LINE)
-                std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
-                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), horizontal_L1, horizontal_R1);
-                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), horizontal_L2, horizontal_R2);
-                deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
-
-
-                if(0 == horizontal_L1.size()) {
-                    cout <<  "horizontal inlier: can't find any corresponding points in all 4 frames' "  << std::endl ;
-                    skipFrame = true;
-                    continue;
-                }
-
-                // NORMALIZE HORIZONTAL POINTS
-                std::vector<cv::Point2f> normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian;
-                normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1_Trian, normP_R1_Trian);
-                normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2_Trian, normP_R2_Trian);
-
-                // TRIANGULATE HORIZONTAL POINTS AND GET INLIER
-                std::vector<cv::Point3f> pointCloud_inlier_1, pointCloud_inlier_2;
-                std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
-                TriangulatePointsWithInlier(P_0, P_LR, normP_L1_Trian, normP_R1_Trian, 0, pointCloud_inlier_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
-                TriangulatePointsWithInlier(P_0, P_LR, normP_L2_Trian, normP_R2_Trian, 0, pointCloud_inlier_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
-                deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_inlier_1, pointCloud_inlier_2);
-
-                if(0 == inlierTriang_L1.size()) {
-                    cout <<  "triangulation inlier: can't find inlier"  << std::endl ;
-                    cout <<  "no translation? (triangulation fails by no translation)"  << std::endl ;
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > points_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
                     skipFrame = true;
                     continue;
                 }
 
                 // for cv::waitKey input:
-                drawCorresPoints(image_L1, inliersF_L1, inliersF_R1, "inlier F1 links rechts", cv::Scalar(255,255,0));
-                drawCorresPoints(image_L2, inliersF_L2, inliersF_R2, "inlier F2 links rechts", cv::Scalar(255,255,0));
+                drawCorresPoints(image_L1, points_L1, points_R1, "inlier F1 links rechts", cv::Scalar(255,255,0));
+                drawCorresPoints(image_L2, points_L2, points_R2, "inlier F2 links rechts", cv::Scalar(255,255,0));
 
+
+                // NORMALIZE POINTS
+                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
+                // TRIANGULATE POINTS
+                std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+                TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+
+
+                float reproj_error_1L = calculateReprojectionErrorHZ(P_0, normP_L1, pointCloud_1);
+                float reproj_error_1R = calculateReprojectionErrorHZ(P_LR, normP_R1, pointCloud_1);
+
+                // check if triangulation success
+                if (positionCheck(P_0, pointCloud_1) && positionCheck(P_LR, pointCloud_1) && reproj_error_1L < 1.0 && reproj_error_1R < 1.0 ) {
+                    std::cout << "first pointcloud seem's to be not perfect.. take next frame to estimate pos" << std::endl;
+                    frame1 = frame2;
+                    break;
+                }
+
+                float reproj_error_2L = calculateReprojectionErrorHZ(P_0, normP_L2, pointCloud_2);
+                float reproj_error_2R = calculateReprojectionErrorHZ(P_LR, normP_R2, pointCloud_2);
+
+                // check if triangulation success
+                if (positionCheck(P_0, pointCloud_2) && positionCheck(P_LR, pointCloud_2) && reproj_error_2L < 1.0 && reproj_error_2R < 1.0 ) {
+                    std::cout << "second pointcloud seem's to be not perfect.." << std::endl;
+                    skipFrame = true;
+                    continue;
+                }
 
 #if 0
                 //load disparity map
@@ -557,7 +552,7 @@ int main(){
 
 #else
                 cv::Mat T_Stereo, R_Stereo;
-                bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_F_1, pointCloud_F_2, T_Stereo, R_Stereo);
+                bool poseEstimationFoundStereo = motionEstimationStereoCloudMatching(pointCloud_1, pointCloud_2, T_Stereo, R_Stereo);
 #endif
 
                 if (!poseEstimationFoundStereo){

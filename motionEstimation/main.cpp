@@ -188,21 +188,26 @@ if(1 == mode) {
         addCameraToVisualizer(translation_ES_L, rotation_ES_L, 255, 0, 0, 20, left_ES.str());
 
 
-//        //RIGHT:
-//        rotateRandT(T_E_R, R_E_R);
+        //RIGHT:
+        //rotateRandT(T_E_R, R_E_R);
 
-//        cv::Mat newPos_ES_R;
-//        getNewPos (currentPos_ES_R, T_E_R, R_E_R, newPos_ES_R);
-//        std::stringstream right_ES;
-//        right_ES << "camera_ES_right" << frame;
+        cv::Mat newTrans3D_E_R;
+        getNewTrans3D( T_E_R, R_E_R, newTrans3D_E_R);
 
-//        cv::Mat rotation_ES_R, translation_ES_R;
-//        decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
-//        //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
-//        addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
+
+        cv::Mat newPos_ES_R;
+        getNewPos (currentPos_ES_R, newTrans3D_E_R, R_E_R, newPos_ES_R);
+
+        cv::Mat rotation_ES_R, translation_ES_R;
+        decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
+
+        std::stringstream right_ES;
+        right_ES << "camera_ES_right" << frame;
+        //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
+        addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
 
         currentPos_ES_L = newPos_ES_L;
-//        currentPos_ES_R = newPos_ES_R;
+        currentPos_ES_R = newPos_ES_R;
         // ##############################################################################
 }
 

@@ -119,7 +119,7 @@ int main(){
         }
 
         // find points in frame 1 ..
-        std::vector<cv::Point2f> features = getStrongFeaturePoints(image_L1, 100,0.001,20);
+        std::vector<cv::Point2f> features = getStrongFeaturePoints(image_L1, 100, 0.001, 20);
         std::vector<cv::Point2f> points_L1_temp, points_R1_temp;
         refindFeaturePoints(image_L1, image_R1, features, points_L1_temp, points_R1_temp);
 
@@ -185,19 +185,19 @@ int main(){
                     continue;
                 }
 
-                //                // get inlier from stereo constraints
-                //                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
-                //                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
-                //                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
-                //                //delete all points that are not correctly found in stereo setup
-                //                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
+                // get inlier from stereo constraints
+                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
+                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
+                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
+                //delete all points that are not correctly found in stereo setup
+                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
 
-                //                // skip frame because something fails with rectification (ex. frame 287 dbl)
-                //                if (8 > inliersHorizontal_L1.size()) {
-                //                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
-                //                    skipFrame = true;
-                //                    continue;
-                //                }
+                // skip frame because something fails with rectification (ex. frame 287 dbl)
+                if (8 > inliersHorizontal_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
+                    skipFrame = true;
+                    continue;
+                }
 
                 // compute fundemental matrix F_L1L2
                 cv::Mat F_L;

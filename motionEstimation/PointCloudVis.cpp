@@ -23,23 +23,24 @@ void initVisualisation(){
 
     cout << "INIT VISUALISATION " << endl;
 
-    viewer.addCoordinateSystem(300,0,-1000,0);
+    viewer.addCoordinateSystem(300,0,0,0);
 
     // add ground plane
     vtkSmartPointer<vtkPlaneSource> planeSource = vtkSmartPointer<vtkPlaneSource>::New ();
-    planeSource->SetXResolution (10);
-    planeSource->SetYResolution (10);
-    planeSource->SetOrigin (-100, -1000, -100);
-    planeSource->SetPoint1 (10000, -1000, 0);
-    planeSource->SetPoint2 (0, -1000, 10000);
+    planeSource->SetXResolution(40);
+    planeSource->SetYResolution(40);
+    planeSource->SetOrigin(-20000, 0, -20000);
+    planeSource->SetPoint1(20000, 0, -20000);
+    planeSource->SetPoint2(-20000, 0, 20000);
 
     vtkSmartPointer<vtkPolyDataMapper> planMapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
     planMapper->SetInputConnection (planeSource->GetOutputPort ());
 
     vtkSmartPointer<vtkActor> planeActor = vtkSmartPointer<vtkActor>::New ();
     planeActor->SetMapper (planMapper);
-    planeActor->GetProperty ()->SetRepresentationToWireframe ();
-    planeActor->GetProperty ()->SetColor (1, 1, 1);
+    planeActor->GetProperty()->SetRepresentationToWireframe();
+    planeActor->GetProperty()->SetColor (0.8, 0.52, .24);
+    planeActor->GetProperty()->SetOpacity(0.4);
 
     //do not hack!!!!
     viewer.addActorToRenderer(planeActor);

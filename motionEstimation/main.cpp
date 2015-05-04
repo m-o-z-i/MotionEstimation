@@ -377,6 +377,7 @@ int main(){
                 TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
 
 
+#if 0
                 //LEFT:
                 bool poseEstimationFoundTemp_L = false;
                 cv::Mat T_PnP_L, R_PnP_L;
@@ -388,8 +389,6 @@ int main(){
                 if (!poseEstimationFoundTemp_L){
                     skipFrame = true;
                     continue;
-                    T_PnP_L = cv::Mat::zeros(3, 1, CV_32F);
-                    R_PnP_L = cv::Mat::eye(3, 3, CV_32F);
                 }
 
                 // use initial guess values for pose estimation
@@ -398,8 +397,6 @@ int main(){
                 if (!poseEstimationFoundPnP_L){
                     skipFrame = true;
                     continue;
-                    T_PnP_L = cv::Mat::zeros(3, 1, CV_32F);
-                    R_PnP_L = cv::Mat::eye(3, 3, CV_32F);
                 }
 
                 cv::Mat newTrans3D_PnP_L;
@@ -413,45 +410,46 @@ int main(){
 
                 std::stringstream left_PnP;
                 left_PnP << "camera_PnP_left" << frame1;
-                addCameraToVisualizer(translation_PnP_L, rotation_PnP_L, 0, 255, 0, 20, left_PnP.str());
+                addCameraToVisualizer(translation_PnP_L, rotation_PnP_L, 255, 0, 0, 50, left_PnP.str());
                 currentPos_PnP_L  = newPos_PnP_L ;
 
+#else
 
-//                //RIGHT:
-//                bool poseEstimationFoundTemp_R = false;
-//                cv::Mat  T_PnP_R, R_PnP_R;
-//                if(foundF_R){
-//                    // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
-//                    poseEstimationFoundTemp_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_PnP_R, R_PnP_R);
-//                }
+                //RIGHT:
+                bool poseEstimationFoundTemp_R = false;
+                cv::Mat  T_PnP_R, R_PnP_R;
+                if(foundF_R){
+                    // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
+                    poseEstimationFoundTemp_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_PnP_R, R_PnP_R);
+                }
 
-//                if (!poseEstimationFoundTemp_R){
-//                    T_PnP_R = cv::Mat::zeros(3, 1, CV_32F);
-//                    R_PnP_R = cv::Mat::eye(3, 3, CV_32F);
-//                }
+                if (!poseEstimationFoundTemp_R){
+                    skipFrame = true;
+                    continue;
+                }
 
-//                // use initial guess values for pose estimation
-//                bool poseEstimationFoundPnP_R = motionEstimationPnP(points_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
+                // use initial guess values for pose estimation
+                bool poseEstimationFoundPnP_R = motionEstimationPnP(inliersF_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
 
-//                if (!poseEstimationFoundPnP_R){
-//                    T_PnP_R = cv::Mat::zeros(3, 1, CV_32F);
-//                    R_PnP_R = cv::Mat::eye(3, 3, CV_32F);
-//                }
+                if (!poseEstimationFoundPnP_R){
+                    skipFrame = true;
+                    continue;
+                }
 
-//                cv::Mat newTrans3D_PnP_R;
-//                getNewTrans3D( T_PnP_R, R_PnP_R, newTrans3D_PnP_R);
+                cv::Mat newTrans3D_PnP_R;
+                getNewTrans3D( T_PnP_R, R_PnP_R, newTrans3D_PnP_R);
 
-//                cv::Mat newPos_PnP_R;
-//                getAbsPos(currentPos_PnP_R, newTrans3D_PnP_R, R_PnP_R, newPos_PnP_R);
+                cv::Mat newPos_PnP_R;
+                getAbsPos(currentPos_PnP_R, newTrans3D_PnP_R, R_PnP_R, newPos_PnP_R);
 
-//                cv::Mat rotation_PnP_R, translation_PnP_R;
-//                decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
+                cv::Mat rotation_PnP_R, translation_PnP_R;
+                decomposeProjectionMat(newPos_PnP_R, translation_PnP_R, rotation_PnP_R);
 
-//                std::stringstream right_PnP;
-//                right_PnP << "camera_PnP_right" << frame1;
-//                addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 125, 0, 20, right_PnP.str());
-//                currentPos_PnP_R  = newPos_PnP_R ;
-
+                std::stringstream right_PnP;
+                right_PnP << "camera_PnP_right" << frame1;
+                addCameraToVisualizer(translation_PnP_R, rotation_PnP_R, 0, 255, 0, 20, right_PnP.str());
+                currentPos_PnP_R  = newPos_PnP_R ;
+#endif
                 // ##############################################################################
             }
 

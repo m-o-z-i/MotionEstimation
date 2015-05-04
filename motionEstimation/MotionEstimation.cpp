@@ -94,6 +94,8 @@ bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& inliersF1,
     cv::Mat T_temp, R_temp;
     decomposeProjectionMat(P, T_temp, R_temp);
 
+    //delete y motion
+    //T_temp.at<float>(1)=0;
     T = T_temp;
     R = R_temp;
 

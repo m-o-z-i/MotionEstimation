@@ -229,6 +229,7 @@ int main(){
                 bool poseEstimationFoundES_L = false;
                 bool poseEstimationFoundES_R = false;
 
+
                 if(foundF_L){
                     poseEstimationFoundES_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, KInv_L, T_E_L, R_E_L);
                 }
@@ -239,11 +240,11 @@ int main(){
 
                 if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
                     skipFrame = true;
+                    continue;
                     T_E_L = cv::Mat::zeros(3, 1, CV_32F);
                     R_E_L = cv::Mat::eye(3, 3, CV_32F);
                     T_E_R = cv::Mat::zeros(3, 1, CV_32F);
                     R_E_R = cv::Mat::eye(3, 3, CV_32F);
-                    continue;
                 } else if (!poseEstimationFoundES_L){
                     T_E_L = cv::Mat::zeros(3, 1, CV_32F);
                     R_E_L = cv::Mat::eye(3, 3, CV_32F);
@@ -262,27 +263,42 @@ int main(){
 
                 // find scale factors
                 // find right scale factors u und v (according to rodehorst paper)
+#if 1
                 // 1. method:
                 float u_L1, u_R1;
                 cv::Mat P_L, P_R;
                 composeProjectionMat(T_E_L, R_E_L, P_L);
                 composeProjectionMat(T_E_R, R_E_R, P_R);
                 getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
-                cv::Mat T_E_L1 = T_E_L * u_L1;
-                cv::Mat T_E_R1 = T_E_R * u_R1;
+                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
+                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
+                    skipFrame = true;
+                    continue;
+                }
 
+                T_E_L = T_E_L * u_L1;
+                T_E_R = T_E_R * u_R1;
+
+                cout << "u links  1: " << u_L1 << endl;
+                cout << "u rechts 1: " << u_R1 << endl << endl;
+#else
                 // 2. method:
                 float u_L2, u_R2;
                 getScaleFactor2(T_LR, R_LR, T_E_L, R_E_L, T_E_R, u_L2, u_R2);
-                cv::Mat T_E_L2 = T_E_L * u_L2;
-                cv::Mat T_E_R2 = T_E_R * u_R2;
+
+                if(u_L2 < -1000 || u_R2 < -1000 || u_L2 > 1000 || u_R2 > 1000 ){
+                    std::cout << "scale factors to small or to big:  L: " << u_L2 << "  R: " << u_R2  << std::endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                T_E_L = T_E_L * u_L2;
+                T_E_R = T_E_R * u_R2;
 
                 //compare both methods
-                //        cout << "u links  1: " << u_L1 << endl;
-                //        cout << "u rechts 1: " << u_R1 << endl << endl;
-                //        cout << "u links  2: " << u_L2 << endl;
-                //        cout << "u rechts 2: " << u_R2 << endl;
-
+                cout << "u links  2: " << u_L2 << endl;
+                cout << "u rechts 2: " << u_R2 << endl;
+#endif
                 //LEFT:
                 //rotateRandT(T_E_L, R_E_L);
 

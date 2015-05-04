@@ -72,7 +72,7 @@ bool getRightProjectionMat( cv::Mat& E,
                 composeProjectionMat(T, R, P1);
 
                 //triangulate from Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ( P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud);
+                TriangulatePointsHZ(P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud);
 
                 float reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud);
                 float reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud);
@@ -109,7 +109,7 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
 
     cv::perspectiveTransform(points3D, pcloud_pt3d_projected, P4x4);
 
-    // status of 3d points..infront=1 or behind=0
+    // status of 3d points..infront: >0 or behind: <0
     vector<uchar> status;
     for (unsigned int i=0; i<points3D.size(); i++) {
         status.push_back((pcloud_pt3d_projected[i].z > 0) ? 1 : 0);
@@ -284,11 +284,15 @@ void loadExtrinsic(string path, cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F )
 }
 
 
-void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R, const vector<cv::Point2f>& normPoints_L1, const vector<cv::Point2f>&normPoints_R1, const vector<cv::Point2f>&normPoints_L2, const vector<cv::Point2f>& normPoints_R2, float& u, float& v) {
+void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R,
+                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
+                    const std::vector<cv::Point2f>& normPoints_L2, const std::vector<cv::Point2f>& normPoints_R2,
+                    float& u, float& v)
+{
     std::vector<cv::Point3f> X, X_L, X_R;
-    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 5, X);
-    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 5, X_L);
-    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 5, X_R);
+    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
+    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 0, X_L);
+    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 0, X_R);
 
     float sum_L = 0;
     float sum_R = 0;

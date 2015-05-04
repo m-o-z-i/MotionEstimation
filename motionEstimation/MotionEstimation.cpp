@@ -23,7 +23,11 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
 
     std::vector<float > distCoeffVec; //just use empty vector.. images are allready undistorted..
 
-    //can't work.. a cloud and points...?!
+    /*
+     * solvePnPRansac(InputArray objectPoints, InputArray imagePoints, InputArray cameraMatrix, InputArray distCoeffs,
+     *                OutputArray rvec, OutputArray tvec, bool useExtrinsicGuess=false, int iterationsCount=100,
+     *                float reprojectionError=8.0, int minInliersCount=100, OutputArray inliers=noArray(), int flags=ITERATIVE )
+     */
     //cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T);
     cv::solvePnPRansac(pointCloud_1LR, imgPoints, K, distCoeffVec, rvec, T, true, 1000, 0.006 * maxVal, 0.25 * (float)(imgPoints.size()), inliers, CV_EPNP);
     rvec.convertTo(rvec, CV_32F);
@@ -32,12 +36,15 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
     // calculate reprojection error and define inliers
     std::vector<cv::Point2f> projected3D;
     cv::projectPoints(pointCloud_1LR, rvec, T, K, distCoeffVec, projected3D);
-    if(inliers.size()==0) { //get inliers
+    if(inliers.size() == 0){
+
         for(unsigned int i=0;i<projected3D.size();i++) {
+            //std::cout << "repro error " << norm(projected3D[i]-imgPoints[i])  << std::endl;
             if(norm(projected3D[i]-imgPoints[i]) < 10.0)
                 inliers.push_back(i);
         }
     }
+
 
     if(inliers.size() < (float)(imgPoints.size())/5.0) {
         std::cout << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")" << std::endl;

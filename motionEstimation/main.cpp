@@ -124,8 +124,8 @@ int main(){
         refindFeaturePoints(image_L1, image_R1, features, points_L1_temp, points_R1_temp);
 
         // skip frame if no features are found in both images
-        if (0 == points_L1_temp.size()) {
-            cout <<  "Could not find features in stereo 1: "  << std::endl ;
+        if (10 > points_L1_temp.size()) {
+            cout <<  "Could not find more than features in stereo 1: "  << std::endl ;
             ++frame1;
             frame2 = frame1;
             continue;
@@ -135,16 +135,16 @@ int main(){
         skipFrame = true;
 
         while (skipFrame){
-            ++frame2;
             ++skipFrameNumber;
             skipFrame = false;
 
             // skip no more than 4 frames
-            if(4 < skipFrameNumber){
+            if(5 < skipFrameNumber){
                 frame1 = frame2;
                 std::cout << "################### NO MOVEMENT FOR LAST 4 FRAMES ####################" << std::endl;
                 break;
             }
+            ++frame2;
 
             cout << "\n\n########################## FRAME "<<  frame1 << "  zu   " << frame2 << " ###################################" << endl;
 
@@ -215,7 +215,7 @@ int main(){
                 deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
 
                 // skip frame because something fails with rectification (ex. frame 287 dbl)
-                if (8 > inliersF_L1.size()) {
+                if (1 > inliersF_L1.size()) {
                     cout << "NO MOVEMENT: couldn't find enough ransac inlier" << endl;
                     skipFrame = true;
                     continue;
@@ -237,7 +237,6 @@ int main(){
                 if(foundF_R){
                     poseEstimationFoundES_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_E_R, R_E_R);
                 }
-
                 if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
                     skipFrame = true;
                     continue;
@@ -305,6 +304,7 @@ int main(){
                 cv::Mat newTrans3D_E_L;
                 getNewTrans3D( T_E_L, R_E_L, newTrans3D_E_L);
 
+
                 cv::Mat newPos_ES_L;
                 getAbsPos(currentPos_ES_L, newTrans3D_E_L, R_E_L, newPos_ES_L);
 
@@ -336,8 +336,10 @@ int main(){
 
                 currentPos_ES_L = newPos_ES_L;
                 currentPos_ES_R = newPos_ES_R;
-                // ##############################################################################
+
+
                 std::cout << "MOVEMENT FOUND ES: " << T_E_L << "  abs. position  "  << translation_ES_L << std::endl;
+                // ##############################################################################
             }
 
             if (2 == mode) {
@@ -693,7 +695,7 @@ int main(){
         // To Do:
         // swap image files...
 
-        if (1280 < frame1){
+        if (1290 < frame1){
             key = cv::waitKey(10);
             if (char(key) == 32) {
                 loop = !loop;
@@ -714,8 +716,6 @@ int main(){
 
         }
     }
-    cv::namedWindow("waitkey", cv::WINDOW_NORMAL);
-    cv::waitKey();
     cv::waitKey();
     return 0;
 }

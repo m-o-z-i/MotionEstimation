@@ -809,7 +809,6 @@ int main(){
                         loop = false;
                     }
                 }
-
             }
         }
     }

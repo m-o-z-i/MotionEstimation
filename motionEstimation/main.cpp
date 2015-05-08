@@ -518,23 +518,25 @@ if (3 == mode) {
 
         // To Do:
         // swap image files...
-
-        key = cv::waitKey(10);
-        if (char(key) == 32) {
-            loop = !loop;
-        }
-
-        while (loop){
-            RunVisualization();
-
-            //to register a event key, you have to make sure that a opencv named Window is open
+        if (1296 < frame){
             key = cv::waitKey(10);
-            if (char(key) == 'n') {
-                loop = true;
-                break;
-            } else if (char(key) == 32) {
-                loop = false;
+            if (char(key) == 32) {
+                loop = !loop;
             }
+
+            while (loop){
+                RunVisualization();
+
+                //to register a event key, you have to make sure that a opencv named Window is open
+                key = cv::waitKey(10);
+                if (char(key) == 'n') {
+                    loop = true;
+                    break;
+                } else if (char(key) == 32) {
+                    loop = false;
+                }
+            }
+
         }
     }
     cv::namedWindow("waitkey", cv::WINDOW_NORMAL);

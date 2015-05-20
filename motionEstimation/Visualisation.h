@@ -18,6 +18,8 @@ void drawEpipolarLines(cv::Mat frame1, vector<cv::Point2f> const& points1, cv::M
 void drawHomographyPoints(cv::Mat frame1, cv::Mat frame2, vector<cv::Point2f> const& points1, vector<cv::Point2f> const& points2);
 
 void drawCorresPoints(const cv::Mat &image, const vector<cv::Point2f> &inliers1, const vector<cv::Point2f> &inliers2, string name, cv::Scalar const& color);
+void drawCorresPointsRef(cv::Mat& image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color);
+
 void drawOptFlowMap (cv::Mat flow, cv::Mat& cflowmap, int step, const cv::Scalar& color);
 
 void drawAllStuff (cv::Mat mat_image11, cv::Mat mat_image12, cv::Mat mat_image21, cv::Mat mat_image22, int frame);

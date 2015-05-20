@@ -139,7 +139,7 @@ int main(){
             skipFrame = false;
 
             // skip no more than 4 frames
-            if(5 < skipFrameNumber){
+            if(1 < skipFrameNumber){
                 frame1 = frame2;
                 std::cout << "################### NO MOVEMENT FOR LAST 4 FRAMES ####################" << std::endl;
                 break;
@@ -185,19 +185,26 @@ int main(){
                     continue;
                 }
 
+
+                // convert grayscale to color image
+                cv::Mat color_image;
+                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
+
+                drawCorresPointsRef(color_image, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
+
                 // get inlier from stereo constraints
                 std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
                 getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
                 getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
                 //delete all points that are not correctly found in stereo setup
                 deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
-
                 // skip frame because something fails with rectification (ex. frame 287 dbl)
-                if (8 > inliersHorizontal_L1.size()) {
-                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
-                    skipFrame = true;
-                    continue;
-                }
+//                if (8 > inliersHorizontal_L1.size()) {
+//                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
+//                    skipFrame = true;
+//                    continue;
+//                }
+
 
                 // compute fundemental matrix F_L1L2
                 cv::Mat F_L;
@@ -214,7 +221,9 @@ int main(){
                 // make sure that there are all inliers in all frames.
                 deleteZeroLines(inliersF_L1, inliersF_L2, inliersF_R1, inliersF_R2);
 
+
                 // skip frame because something fails with rectification (ex. frame 287 dbl)
+                // TODO: check how often this happens
                 if (1 > inliersF_L1.size()) {
                     cout << "NO MOVEMENT: couldn't find enough ransac inlier" << endl;
                     skipFrame = true;
@@ -223,6 +232,13 @@ int main(){
 
                 drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
                 drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
+                drawCorresPointsRef(color_image,inliersHorizontal_L1,  inliersHorizontal_L2, "inlier horizontal left", cv::Scalar(0,0,255));
+                drawCorresPointsRef(color_image, inliersF_L1, inliersF_L2, "inlier points left", cv::Scalar(0,255,0));
+
+                char key2 = cv::waitKey();
+                if (char(key2) == 's'){
+                    cv::imwrite("data/docu/inlier_outlier.jpg", color_image);
+                }
 
                 cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
                 // UP TO SCALE!!!
@@ -256,6 +272,7 @@ int main(){
                 // find right scale factors u und v (according to rodehorst paper)
 
                 // NORMALIZE POINTS
+                 // TODO: use inlier!!!
                 std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
                 normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
                 normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
@@ -395,7 +412,7 @@ int main(){
                 TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
 
 
-#if 0
+#if 1
                 //LEFT:
                 bool poseEstimationFoundTemp_L = false;
                 cv::Mat T_PnP_L, R_PnP_L;
@@ -444,7 +461,7 @@ int main(){
                 if (!poseEstimationFoundTemp_R){
                     skipFrame = true;
                     continue;
-                }
+                }      
 
                 // use initial guess values for pose estimation
                 bool poseEstimationFoundPnP_R = motionEstimationPnP(inliersF_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);

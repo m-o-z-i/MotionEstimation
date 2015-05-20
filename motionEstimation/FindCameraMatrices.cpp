@@ -117,7 +117,7 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
     int count = cv::countNonZero(status);
 
     float percentage = ((float)count / (float)points3D.size());
-    std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    //std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
         //less than 55% of the points are in front of the camera
         return false;
@@ -303,6 +303,40 @@ void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, 
 
     u = 1.0/X.size() * sum_L;
     v = 1.0/X.size() * sum_R;
+}
+
+void getScaleFactorLeft(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L,
+                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
+                    const std::vector<cv::Point2f>& normPoints_L2,
+                    float& u)
+{
+    std::vector<cv::Point3f> X, X_L;
+    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
+    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 0, X_L);
+
+    float sum_L = 0;
+    for (unsigned int i = 0; i < X.size(); ++i) {
+        sum_L += ((cv::norm(X[i])*1.0) / cv::norm(X_L[i])*1.0);
+    }
+
+    u = 1.0/X.size() * sum_L;
+}
+
+void getScaleFactorRight(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_R,
+                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
+                    const std::vector<cv::Point2f>& normPoints_R2,
+                    float& u)
+{
+    std::vector<cv::Point3f> X, X_R;
+    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
+    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 0, X_R);
+
+    float sum_R = 0;
+    for (unsigned int i = 0; i < X.size(); ++i) {
+        sum_R += ((cv::norm(X[i])*1.0) / cv::norm(X_R[i])*1.0);
+    }
+
+    u = 1.0/X.size() * sum_R;
 }
 
 void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  float& u, float& v) {

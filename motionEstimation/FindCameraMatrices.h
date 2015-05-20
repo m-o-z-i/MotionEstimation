@@ -22,5 +22,16 @@ void loadIntrinsic(string path, cv::Mat& K_L, cv::Mat& K_R, cv::Mat &distCoeff_L
 void loadExtrinsic(string path, cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F );
 
 void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R, const vector<cv::Point2f>& normPoints_L1, const vector<cv::Point2f>&normPoints_R1, const vector<cv::Point2f>&normPoints_L2, const vector<cv::Point2f>& normPoints_R2, float& u, float& v);
+void getScaleFactorRight(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_R,
+                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
+                    const std::vector<cv::Point2f>& normPoints_R2,
+                    float& u);
+void getScaleFactorLeft(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L,
+                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
+                    const std::vector<cv::Point2f>& normPoints_L2,
+                    float& u);
+
 void getScaleFactor2(const cv::Mat& T_LR, const cv::Mat& R_LR, const cv::Mat& T_L, const cv::Mat& R_L, const cv::Mat& T_R,  float& u, float& v);
+
+
 #endif // FINDCAMERAMATRICES_H

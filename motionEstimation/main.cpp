@@ -186,9 +186,9 @@ int main(){
                 }
 
 
-                // convert grayscale to color image
-                cv::Mat color_image;
-                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
+//                // convert grayscale to color image and draw all points
+//                cv::Mat color_image;
+//                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
 
                 drawCorresPointsRef(color_image, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
 
@@ -198,12 +198,13 @@ int main(){
                 getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
                 //delete all points that are not correctly found in stereo setup
                 deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
+
                 // skip frame because something fails with rectification (ex. frame 287 dbl)
-//                if (8 > inliersHorizontal_L1.size()) {
-//                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
-//                    skipFrame = true;
-//                    continue;
-//                }
+                if (8 > inliersHorizontal_L1.size()) {
+                    cout << "NO MOVEMENT: couldn't find horizontal points... probably rectification fails or to less feature points found?!" << endl;
+                    skipFrame = true;
+                    continue;
+                }
 
 
                 // compute fundemental matrix F_L1L2
@@ -232,13 +233,15 @@ int main(){
 
                 drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
                 drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
-                drawCorresPointsRef(color_image,inliersHorizontal_L1,  inliersHorizontal_L2, "inlier horizontal left", cv::Scalar(0,0,255));
-                drawCorresPointsRef(color_image, inliersF_L1, inliersF_L2, "inlier points left", cv::Scalar(0,255,0));
 
-                char key2 = cv::waitKey();
-                if (char(key2) == 's'){
-                    cv::imwrite("data/docu/inlier_outlier.jpg", color_image);
-                }
+//                // draw inliers
+//                drawCorresPointsRef(color_image,inliersHorizontal_L1,  inliersHorizontal_L2, "inlier horizontal left", cv::Scalar(0,0,255));
+//                drawCorresPointsRef(color_image, inliersF_L1, inliersF_L2, "inlier points left", cv::Scalar(0,255,0));
+
+//                char key2 = cv::waitKey();
+//                if (char(key2) == 's'){
+//                    cv::imwrite("data/docu/inlier_outlier.jpg", color_image);
+//                }
 
                 cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
                 // UP TO SCALE!!!
@@ -425,6 +428,19 @@ int main(){
                     skipFrame = true;
                     continue;
                 }
+
+                // scale factor:
+                float u_L1;
+                cv::Mat P_L;
+                composeProjectionMat(T_PnP_L, R_PnP_L, P_L);
+                getScaleFactorLeft(P_0, P_LR, P_L, normP_L1, normP_R1, normP_L2,u_L1);
+                if(u_L1 < -1 || u_L1 > 1000 ){
+                    std::cout << "scale factors to small or to big:  L: " << u_L1 << std::endl;
+                    skipFrame = true;
+                    continue;
+                }
+
+                T_PnP_L = T_PnP_L * u_L1;
 
                 // use initial guess values for pose estimation
                 bool poseEstimationFoundPnP_L = motionEstimationPnP(inliersF_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);

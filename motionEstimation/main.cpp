@@ -190,7 +190,7 @@ int main(){
 //                cv::Mat color_image;
 //                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
 
-                drawCorresPointsRef(color_image, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
+                //drawCorresPointsRef(color_image, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
 
                 // get inlier from stereo constraints
                 std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;

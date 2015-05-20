@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2015.4.10)  11 MAY 2015 18:18
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2015.4.10)  20 MAY 2015 17:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -275,7 +275,35 @@ Package: subcaption 2013/02/03 v1.1-62 Sub-captions (AR)
 \c@subfigure=\count114
 \c@subtable=\count115
 )
-(./document.aux)
+(./document.aux
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+
+LaTeX Warning: Label `overflow' multiply defined.
+
+)
 \openout1 = `document.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 15.
@@ -307,6 +335,7 @@ File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
 (RS)
 )
 \AtBeginShipoutBox=\box30
+
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/color.sty
 Package: color 2005/11/14 v1.0j Standard LaTeX Color (DPC)
 
@@ -364,34 +393,158 @@ e
 ))
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: End \AtBeginDocument code.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 31.
 
-[1
+<images/farneback.jpg, id=32, 754.82pt x 481.8pt>
+File: images/farneback.jpg Graphic file (type jpg)
+ <use images/farneback.jpg>
+Package pdftex.def Info: images/farneback.jpg used on input line 28.
+(pdftex.def)             Requested size: 256.0748pt x 163.4496pt.
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 31.
+<images/feature-based-matching.jpg, id=33, 754.82pt x 481.8pt>
+File: images/feature-based-matching.jpg Graphic file (type jpg)
+
+<use images/feature-based-matching.jpg>
+Package pdftex.def Info: images/feature-based-matching.jpg used on input line 3
+4.
+(pdftex.def)             Requested size: 256.0748pt x 163.4496pt.
+Missing character: There is no â in font cmr10!
+Missing character: There is no € in font cmr10!
+Missing character: There is no ™ in font cmr10!
+ [1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./images/farneback.jpg>]
+<images/look_down.png, id=43, 1156.32pt x 867.24pt>
+File: images/look_down.png Graphic file (type png)
+ <use images/look_down.png>
+Package pdftex.def Info: images/look_down.png used on input line 43.
+(pdftex.def)             Requested size: 256.0748pt x 192.05052pt.
+
+Overfull \hbox (198.4624pt too wide) in paragraph at lines 47--48
+\OT1/cmr/m/n/10.95 (-20) and di-rec-tion of the op-ti-cal flow vec-tors. [http:
+//cvpr.uni-muenster.de/teaching/ss09/computerVisionSS09/script/CV08-
+ []
+
+[2 <./images/feature-based-matching.jpg> <./images/look_down.png>]
+<images/translation.png, id=52, 643.40375pt x 486.81876pt>
+File: images/translation.png Graphic file (type png)
+
+<use images/translation.png>
+Package pdftex.def Info: images/translation.png used on input line 51.
+(pdftex.def)             Requested size: 256.0748pt x 193.75838pt.
+
+<images/rotation.png, id=53, 477.785pt x 479.7925pt>
+File: images/rotation.png Graphic file (type png)
+ <use images/rotation.png>
+Package pdftex.def Info: images/rotation.png used on input line 57.
+(pdftex.def)             Requested size: 256.0748pt x 257.15132pt.
+Missing character: There is no â in font cmr10!
+Missing character: There is no € in font cmr10!
+Missing character: There is no ™ in font cmr10!
+
+
+LaTeX Warning: File `images/camera setup.png' not found on input line 69.
+
+<images/camera setup.png, id=54, 469.755pt x 301.125pt>
+File: images/camera setup.png Graphic file (type png)
+
+<use images/camera setup.png>
+Package pdftex.def Info: images/camera setup.png used on input line 69.
+(pdftex.def)             Requested size: 256.0748pt x 164.14891pt.
+
+<images/setup.png, id=55, 827.09pt x 518.93875pt>
+File: images/setup.png Graphic file (type png)
+ <use images/setup.png>
+Package pdftex.def Info: images/setup.png used on input line 82.
+(pdftex.def)             Requested size: 256.0748pt x 160.67139pt.
+Missing character: There is no â in font cmr10!
+Missing character: There is no € in font cmr10!
+Missing character: There is no ™ in font cmr10!
+
+Overfull \hbox (182.5914pt too wide) in paragraph at lines 86--92
+\OT1/cmr/m/n/10.95 (-20) http://www.cs.ucf.edu/ mtap-pen/cap5415/lecs/lec5.pdf,
+ http://www.informatikprojekt.de/uploads/dbv[]report.pdf]
+ []
+
+
+Overfull \hbox (44.95175pt too wide) in paragraph at lines 86--92
+\OT1/cmr/m/n/10.95 (-20) mented in openCV as well. [http://www.informatikprojek
+t.de/uploads/dbv[]report.pdf]
+ []
+
+[3 <./images/translation.png>] [4 <./images/rotation.png> <./images/camera setu
+p.png>]
+Overfull \hbox (415.29315pt too wide) in paragraph at lines 93--94
+\OT1/cmr/m/n/10.95 (-20) dresden.de/die[]tu[]dresden/fakultaeten/fakultaet[]for
+st[]geo[]und[]hydrowissenschaften/fachrichtung[]geowissenschaften/ipf/photogram
+metrie/dateien/Westfeld2004.pdf] 
+ []
+
+<images/pyramidical.png, id=68, 220.825pt x 288.07625pt>
+File: images/pyramidical.png Graphic file (type png)
+
+<use images/pyramidical.png>
+Package pdftex.def Info: images/pyramidical.png used on input line 97.
+(pdftex.def)             Requested size: 256.0748pt x 334.07635pt.
+Missing character: There is no â in font cmr10!
+Missing character: There is no € in font cmr10!
+Missing character: There is no ™ in font cmr10!
+ [5 <./images/setup.png>]
+<images/inlier_outlier3.jpg, id=75, 754.82pt x 481.8pt>
+File: images/inlier_outlier3.jpg Graphic file (type jpg)
+
+<use images/inlier_outlier3.jpg>
+Package pdftex.def Info: images/inlier_outlier3.jpg used on input line 106.
+(pdftex.def)             Requested size: 256.0748pt x 163.4496pt.
+Missing character: There is no â in font cmr10!
+Missing character: There is no € in font cmr10!
+Missing character: There is no ™ in font cmr10!
+ [6 <./images/pyramidical.png>]
+<images/possible_P_Mats.png, id=82, 1295.84125pt x 1004.75375pt>
+File: images/possible_P_Mats.png Graphic file (type png)
+
+<use images/possible_P_Mats.png>
+Package pdftex.def Info: images/possible_P_Mats.png used on input line 119.
+(pdftex.def)             Requested size: 256.0748pt x 198.55551pt.
+Missing character: There is no Â in font cmr10!
+Missing character: There is no © in font cmr10!
+Missing character: There is no Â in font cmr10!
+Missing character: There is no © in font cmr10!
+ [7 <./images/inlier_outlier3.jpg>]
+Overfull \hbox (99.23445pt too wide) in paragraph at lines 129--130
+\OT1/cmr/m/n/10.95 (-20) [http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL[]COP
+IES/MARBLE/high/pia/solving.htm] 
+ []
+
+[8 <./images/possible_P_Mats.png>]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 145.
+ [9]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 145.
  (./document.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 31.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 31.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 145.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 145.
 Package rerunfilecheck Info: File `document.out' has not changed.
-(rerunfilecheck)             Checksum: A02D95553E30B97FF125B1AA17CF9044;47.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 31.
+(rerunfilecheck)             Checksum: 53EEAF21DEC0980D2270E7DC8CAF25B2;323.
+
+
+LaTeX Warning: There were multiply-defined labels.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 145.
  ) 
 Here is how much of TeX's memory you used:
- 8232 strings out of 494935
- 127668 string characters out of 6178122
- 246007 words of memory out of 5000000
- 11399 multiletter control sequences out of 15000+600000
- 9601 words of font info for 38 fonts, out of 8000000 for 9000
+ 8360 strings out of 494935
+ 129553 string characters out of 6178122
+ 248188 words of memory out of 5000000
+ 11447 multiletter control sequences out of 15000+600000
+ 9883 words of font info for 57 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 36i,6n,38p,222b,333s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,6n,38p,784b,339s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share
 /texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb>
-Output written on document.pdf (1 page, 30420 bytes).
+Output written on document.pdf (9 pages, 757328 bytes).
 PDF statistics:
- 30 PDF objects out of 1000 (max. 8388607)
- 23 compressed objects within 1 object stream
- 3 named destinations out of 1000 (max. 500000)
- 7177 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 118 PDF objects out of 1000 (max. 8388607)
+ 89 compressed objects within 1 object stream
+ 27 named destinations out of 1000 (max. 500000)
+ 7275 words of extra memory for PDF output out of 10000 (max. 10000000)
 

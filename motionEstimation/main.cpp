@@ -38,6 +38,10 @@ int main(){
     // get calibration Matrix K
     cv::Mat K_L, distCoeff_L, K_R, distCoeff_R;
     loadIntrinsic(dataPath, K_L, K_R, distCoeff_L, distCoeff_R);
+    std::cout << "K_LINKS" << std::endl;
+    std::cout << K_L << std::endl;
+    std::cout << "K_RECHTS" << std::endl;
+    std::cout << K_R << std::endl;
 
     // get extrinsic test parameter
     cv::Mat E_LR, F_LR, R_LR, T_LR;
@@ -186,9 +190,9 @@ int main(){
                 }
 
 
-//                // convert grayscale to color image and draw all points
-//                cv::Mat color_image;
-//                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
+                //                // convert grayscale to color image and draw all points
+                //                cv::Mat color_image;
+                //                cv::cvtColor(image_L1, color_image, CV_GRAY2RGB);
 
                 //drawCorresPointsRef(color_image, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
 
@@ -234,14 +238,14 @@ int main(){
                 drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
                 drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
 
-//                // draw inliers
-//                drawCorresPointsRef(color_image,inliersHorizontal_L1,  inliersHorizontal_L2, "inlier horizontal left", cv::Scalar(0,0,255));
-//                drawCorresPointsRef(color_image, inliersF_L1, inliersF_L2, "inlier points left", cv::Scalar(0,255,0));
+                //                // draw inliers
+                //                drawCorresPointsRef(color_image,inliersHorizontal_L1,  inliersHorizontal_L2, "inlier horizontal left", cv::Scalar(0,0,255));
+                //                drawCorresPointsRef(color_image, inliersF_L1, inliersF_L2, "inlier points left", cv::Scalar(0,255,0));
 
-//                char key2 = cv::waitKey();
-//                if (char(key2) == 's'){
-//                    cv::imwrite("data/docu/inlier_outlier.jpg", color_image);
-//                }
+                //                char key2 = cv::waitKey();
+                //                if (char(key2) == 's'){
+                //                    cv::imwrite("data/docu/inlier_outlier.jpg", color_image);
+                //                }
 
                 cv::Mat T_E_L, R_E_L, T_E_R, R_E_R;
                 // UP TO SCALE!!!
@@ -275,10 +279,9 @@ int main(){
                 // find right scale factors u und v (according to rodehorst paper)
 
                 // NORMALIZE POINTS
-                 // TODO: use inlier!!!
                 std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+                normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normP_L1, normP_R1);
+                normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normP_L2, normP_R2);
 
                 // find scale factors
                 // find right scale factors u und v (according to rodehorst paper)
@@ -289,14 +292,14 @@ int main(){
                 composeProjectionMat(T_E_L, R_E_L, P_L);
                 composeProjectionMat(T_E_R, R_E_R, P_R);
                 getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
-                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
-                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
-                    skipFrame = true;
-                    continue;
-                }
+//                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
+//                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
+//                    skipFrame = true;
+//                    continue;
+//                }
 
-                T_E_L = T_E_L * u_L1;
-                T_E_R = T_E_R * u_R1;
+//                T_E_L = T_E_L * u_L1;
+//                T_E_R = T_E_R * u_R1;
 
                 cout << "u links  1: " << u_L1 << endl;
                 cout << "u rechts 1: " << u_R1 << endl << endl;
@@ -477,7 +480,7 @@ int main(){
                 if (!poseEstimationFoundTemp_R){
                     skipFrame = true;
                     continue;
-                }      
+                }
 
                 // use initial guess values for pose estimation
                 bool poseEstimationFoundPnP_R = motionEstimationPnP(inliersF_R2, pointCloud_1, K_R, T_PnP_R, R_PnP_R);
@@ -639,116 +642,102 @@ int main(){
                 // ##############################################################################
             }
 
-#if 0
-            // ######################## TRIANGULATION TEST ################################
-            // NORMALIZE POINTS
-            std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-            normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-            normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
 
-            // TRIANGULATE POINTS
-            std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-            TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-            TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+            if (4 == mode){
+                // ######################## TRIANGULATION TEST ################################
+                // get inlier from stereo constraints
+                std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
+                getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
+                getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), inliersHorizontal_L2, inliersHorizontal_R2);
+                //delete all points that are not correctly found in stereo setup
+                deleteZeroLines(points_L1, points_R1, points_L2, points_R2, inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2);
+
+                drawCorresPoints(image_L1, points_L1, points_R1, "inlier 1 " , CV_RGB(0,0,255));
+                drawCorresPoints(image_R1, points_L2, points_R2, "inlier 2 " , CV_RGB(0,0,255));
+
+                // NORMALIZE POINTS
+                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
+                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
+                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+
+                // TRIANGULATE POINTS
+                std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+                TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
 
 
-            // STEREO INLIER (POINTS HAVE TO BE LOCATED ON A HORIZONTAL LINE)
-            std::vector<cv::Point2f> horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2;
-            getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), horizontal_L1, horizontal_R1);
-            getInliersFromHorizontalDirection(make_pair(points_L2, points_R2), horizontal_L2, horizontal_R2);
-            deleteZeroLines(horizontal_L1, horizontal_R1, horizontal_L2, horizontal_R2);
-
-
-            if(0 == horizontal_L1.size()) {
-                cout <<  "horizontal inlier: can't find any corresponding points in all 4 frames' "  << std::endl ;
-                ++frame;
-                continue;
-            }
-
-            // NORMALIZE HORIZONTAL POINTS
-            std::vector<cv::Point2f> normP_L1_Trian, normP_R1_Trian, normP_L2_Trian, normP_R2_Trian;
-            normalizePoints(KInv_L, KInv_R, horizontal_L1, horizontal_R1, normP_L1_Trian, normP_R1_Trian);
-            normalizePoints(KInv_L, KInv_R, horizontal_L2, horizontal_R2, normP_L2_Trian, normP_R2_Trian);
-
-            // TRIANGULATE HORIZONTAL POINTS AND GET INLIER
-            std::vector<cv::Point3f> pointCloud_inlier_1, pointCloud_inlier_2;
-            std::vector<cv::Point2f> inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2;
-            TriangulatePointsWithInlier(P_0, P_LR, normP_L1_Trian, normP_R1_Trian, 0, pointCloud_inlier_1, horizontal_L1, horizontal_R1, inlierTriang_L1, inlierTriang_R1);
-            TriangulatePointsWithInlier(P_0, P_LR, normP_L2_Trian, normP_R2_Trian, 0, pointCloud_inlier_2, horizontal_L2, horizontal_R2, inlierTriang_L2, inlierTriang_R2);
-            deleteZeroLines(inlierTriang_L1, inlierTriang_R1, inlierTriang_L2, inlierTriang_R2, pointCloud_inlier_1, pointCloud_inlier_2);
-
-            if(0 == inlierTriang_L1.size()) {
-                cout <<  "triangulation inlier: can't find inlier"  << std::endl ;
-                cout <<  "no translation? (triangulation fails by no translation)"  << std::endl ;
-                ++frame;
-                continue;
-            }
-            // get RGB values for pointcloud representation
-            std::vector<cv::Vec3b> RGBValues;
-            for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
-                uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
-                RGBValues.push_back(cv::Vec3b(0,255,0));
-            }
-
-            std::vector<cv::Vec3b> RGBValues2;
-            for (unsigned int i = 0; i < horizontal_L1.size(); ++i){
-                RGBValues2.push_back(cv::Vec3b(255,0,0));
-            }
-
-            rotatePointCloud(pointCloud_inlier_1);
-            rotatePointCloud(pointCloud_inlier_2);
-
-            rotatePointCloud(pointCloud_inlier_1, currentPos_ES_L);
-            rotatePointCloud(pointCloud_inlier_2, currentPos_ES_L);
-
-            int index = 0;
-            for (auto i : pointCloud_inlier_1) {
-                float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-                cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
-                ++index;
-            }
-
-            std::vector<cv::Point3f> pcloud_CV;
-            TriangulateOpenCV(P_0, P_LR, K_L, K_R, inlierTriang_L1, inlierTriang_R1, pcloud_CV);
-
-            index = 0;
-            for (auto i : pcloud_CV) {
-                float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-                cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
-                ++index;
-            }
-
-            AddPointcloudToVisualizer(pointCloud_inlier_1, "cloud1" + std::to_string(frame), RGBValues);
-            AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame), RGBValues2);
-
-            AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame), cv::Scalar(255,0,0));
-#endif
-        }
-
-        // To Do:
-        // swap image files...
-
-        if (1290 < frame1){
-            key = cv::waitKey(10);
-            if (char(key) == 32) {
-                loop = !loop;
-            }
-
-            while (loop){
-                RunVisualization();
-
-                //to register a event key, you have to make sure that a opencv named Window is open
-                key = cv::waitKey(10);
-                if (char(key) == 'n') {
-                    loop = true;
-                    break;
-                } else if (char(key) == 32) {
-                    loop = false;
+                if(0 == pointCloud_1.size()) {
+                    cout <<  "horizontal inlier: can't find any corresponding points in all 4 frames' "  << std::endl ;
+                    ++frame1;
+                    continue;
                 }
+
+
+
+                // get RGB values for pointcloud representation
+                std::vector<cv::Vec3b> RGBValues;
+                for (unsigned int i = 0; i < normP_L1.size(); ++i){
+                    uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+                    RGBValues.push_back(cv::Vec3b(grey,grey,grey));
+                }
+
+                std::vector<cv::Vec3b> RGBValues2;
+                for (unsigned int i = 0; i < normP_L2.size(); ++i){
+                    uchar grey2 = image_L2.at<uchar>(points_L2[i].x, points_L2[i].y);
+                    RGBValues2.push_back(cv::Vec3b(grey2,grey2,grey2));
+                }
+
+
+                int index = 0;
+                for (auto i : pointCloud_1) {
+                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+                    cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
+                    ++index;
+                }
+
+                std::vector<cv::Point3f> pcloud_CV;
+                TriangulateOpenCV(P_0, P_LR, K_L, K_R, normP_L1, normP_R1, pcloud_CV);
+
+                index = 0;
+                for (auto i : pcloud_CV) {
+                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+                    cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
+                    ++index;
+                }
+
+                AddPointcloudToVisualizer(pointCloud_1, "cloud1" + std::to_string(frame1), RGBValues);
+                //AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame1), RGBValues2);
+
+                // AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame1), cv::Scalar(255,0,0));
+
             }
 
+
+            // To Do:
+            // swap image files...
+            if (900 < frame1){
+                key = cv::waitKey(10);
+                if (char(key) == 32) {
+                    loop = !loop;
+                }
+
+                while (loop){
+                    RunVisualization();
+
+                    //to register a event key, you have to make sure that a opencv named Window is open
+                    key = cv::waitKey(10);
+                    if (char(key) == 'n') {
+                        loop = true;
+                        break;
+                    } else if (char(key) == 32) {
+                        loop = false;
+                    }
+                }
+
+            }
         }
     }
-    cv::waitKey();
-    return 0;
+        cv::waitKey();
+        return 0;
 }
+

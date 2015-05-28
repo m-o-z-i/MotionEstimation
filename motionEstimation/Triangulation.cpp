@@ -33,6 +33,7 @@ cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h,         /
     X(2) = X_(2);
     X(3) = 1.0;
 
+    //doesn't make sense!?
     for (int i=0; i<10; i++) { //Hartley suggests 10 iterations at most
 
         //recalculate weights
@@ -135,7 +136,7 @@ void TriangulatePointsHZ(
 
     int index = 0;
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
-        cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[index],P0,points2_h[index],P1);
+        cv::Mat_<float> X = LinearLSTriangulation(points1_h[index],P0,points2_h[index],P1);
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
         index+=interval;
     }

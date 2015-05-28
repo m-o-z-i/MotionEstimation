@@ -24,7 +24,7 @@
 
 void initVisualisation();
 
-void RunVisualization();
+void RunVisualization(int i);
 
 void SORFilter();
 

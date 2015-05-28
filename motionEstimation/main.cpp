@@ -733,8 +733,10 @@ int main(){
                     loop = !loop;
                 }
 
+                int i = 0;
                 while (loop){
-                    RunVisualization();
+                    RunVisualization(i);
+                    ++i;
 
                     //to register a event key, you have to make sure that a opencv named Window is open
                     key = cv::waitKey(10);

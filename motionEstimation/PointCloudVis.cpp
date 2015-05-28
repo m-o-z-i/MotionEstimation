@@ -2,8 +2,11 @@
 #define protected public
 
 #include "PointCloudVis.h"
+#include <pcl/visualization/point_picking_event.h>
+
 
 pcl::visualization::PCLVisualizer viewer("MotionEstimation Viewer");
+pcl::visualization::PointPickingEvent mouseEvent();
 
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -126,13 +129,28 @@ void AddLineToVisualizer(const std::vector<cv::Point3f>& pointCloud_1, const std
     }
 }
 
-void RunVisualization() {
+
+void pp_callback(const pcl::visualization::PointPickingEvent& event, void* viewer_void)
+{
+   if(event.getPointIndex()!=-1)
+   {
+       float x,y,z;
+       event.getPoint(x,y,z);
+       std::cout << "clicked point: " << event.getPointIndex() << "  [" << x << ", " << y<<", " << z << "]" << std::endl;
+   }
+}
+
+void RunVisualization(int index) {
     // draw pointclouds
     for (auto p : point_clouds) {
         viewer.addPointCloud(p.second, p.first);
     }
 
     point_clouds.clear();
+
+    if (index == 0){
+        viewer.registerPointPickingCallback(pp_callback, (void*)&viewer);
+    }
 
     viewer.spinOnce();
 }

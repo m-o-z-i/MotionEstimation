@@ -297,15 +297,15 @@ int main(){
                 cv::Mat P_L, P_R;
                 composeProjectionMat(T_E_L, R_E_L, P_L);
                 composeProjectionMat(T_E_R, R_E_R, P_R);
-                getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
-//                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
-//                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
-//                    skipFrame = true;
-//                    continue;
-//                }
 
-//                T_E_L = T_E_L * u_L1;
-//                T_E_R = T_E_R * u_R1;
+                getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
+                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
+                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
+                } else {
+                    T_E_L = T_E_L * u_L1;
+                    T_E_R = T_E_R * u_R1;
+                }
+
 
 //                cout << "u links  1: " << u_L1 << endl;
 //                cout << "u rechts 1: " << u_R1 << endl << endl;
@@ -316,12 +316,11 @@ int main(){
 
                 if(u_L2 < -1000 || u_R2 < -1000 || u_L2 > 1000 || u_R2 > 1000 ){
                     std::cout << "scale factors to small or to big:  L: " << u_L2 << "  R: " << u_R2  << std::endl;
-                    skipFrame = true;
-                    continue;
+                } else {
+                    T_E_L = T_E_L * u_L2;
+                    T_E_R = T_E_R * u_R2;
                 }
 
-                T_E_L = T_E_L * u_L2;
-                T_E_R = T_E_R * u_R2;
 
                 //compare both methods
                 cout << "u links  2: " << u_L2 << endl;
@@ -662,6 +661,11 @@ int main(){
                 drawCorresPoints(image_L1, points_L1, points_R1, "inlier 1 " , CV_RGB(0,0,255));
                 drawCorresPoints(image_R1, points_L2, points_R2, "inlier 2 " , CV_RGB(0,0,255));
 
+                if(0 == points_L1.size()){
+                    skipFrame = true;
+                    continue;
+                }
+
                 // NORMALIZE POINTS
                 std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
                 normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
@@ -723,7 +727,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (1 < frame1){
+            if (1290 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;

@@ -691,7 +691,8 @@ int main(){
                 std::vector<cv::Vec3b> RGBValues2;
                 for (unsigned int i = 0; i < normP_L2.size(); ++i){
                     uchar grey2 = image_L2.at<uchar>(points_L2[i].x, points_L2[i].y);
-                    RGBValues2.push_back(cv::Vec3b(grey2,grey2,grey2));
+                    //RGBValues2.push_back(cv::Vec3b(grey2,grey2,grey2));
+                    RGBValues2.push_back(cv::Vec3b(255,0,0));
                 }
 
 
@@ -703,7 +704,7 @@ int main(){
                 }
 
                 std::vector<cv::Point3f> pcloud_CV;
-                TriangulateOpenCV(P_0, P_LR, K_L, K_R, normP_L1, normP_R1, pcloud_CV);
+                TriangulateOpenCV(P_0, P_LR, normP_L1, normP_R1, pcloud_CV);
 
                 index = 0;
                 for (auto i : pcloud_CV) {
@@ -713,7 +714,7 @@ int main(){
                 }
 
                 AddPointcloudToVisualizer(pointCloud_1, "cloud1" + std::to_string(frame1), RGBValues);
-                //AddPointcloudToVisualizer(pointCloud_inlier_2, "cloud2" + std::to_string(frame1), RGBValues2);
+                AddPointcloudToVisualizer(pcloud_CV, "cloud2" + std::to_string(frame1), RGBValues2);
 
                 // AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame1), cv::Scalar(255,0,0));
 

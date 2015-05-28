@@ -2,44 +2,19 @@
 
 void TriangulateOpenCV(const cv::Mat& P_L,
                        const cv::Mat& P_R,
-                       const cv::Mat& K_L,
-                       const cv::Mat& K_R,
-                       const vector<cv::Point2f>& inliersF1,
-                       const vector<cv::Point2f>& inliersF2,
+                       const vector<cv::Point2f>& normPtr_L,
+                       const vector<cv::Point2f>& normPtr_R,
                        std::vector<cv::Point3f>& outCloud)
 {
-    int size = inliersF1.size();
+    int size = normPtr_L.size();
 
-    cv::Mat PK_L = K_L * P_L;
-    cv::Mat PK_R = K_R * P_R;
-
-    cv::Mat points3D_h(1,size, CV_32FC4);
-    cv::Mat points1 = cv::Mat(inliersF1);
-    cv::Mat points2 = cv::Mat(inliersF2);
-
-    cv::Mat points1_r = points1.reshape(1,2);
-    cv::Mat points2_r = points2.reshape(1,2);
-
-
-    points1_r.convertTo(points1_r, CV_32FC2);
-    points2_r.convertTo(points2_r, CV_32FC2);
+    cv::Mat points3D_h(4, size, CV_32FC1);
 
     //triangulate Points:
-    cv::triangulatePoints(PK_L, PK_R, points1_r, points2_r, points3D_h);
+    cv::triangulatePoints(P_L, P_R, normPtr_L, normPtr_R, points3D_h);
 
-    //cout << "3d triangulated h \n\n" << points3D_h << endl;
+    cv::convertPointsFromHomogeneous(cv::Mat(points3D_h.t()).reshape(4,1), outCloud);
 
-    for (unsigned int i=0; i < size; i++) {
-        // get cartesian coordinates
-        float w = points3D_h.at<float>(3,i);
-        float x = points3D_h.at<float>(0,i)/w;
-        float y = points3D_h.at<float>(1,i)/w;
-        float z = points3D_h.at<float>(2,i)/w;
-
-        cv::Point3f p(x,y,z);
-        //cout << p << endl;
-        outCloud.push_back(p);
-    }
 }
 
 /**
@@ -52,12 +27,13 @@ cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h,         /
                                                 ) {
     float wi = 1, wi1 = 1;
     cv::Mat_<float> X(4,1);
+    cv::Mat_<float> X_ = LinearLSTriangulation(point2d1_h,P0,point2d2_h,P1);
+    X(0) = X_(0);
+    X(1) = X_(1);
+    X(2) = X_(2);
+    X(3) = 1.0;
+
     for (int i=0; i<10; i++) { //Hartley suggests 10 iterations at most
-        cv::Mat_<float> X_ = LinearLSTriangulation(point2d1_h,P0,point2d2_h,P1);
-        X(0) = X_(0);
-        X(1) = X_(1);
-        X(2) = X_(2);
-        X(3) = 1.0;
 
         //recalculate weights
         float p2x = cv::Mat_<float>(cv::Mat_<float>(P0).row(2)*X)(0);

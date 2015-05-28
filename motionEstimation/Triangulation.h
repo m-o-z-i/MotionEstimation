@@ -21,9 +21,10 @@ void TriangulatePointsHZ(const cv::Matx34f& P0, const cv::Matx34f& P1,
                          int numberOfTriangulations,
                          vector<cv::Point3f>& pointcloud);
 
-void TriangulateOpenCV(const cv::Mat& P_L, const cv::Mat& P_R,
-                       const cv::Mat &K_L, const cv::Mat &K_R,
-                       const vector<cv::Point2f>& inliersF1, const vector<cv::Point2f>& inliersF2,
+void TriangulateOpenCV(const cv::Mat& P_L,
+                       const cv::Mat& P_R,
+                       const vector<cv::Point2f>& normPtr_L,
+                       const vector<cv::Point2f>& normPtr_R,
                        std::vector<cv::Point3f>& outCloud);
 
 cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h, cv::Matx34f P0,

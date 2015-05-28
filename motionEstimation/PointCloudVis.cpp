@@ -146,7 +146,7 @@ void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, 
         line_name = ss.str();
     }
 
-    Eigen::Vector3f vforward = R.row(2).normalized() * s;
+    Eigen::Vector3f vforward = R.col(2).normalized() * s;
 
     Eigen::Quaternionf RotQ(R);
     viewer.addCube(_t, RotQ, 10,10,10,name_);

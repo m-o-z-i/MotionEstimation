@@ -68,12 +68,17 @@ int main(){
     // calculate inverse K
     cv::Mat KInv_L, KInv_R;
     cv::invert(K_L, KInv_L);
-    cv::invert(K_L, KInv_R);
+    cv::invert(K_R, KInv_R);
 
     // get projection Mat between L and R
     cv::Mat P_LR, rvec_LR;
     composeProjectionMat(T_LR, R_LR, P_LR);
     cv::Rodrigues(R_LR, rvec_LR);
+    // T_LR is the left camera represent in the coordinatesystem of the right camera (-11.5mm)
+
+    std::cout << "P_LR" << std::endl;
+    std::cout << P_LR << std::endl;
+
 
     cv::Mat P_0 = (cv::Mat_<float>(3,4) <<
                    1.0, 0.0, 0.0, 0.0,
@@ -260,6 +265,7 @@ int main(){
                 if(foundF_R){
                     poseEstimationFoundES_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_E_R, R_E_R);
                 }
+
                 if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
                     skipFrame = true;
                     continue;
@@ -301,8 +307,8 @@ int main(){
 //                T_E_L = T_E_L * u_L1;
 //                T_E_R = T_E_R * u_R1;
 
-                cout << "u links  1: " << u_L1 << endl;
-                cout << "u rechts 1: " << u_R1 << endl << endl;
+//                cout << "u links  1: " << u_L1 << endl;
+//                cout << "u rechts 1: " << u_R1 << endl << endl;
 #else
                 // 2. method:
                 float u_L2, u_R2;
@@ -324,12 +330,13 @@ int main(){
                 //LEFT:
                 //rotateRandT(T_E_L, R_E_L);
 
+                std::cout << "translation 1: " << T_E_L << std::endl;
                 cv::Mat newTrans3D_E_L;
                 getNewTrans3D( T_E_L, R_E_L, newTrans3D_E_L);
 
 
                 cv::Mat newPos_ES_L;
-                getAbsPos(currentPos_ES_L, newTrans3D_E_L, R_E_L, newPos_ES_L);
+                getAbsPos(currentPos_ES_L, newTrans3D_E_L, R_E_L.t(), newPos_ES_L);
 
                 std::stringstream left_ES;
                 left_ES << "camera_ES_left" << frame1;
@@ -348,7 +355,7 @@ int main(){
                 getNewTrans3D( T_E_R, R_E_R, newTrans3D_E_R);
 
                 cv::Mat newPos_ES_R;
-                getAbsPos (currentPos_ES_R, newTrans3D_E_R, R_E_R, newPos_ES_R);
+                getAbsPos (currentPos_ES_R, newTrans3D_E_R, R_E_R.t(), newPos_ES_R);
                 std::stringstream right_ES;
                 right_ES << "camera_ES_right" << frame1;
 
@@ -361,7 +368,7 @@ int main(){
                 currentPos_ES_R = newPos_ES_R;
 
 
-                std::cout << "MOVEMENT FOUND ES: " << T_E_L << "  abs. position  "  << translation_ES_L << std::endl;
+                std::cout << "translation 2: " << newTrans3D_E_L << "  abs. position  "  << translation_ES_L << std::endl;
                 // ##############################################################################
             }
 
@@ -715,7 +722,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (900 < frame1){
+            if (1 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;

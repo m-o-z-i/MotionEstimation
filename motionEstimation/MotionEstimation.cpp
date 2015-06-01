@@ -69,7 +69,6 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
     }
 
     // compute fundemental matrix FL1L2
-    drawCorresPoints(image1, points1, points2, "F points 1 to 2", CV_RGB(0,255,0));
     cv::Mat F;
     bool foundF;
     std::vector<cv::Point2f> inliersF1, inliersF2;
@@ -94,9 +93,6 @@ bool motionEstimationEssentialMat (const cv::Mat& image1,
 //                .01);                                            // confidence probability
 
 //    F2.convertTo(F2, CV_32F);
-
-    drawCorresPoints(image1, inliersF1, inliersF2, "inliers 1 to 2", CV_RGB(0,255,0));
-    //drawEpipolarLines(image1, inliersF1, F);
 
     // normalisize all Points
     std::vector<cv::Point2f> normPoints1, normPoints2;

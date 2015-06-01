@@ -170,6 +170,24 @@ void drawCorresPoints(const cv::Mat& image, const vector<cv::Point2f>& inliers1,
     cv::waitKey(1);
 }
 
+void drawCorresPointsRef(cv::Mat& image, const vector<cv::Point2f>& inliers1, const vector<cv::Point2f>& inliers2, string name, cv::Scalar const& color) {
+
+    int fontFace = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
+    float fontScale = 0.4;
+    int thickness = 1;
+
+    for(unsigned int i = 0; i < inliers1.size(); i++)
+    {
+        float angle;		angle = atan2( (float) inliers1[i].y - inliers2[i].y, (float) inliers1[i].x - inliers2[i].x );
+        drawLine(image, inliers1[i], inliers2[i], angle, CV_RGB(color[0], color[1], color[2]));
+        //cv::Point2f point (0.5*(inliers2[i] - inliers1[i]) );
+        //cv::putText (image, to_string(i), inliers1[i] , fontFace, fontScale, CV_RGB(color[2], color[1], color[0]), thickness);
+    }
+
+    cv::imshow(name, image);
+    cv::waitKey(1);
+}
+
 void drawLine (cv::Mat &ref, cv::Point2f p, cv::Point2f q, float angle, const cv::Scalar& color, int line_thickness ) {
     /* Now we draw the main line of the arrow. */
     /* "frame1" is the frame to draw on.
@@ -220,8 +238,8 @@ void drawPoints (cv::Mat image, vector<cv::Point2f> points, string windowName, c
 
     for (unsigned int i = 0; i<points.size(); ++i) {
         // draw a circle at each inlier location
-        cv::circle(colorImg,points[i],3,color,1);
-        cv::putText (colorImg, to_string(i), points[i] , fontFace, fontScale, color, thickness);
+        cv::circle(colorImg,points[i],3,CV_RGB(color[0], color[1], color[2]),1);
+        //cv::putText (colorImg, to_string(i), points[i] , fontFace, fontScale, color, thickness);
     }
     cv::imshow(windowName, colorImg);
 }

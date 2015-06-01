@@ -457,6 +457,50 @@ void deleteZeroLines(vector<cv::Point2f>& points1L, vector<cv::Point2f>& points1
     }
 }
 
+void deleteZeroLines(vector<cv::Point2f>& points1La, vector<cv::Point2f>& points1Lb,
+                     vector<cv::Point2f>& points1Ra, vector<cv::Point2f>& points1Rb,
+                     vector<cv::Point2f>& points2La, vector<cv::Point2f>& points2Lb,
+                     vector<cv::Point2f>& points2Ra, vector<cv::Point2f>& points2Rb){
+    int size = points1La.size();
+    vector<cv::Point2f>::iterator iter_p1La = points1La.begin();
+    vector<cv::Point2f>::iterator iter_p1Lb = points1Lb.begin();
+    vector<cv::Point2f>::iterator iter_p1Ra = points1Ra.begin();
+    vector<cv::Point2f>::iterator iter_p1Rb = points1Rb.begin();
+    vector<cv::Point2f>::iterator iter_p2La  = points2La.begin();
+    vector<cv::Point2f>::iterator iter_p2Lb  = points2Lb.begin();
+    vector<cv::Point2f>::iterator iter_p2Ra  = points2Ra.begin();
+    vector<cv::Point2f>::iterator iter_p2Rb  = points2Rb.begin();
+    for (unsigned int i = 0; i < size; ++i) {
+        if (    (0 == points1La[iter_p1La-points1La.begin()].x && 0 == points1La[iter_p1La-points1La.begin()].y) ||
+                (0 == points1Lb[iter_p1Lb-points1Lb.begin()].x && 0 == points1Lb[iter_p1Lb-points1Lb.begin()].y) ||
+                (0 == points1Ra[iter_p1Ra-points1Ra.begin()].x && 0 == points1Ra[iter_p1Ra-points1Ra.begin()].y) ||
+                (0 == points1Rb[iter_p1Rb-points1Rb.begin()].x && 0 == points1Rb[iter_p1Rb-points1Rb.begin()].y) ||
+                (0 == points2La[iter_p2La-points2La.begin()].x && 0 == points2La[iter_p2La-points2La.begin()].y) ||
+                (0 == points2Lb[iter_p2Lb-points2Lb.begin()].x && 0 == points2Lb[iter_p2Lb-points2Lb.begin()].y) ||
+                (0 == points2Ra[iter_p2Ra-points2Ra.begin()].x && 0 == points2Ra[iter_p2Ra-points2Ra.begin()].y) ||
+                (0 == points2Rb[iter_p2Rb-points2Rb.begin()].x && 0 == points2Rb[iter_p2Rb-points2Rb.begin()].y))
+        {
+            points1La.erase(iter_p1La);
+            points1Lb.erase(iter_p1Lb);
+            points1Ra.erase(iter_p1Ra);
+            points1Rb.erase(iter_p1Rb);
+            points2La.erase(iter_p2La);
+            points2Lb.erase(iter_p2Lb);
+            points2Ra.erase(iter_p2Ra);
+            points2Rb.erase(iter_p2Rb);
+        } else {
+            ++iter_p1La;
+            ++iter_p1Lb;
+            ++iter_p1Ra;
+            ++iter_p1Rb;
+            ++iter_p2La;
+            ++iter_p2Lb;
+            ++iter_p2Ra;
+            ++iter_p2Rb;
+        }
+    }
+}
+
 
 void normalizePoints(const cv::Mat& KInv, const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2, vector<cv::Point2f>& normPoints1, vector<cv::Point2f>& normPoints2){
 

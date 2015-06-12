@@ -167,11 +167,11 @@ void addCameraToVisualizer(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, 
     Eigen::Vector3f vforward = R.col(2).normalized() * s;
 
     Eigen::Quaternionf RotQ(R);
-    viewer.addCube(_t, RotQ, 10,10,10,name_);
+    viewer.addCube(_t, RotQ, 50,50,50,name_);
 
 
     pcl::PointXYZ point1(_t(0), _t(1), _t(2));
-    Eigen::Vector3f temp = _t+vforward;
+    Eigen::Vector3f temp = _t+(10*vforward);
     pcl::PointXYZ point2(temp(0), temp(1), temp(2));
 
     viewer.addLine(point1, point2, r,g,b, line_name);

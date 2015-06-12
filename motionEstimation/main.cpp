@@ -91,6 +91,7 @@ int main(){
     // currentPosition E Mat
     cv::Mat currentPos_ES_L = cv::Mat::eye(4, 4, CV_32F);
     cv::Mat currentPos_ES_R = cv::Mat::eye(4, 4, CV_32F);
+    cv::Mat currentPos_ES_mean = cv::Mat::eye(4, 4, CV_32F);
 
     // currentPosition SOLVE PNP RANSAC
     cv::Mat currentPos_PnP_L = cv::Mat::eye(4, 4, CV_32F);
@@ -299,8 +300,10 @@ int main(){
                 composeProjectionMat(T_E_R, R_E_R, P_R);
 
                 getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
-                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000 || u_R1 > 1000 ){
+                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 800 || u_R1 > 800 ){
                     std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
+                    //skipFrame = true;
+                    //continue;
                 } else {
                     T_E_L = T_E_L * u_L1;
                     T_E_R = T_E_R * u_R1;
@@ -326,6 +329,8 @@ int main(){
                 cout << "u links  2: " << u_L2 << endl;
                 cout << "u rechts 2: " << u_R2 << endl;
 #endif
+
+
                 //LEFT:
                 //rotateRandT(T_E_L, R_E_L);
 
@@ -344,7 +349,7 @@ int main(){
                 decomposeProjectionMat(newPos_ES_L, translation_ES_L, rotation_ES_L);
                 //std::cout << "T_ES_left: " << translation_ES_L << std::endl;
 
-                addCameraToVisualizer(translation_ES_L, rotation_ES_L, 255, 0, 0, 20, left_ES.str());
+                //addCameraToVisualizer(translation_ES_L, rotation_ES_L, 255, 0, 0, 20, left_ES.str());
 
 
                 //RIGHT:
@@ -361,13 +366,28 @@ int main(){
                 cv::Mat rotation_ES_R, translation_ES_R;
                 decomposeProjectionMat(newPos_ES_R, translation_ES_R, rotation_ES_R);
                 //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
-                addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
+                //addCameraToVisualizer(translation_ES_R, rotation_ES_R, 0, 255, 0, 20, right_ES.str());
 
+
+                // compute mean:
+                cv::Mat newPos_ES_mean = newPos_ES_L + newPos_ES_R;
+                newPos_ES_mean /= 2;
+
+                std::stringstream mean_ES;
+                mean_ES << "camera_ES_mean" << frame1;
+
+                cv::Mat rotation_ES_mean, translation_ES_mean;
+                decomposeProjectionMat(newPos_ES_mean, translation_ES_mean, rotation_ES_mean);
+                //std::cout << "T_ES_right: " << translation_ES_R << std::endl;
+                addCameraToVisualizer(translation_ES_mean, rotation_ES_mean, 255, 0, 0, 20, mean_ES.str());
+
+
+                currentPos_ES_mean = newPos_ES_mean;
                 currentPos_ES_L = newPos_ES_L;
                 currentPos_ES_R = newPos_ES_R;
 
 
-                std::cout << "translation 2: " << newTrans3D_E_L << "  abs. position  "  << translation_ES_L << std::endl;
+                std::cout << "abs. position  "  << translation_ES_mean << std::endl;
                 // ##############################################################################
             }
 
@@ -727,7 +747,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (1290 < frame1){
+            if (50 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;

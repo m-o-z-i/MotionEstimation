@@ -302,17 +302,23 @@ int main(){
                 std::vector<cv::Point3f> stereoCloud, nearestPoints;
                 getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1, stereoCloud, nearestPoints);
                 std::cout << "skipFrameNumber : " << skipFrameNumber << std::endl;
-                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000*skipFrameNumber || u_R1 > 1000*skipFrameNumber ){
-                    std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
+                if(u_L1 < -1 || u_L1 > 1000*skipFrameNumber){
+                    std::cout << "scale factors for left cam is too big: " << u_L1 << std::endl;
                     //skipFrame = true;
                     //continue;
                 } else {
                     T_E_L = T_E_L * u_L1;
+                }
+
+                if(u_R1 < -1 || u_R1 > 1000*skipFrameNumber ){
+                    std::cout << "scale factors for right cam is too big: " << u_R1 << std::endl;
+                    //skipFrame = true;
+                    //continue;
+                } else {
                     T_E_R = T_E_R * u_R1;
                 }
 
 #if 0
-
                 // get RGB values for pointcloud representation
                 std::vector<cv::Vec3b> RGBValues;
                 for (unsigned int i = 0; i < points_L1.size(); ++i){
@@ -327,7 +333,6 @@ int main(){
 
                 AddPointcloudToVisualizer(stereoCloud, "cloud1" + std::to_string(frame1), RGBValues);
                 AddPointcloudToVisualizer(nearestPoints, "cloud2" + std::to_string(frame1), red);
-
 #endif
 //                cout << "u links  1: " << u_L1 << endl;
 //                cout << "u rechts 1: " << u_R1 << endl << endl;

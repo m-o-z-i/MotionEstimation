@@ -282,27 +282,48 @@ void loadExtrinsic(string path, cv::Mat& R, cv::Mat& T, cv::Mat& E, cv::Mat& F )
     fs["F"] >> F;
     fs.release();
 }
-
+struct Comp{
+    Comp( const std::vector<cv::Point3f>& v ) : _v(v) {}
+    bool operator ()(cv::Point3f a, cv::Point3f b) { return cv::norm(a) < cv::norm(b); }
+    const std::vector<cv::Point3f>& _v;
+};
 
 void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R,
                     const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
                     const std::vector<cv::Point2f>& normPoints_L2, const std::vector<cv::Point2f>& normPoints_R2,
-                    float& u, float& v)
+                    float& u, float& v, std::vector<cv::Point3f>& pCloud, std::vector<cv::Point3f>& nearestPoints)
 {
-    std::vector<cv::Point3f> X, X_L, X_R;
-    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
+    std::vector<cv::Point3f> X_L, X_R;
+    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, pCloud);
     TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 0, X_L);
     TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 0, X_R);
 
-    float sum_L = 0;
-    float sum_R = 0;
-    for (unsigned int i = 0; i < X.size(); ++i) {
-        sum_L += ((cv::norm(X[i])*1.0) / cv::norm(X_L[i])*1.0);
-        sum_R += ((cv::norm(X[i])*1.0) / cv::norm(X_R[i])*1.0);
+    // find 5 nearest points:
+    std::vector<cv::Point3f> temp(pCloud);
+    partial_sort( temp.begin(), temp.begin()+5, temp.end(), Comp(temp) );
+
+    std::vector<cv::Point3f> X_5, X_L_5, X_R_5;
+    std::vector<cv::Point3f>::iterator it;
+    for(unsigned int i = 0; i < 5; ++i){
+        it = find(pCloud.begin(), pCloud.end(), temp[i]);
+        int index = it - pCloud.begin();
+
+        X_5.push_back(pCloud[index]);
+        nearestPoints.push_back(pCloud[index]);
+        X_L_5.push_back(X_L[index]);
+        X_R_5.push_back(X_R[index]);
     }
 
-    u = 1.0/X.size() * sum_L;
-    v = 1.0/X.size() * sum_R;
+
+    float sum_L = 0;
+    float sum_R = 0;
+    for (unsigned int i = 0; i < X_5.size(); ++i) {
+        sum_L += ((cv::norm(X_5[i])*1.0) / cv::norm(X_L[i])*1.0);
+        sum_R += ((cv::norm(X_5[i])*1.0) / cv::norm(X_R[i])*1.0);
+    }
+
+    u = 1.0/X_5.size() * sum_L;
+    v = 1.0/X_5.size() * sum_R;
 }
 
 void getScaleFactorLeft(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L,

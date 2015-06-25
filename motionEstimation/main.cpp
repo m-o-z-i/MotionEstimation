@@ -149,7 +149,7 @@ int main(){
             skipFrame = false;
 
             // skip no more than 4 frames
-            if(1 < skipFrameNumber){
+            if(4 < skipFrameNumber){
                 frame1 = frame2;
                 std::cout << "################### NO MOVEMENT FOR LAST 4 FRAMES ####################" << std::endl;
                 break;
@@ -299,8 +299,10 @@ int main(){
                 composeProjectionMat(T_E_L, R_E_L, P_L);
                 composeProjectionMat(T_E_R, R_E_R, P_R);
 
-                getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1);
-                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 800 || u_R1 > 800 ){
+                std::vector<cv::Point3f> stereoCloud, nearestPoints;
+                getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1, stereoCloud, nearestPoints);
+                std::cout << "skipFrameNumber : " << skipFrameNumber << std::endl;
+                if(u_L1 < -1 || u_R1 < -1 || u_L1 > 1000*skipFrameNumber || u_R1 > 1000*skipFrameNumber ){
                     std::cout << "scale factors to small or to big:  L: " << u_L1 << "  R: " << u_R1  << std::endl;
                     //skipFrame = true;
                     //continue;
@@ -309,7 +311,24 @@ int main(){
                     T_E_R = T_E_R * u_R1;
                 }
 
+#if 0
 
+                // get RGB values for pointcloud representation
+                std::vector<cv::Vec3b> RGBValues;
+                for (unsigned int i = 0; i < points_L1.size(); ++i){
+                    uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
+                    RGBValues.push_back(cv::Vec3b(grey,grey,grey));
+                }
+
+                std::vector<cv::Vec3b> red;
+                for (unsigned int i = 0; i < 5; ++i){
+                    red.push_back(cv::Vec3b(0,0,255));
+                }
+
+                AddPointcloudToVisualizer(stereoCloud, "cloud1" + std::to_string(frame1), RGBValues);
+                AddPointcloudToVisualizer(nearestPoints, "cloud2" + std::to_string(frame1), red);
+
+#endif
 //                cout << "u links  1: " << u_L1 << endl;
 //                cout << "u rechts 1: " << u_R1 << endl << endl;
 #else
@@ -747,7 +766,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (50 < frame1){
+            if (1290 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;

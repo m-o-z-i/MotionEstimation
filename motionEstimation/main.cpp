@@ -365,7 +365,6 @@ int main(){
                 //LEFT:
                 //rotateRandT(T_E_L, R_E_L);
 
-
                 std::cout << "translation 1: " << T_E_L << std::endl;
                 cv::Mat newTrans3D_E_L;
                 getNewTrans3D( T_E_L, R_E_L, newTrans3D_E_L);
@@ -373,6 +372,7 @@ int main(){
 
                 cv::Mat newPos_ES_L;
                 getAbsPos(currentPos_ES_L, newTrans3D_E_L, R_E_L.t(), newPos_ES_L);
+
 
                 std::stringstream left_ES;
                 left_ES << "camera_ES_left" << frame1;
@@ -809,6 +809,7 @@ int main(){
                         loop = false;
                     }
                 }
+
             }
         }
     }

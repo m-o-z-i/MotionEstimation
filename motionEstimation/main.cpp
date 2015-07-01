@@ -356,7 +356,6 @@ int main(){
                     T_E_R = T_E_R * u_R2;
                 }
 
-
                 //compare both methods
                 cout << "u links  2: " << u_L2 << endl;
                 cout << "u rechts 2: " << u_R2 << endl;
@@ -365,6 +364,7 @@ int main(){
 
                 //LEFT:
                 //rotateRandT(T_E_L, R_E_L);
+
 
                 std::cout << "translation 1: " << T_E_L << std::endl;
                 cv::Mat newTrans3D_E_L;

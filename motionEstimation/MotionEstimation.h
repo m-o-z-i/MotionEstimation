@@ -25,10 +25,10 @@ bool motionEstimationStereoCloudMatching (const std::vector<cv::Point3f>& pointC
                                           const std::vector<cv::Point3f>& pointCloud_2,
                                           cv::Mat& T, cv::Mat& R);
 
-bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& inliersF1,
-                                   const std::vector<cv::Point2f>& inliersF2,
+bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& points_1,
+                                   const std::vector<cv::Point2f>& points_2,
                                    const cv::Mat& F,
-                                   const cv::Mat& K, const cv::Mat& KInv,
+                                   const cv::Mat& K,
                                    cv::Mat& T, cv::Mat& R);
 
 bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,

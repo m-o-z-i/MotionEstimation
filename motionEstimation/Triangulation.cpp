@@ -2,16 +2,16 @@
 
 void TriangulateOpenCV(const cv::Mat& P_L,
                        const cv::Mat& P_R,
-                       const vector<cv::Point2f>& normPtr_L,
-                       const vector<cv::Point2f>& normPtr_R,
+                       const vector<cv::Point2f>& points_L,
+                       const vector<cv::Point2f>& points_R,
                        std::vector<cv::Point3f>& outCloud)
 {
-    int size = normPtr_L.size();
+    int size = points_L.size();
 
     cv::Mat points3D_h(4, size, CV_32FC1);
 
     //triangulate Points:
-    cv::triangulatePoints(P_L, P_R, normPtr_L, normPtr_R, points3D_h);
+    cv::triangulatePoints(P_L, P_R, points_L, points_R, points3D_h);
 
     cv::convertPointsFromHomogeneous(cv::Mat(points3D_h.t()).reshape(4,1), outCloud);
 
@@ -110,13 +110,11 @@ cv::Mat_<float> LinearLSTriangulation(
 }
 
 //http://pastebin.com/UE6YW39J
-void TriangulatePointsHZ(
-        const cv::Matx34f& P0,
-        const cv::Matx34f& P1,
-        const vector<cv::Point2f>& points1, //normalized (inv(K)*x)
-        const vector<cv::Point2f>& points2, //normalized (inv(K)*x)
-        int numberOfTriangulations,
-        vector<cv::Point3f>& pointcloud)
+void TriangulatePointsHZ(const cv::Mat& P_L, const cv::Mat& P_R, //normalized PK = K * P
+                         const vector<cv::Point2f>& points1,
+                         const vector<cv::Point2f>& points2,
+                         int numberOfTriangulations,
+                         vector<cv::Point3f>& pointcloud)
 {
     // if parameter is 0 triangulate all points
     if (0 == numberOfTriangulations) {
@@ -136,7 +134,7 @@ void TriangulatePointsHZ(
 
     int index = 0;
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
-        cv::Mat_<float> X = LinearLSTriangulation(points1_h[index],P0,points2_h[index],P1);
+        cv::Mat_<float> X = LinearLSTriangulation(points1_h[index],P_L,points2_h[index],P_R);
         pointcloud.push_back(cv::Point3f(X(0),X(1),X(2)));
         index+=interval;
     }
@@ -145,25 +143,23 @@ void TriangulatePointsHZ(
 void TriangulatePointsWithInlier(
         const cv::Matx34f& P0,
         const cv::Matx34f& P1,
-        const vector<cv::Point2f>& normPoints1, //normalized (inv(K)*x)
-        const vector<cv::Point2f>& normPoints2, //normalized (inv(K)*x)
-        int numberOfTriangulations,
-        vector<cv::Point3f>& pointcloud,
         const vector<cv::Point2f>& points1,
         const vector<cv::Point2f>& points2,
+        int numberOfTriangulations,
+        vector<cv::Point3f>& pointcloud,
         vector<cv::Point2f>& inlier1,
         vector<cv::Point2f>& inlier2
         )
 {
     // if parameter is 0 triangulate all points
     if (0 == numberOfTriangulations) {
-        numberOfTriangulations = normPoints1.size();
+        numberOfTriangulations = points1.size();
     }
     pointcloud.clear();
 
     vector<cv::Point3f> points1_h, points2_h;
-    cv::convertPointsToHomogeneous(normPoints1, points1_h);
-    cv::convertPointsToHomogeneous(normPoints2, points2_h);
+    cv::convertPointsToHomogeneous(points1, points1_h);
+    cv::convertPointsToHomogeneous(points2, points2_h);
 
     for (unsigned int i=0; i < numberOfTriangulations; ++i ){
         cv::Mat_<float> X = IterativeLinearLSTriangulation(points1_h[i],P0,points2_h[i],P1);
@@ -305,7 +301,7 @@ float calculateReprojectionErrorOpenCV(const cv::Mat& P,
 }
 
 float calculateReprojectionErrorHZ(const cv::Mat& P,
-                                    const vector<cv::Point2f>& NormPoints2D,
+                                    const vector<cv::Point2f>& points2D,
                                     const std::vector<cv::Point3f>& points3D)
 {
     vector<float> reproj_error;
@@ -327,7 +323,7 @@ float calculateReprojectionErrorHZ(const cv::Mat& P,
         // convert reprojected image point to carthesian coordinates
         cv::Point2f reprojectedPoint(reprojectedPoint_h(0) / reprojectedPoint_h(2), reprojectedPoint_h(1) / reprojectedPoint_h(2));
 
-        reproj_error.push_back(cv::norm(NormPoints2D[i] - reprojectedPoint));
+        reproj_error.push_back(cv::norm(points2D[i] - reprojectedPoint));
     }
 
     //return mean reprojection error

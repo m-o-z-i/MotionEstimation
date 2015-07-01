@@ -29,8 +29,6 @@ int getFiles (std::string const& dir, std::vector<std::string> &files)
     return 0;
 }
 
-
-
 void getAbsPos (cv::Mat const& currentPos, cv::Mat const& T, cv::Mat const& R, cv::Mat& newPos){
     cv::Mat temp, deltaPos;
     composeProjectionMat(T, R, temp);

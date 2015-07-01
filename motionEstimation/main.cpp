@@ -260,11 +260,11 @@ int main(){
 
 
                 if(foundF_L){
-                    poseEstimationFoundES_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, KInv_L, T_E_L, R_E_L);
+                    poseEstimationFoundES_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, T_E_L, R_E_L);
                 }
 
                 if(foundF_R){
-                    poseEstimationFoundES_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, KInv_R, T_E_R, R_E_R);
+                    poseEstimationFoundES_R = motionEstimationEssentialMat(inliersF_R1, inliersF_R2, F_R, K_R, T_E_R, R_E_R);
                 }
 
                 if (!poseEstimationFoundES_L && !poseEstimationFoundES_R){
@@ -285,10 +285,14 @@ int main(){
                 // find scale factors
                 // find right scale factors u und v (according to rodehorst paper)
 
-                // NORMALIZE POINTS
-                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normP_L2, normP_R2);
+                // calibrate projection mat
+                cv::Mat PK_0 = K_L * P_0;
+                cv::Mat PK_LR = K_R * P_LR;
+
+                // TRIANGULATE POINTS
+                std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
+                TriangulatePointsHZ(PK_0, PK_LR, points_L1, points_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(PK_0, PK_LR, points_L2, points_R2, 0, pointCloud_2);
 
                 // find scale factors
                 // find right scale factors u und v (according to rodehorst paper)
@@ -299,8 +303,12 @@ int main(){
                 composeProjectionMat(T_E_L, R_E_L, P_L);
                 composeProjectionMat(T_E_R, R_E_R, P_R);
 
+                // calibrate projection mat
+                cv::Mat PK_L = K_L * P_L;
+                cv::Mat PK_R = K_R * P_R;
+
                 std::vector<cv::Point3f> stereoCloud, nearestPoints;
-                getScaleFactor(P_0, P_LR, P_L, P_R, normP_L1, normP_R1, normP_L2, normP_R2, u_L1, u_R1, stereoCloud, nearestPoints);
+                getScaleFactor(PK_0, PK_LR, PK_L, PK_R, points_L1, points_R1, points_L2, points_R2, u_L1, u_R1, stereoCloud, nearestPoints);
                 std::cout << "skipFrameNumber : " << skipFrameNumber << std::endl;
                 if(u_L1 < -1 || u_L1 > 1000*skipFrameNumber){
                     std::cout << "scale factors for left cam is too big: " << u_L1 << std::endl;
@@ -457,15 +465,15 @@ int main(){
                 drawCorresPoints(image_R1, inliersF_R1, inliersF_R2, "inlier F right " , CV_RGB(0,0,255));
                 drawCorresPoints(image_L1, inliersF_L1, inliersF_L2, "inlier F left " , CV_RGB(0,0,255));
 
-                // NORMALIZE POINTS
-                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, inliersF_L1, inliersF_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, inliersF_L2, inliersF_R2, normP_L2, normP_R2);
+                // calibrate projection mat
+                cv::Mat PK_0 = K_L * P_0;
+                cv::Mat PK_LR = K_R * P_LR;
+
 
                 // TRIANGULATE POINTS
                 std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-                TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-                TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+                TriangulatePointsHZ(PK_0, PK_LR, inliersF_L1, inliersF_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(PK_0, PK_LR, inliersF_L2, inliersF_R2, 0, pointCloud_2);
 
 
 #if 1
@@ -474,7 +482,7 @@ int main(){
                 cv::Mat T_PnP_L, R_PnP_L;
                 if(foundF_L){
                     // GUESS TRANSLATION + ROTATION UP TO SCALE!!!
-                    poseEstimationFoundTemp_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, KInv_L, T_PnP_L, R_PnP_L);
+                    poseEstimationFoundTemp_L = motionEstimationEssentialMat(inliersF_L1, inliersF_L2, F_L, K_L, T_PnP_L, R_PnP_L);
                 }
 
                 if (!poseEstimationFoundTemp_L){
@@ -482,11 +490,16 @@ int main(){
                     continue;
                 }
 
+#if 0
                 // scale factor:
                 float u_L1;
                 cv::Mat P_L;
                 composeProjectionMat(T_PnP_L, R_PnP_L, P_L);
-                getScaleFactorLeft(P_0, P_LR, P_L, normP_L1, normP_R1, normP_L2,u_L1);
+
+                // calibrate projection mat
+                cv::Mat PK_L = K_L * P_L;
+
+                getScaleFactorLeft(PK_0, PK_LR, PK_L, inliersF_L1, inliersF_R1, inliersF_L2, u_L1);
                 if(u_L1 < -1 || u_L1 > 1000 ){
                     std::cout << "scale factors to small or to big:  L: " << u_L1 << std::endl;
                     skipFrame = true;
@@ -494,11 +507,18 @@ int main(){
                 }
 
                 T_PnP_L = T_PnP_L * u_L1;
-
+#endif
                 // use initial guess values for pose estimation
                 bool poseEstimationFoundPnP_L = motionEstimationPnP(inliersF_L2, pointCloud_1, K_L, T_PnP_L, R_PnP_L);
 
                 if (!poseEstimationFoundPnP_L){
+                    skipFrame = true;
+                    continue;
+                }
+
+                if(cv::norm(T_PnP_L) > 1500.0 * skipFrameNumber) {
+                    // this is bad...
+                    std::cout << "NO MOVEMENT: estimated camera movement is too big, skip this camera.. T = " << cv::norm(T_PnP_L) << std::endl;
                     skipFrame = true;
                     continue;
                 }
@@ -559,6 +579,9 @@ int main(){
 
             if (3 == mode) {
                 // ################################# STEREO #####################################
+                // use only first nearest 20 points...
+
+
                 // get inlier from stereo constraints
                 std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
                 getInliersFromHorizontalDirection(make_pair(points_L1, points_R1), inliersHorizontal_L1, inliersHorizontal_R1);
@@ -577,33 +600,31 @@ int main(){
                 drawCorresPoints(image_L1, points_L1, points_R1, "inlier F1 links rechts", cv::Scalar(255,255,0));
                 drawCorresPoints(image_L2, points_L2, points_R2, "inlier F2 links rechts", cv::Scalar(255,255,0));
 
-
-                // NORMALIZE POINTS
-                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+                // calibrate projection mat
+                cv::Mat PK_0 = K_L * P_0;
+                cv::Mat PK_LR = K_R * P_LR;
 
                 // TRIANGULATE POINTS
                 std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-                TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-                TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+                TriangulatePointsHZ(PK_0, PK_LR, points_L1, points_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(PK_0, PK_LR, points_L2, points_R2, 0, pointCloud_2);
 
 
-                float reproj_error_1L = calculateReprojectionErrorHZ(P_0, normP_L1, pointCloud_1);
-                float reproj_error_1R = calculateReprojectionErrorHZ(P_LR, normP_R1, pointCloud_1);
+                float reproj_error_1L = calculateReprojectionErrorHZ(PK_0, points_L1, pointCloud_1);
+                float reproj_error_1R = calculateReprojectionErrorHZ(PK_LR, points_R1, pointCloud_1);
 
                 // check if triangulation success
-                if (positionCheck(P_0, pointCloud_1) && positionCheck(P_LR, pointCloud_1) && reproj_error_1L < 1.0 && reproj_error_1R < 1.0 ) {
-                    std::cout << "first pointcloud seem's to be not perfect.. take next frame to estimate pos" << std::endl;
+                if (!positionCheck(P_0, pointCloud_1) && !positionCheck(P_LR, pointCloud_1) && reproj_error_1L < 10.0 && reproj_error_1R < 10.0 ) {
+                    std::cout << "first pointcloud seem's to be not perfect.. take next frame to estimate pos   (error: " << reproj_error_1L << "  und  " << reproj_error_1R << std::endl;
                     frame1 = frame2;
                     break;
                 }
 
-                float reproj_error_2L = calculateReprojectionErrorHZ(P_0, normP_L2, pointCloud_2);
-                float reproj_error_2R = calculateReprojectionErrorHZ(P_LR, normP_R2, pointCloud_2);
+                float reproj_error_2L = calculateReprojectionErrorHZ(PK_0, points_L2, pointCloud_2);
+                float reproj_error_2R = calculateReprojectionErrorHZ(PK_LR, points_R2, pointCloud_2);
 
                 // check if triangulation success
-                if (positionCheck(P_0, pointCloud_2) && positionCheck(P_LR, pointCloud_2) && reproj_error_2L < 1.0 && reproj_error_2R < 1.0 ) {
+                if (!positionCheck(P_0, pointCloud_2) && !positionCheck(P_LR, pointCloud_2) && reproj_error_2L < 10.0 && reproj_error_2R < 10.0 ) {
                     std::cout << "second pointcloud seem's to be not perfect.." << std::endl;
                     skipFrame = true;
                     continue;
@@ -710,15 +731,14 @@ int main(){
                     continue;
                 }
 
-                // NORMALIZE POINTS
-                std::vector<cv::Point2f> normP_L1, normP_R1, normP_L2, normP_R2;
-                normalizePoints(KInv_L, KInv_R, points_L1, points_R1, normP_L1, normP_R1);
-                normalizePoints(KInv_L, KInv_R, points_L2, points_R2, normP_L2, normP_R2);
+                // calibrate projection mat
+                cv::Mat PK_0 = K_L * P_0;
+                cv::Mat PK_LR = K_R * P_LR;
 
                 // TRIANGULATE POINTS
                 std::vector<cv::Point3f> pointCloud_1, pointCloud_2;
-                TriangulatePointsHZ(P_0, P_LR, normP_L1, normP_R1, 0, pointCloud_1);
-                TriangulatePointsHZ(P_0, P_LR, normP_L2, normP_R2, 0, pointCloud_2);
+                TriangulatePointsHZ(PK_0, PK_LR, points_L1, points_R1, 0, pointCloud_1);
+                TriangulatePointsHZ(PK_0, PK_LR, points_L2, points_R2, 0, pointCloud_2);
 
 
                 if(0 == pointCloud_1.size()) {
@@ -728,42 +748,40 @@ int main(){
                 }
 
 
-
                 // get RGB values for pointcloud representation
                 std::vector<cv::Vec3b> RGBValues;
-                for (unsigned int i = 0; i < normP_L1.size(); ++i){
+                for (unsigned int i = 0; i < points_L1.size(); ++i){
                     uchar grey = image_L1.at<uchar>(points_L1[i].x, points_L1[i].y);
                     RGBValues.push_back(cv::Vec3b(grey,grey,grey));
                 }
 
+                AddPointcloudToVisualizer(pointCloud_1, "cloud1" + std::to_string(frame1), RGBValues);
+
+#if 1
+//                int index = 0;
+//                for (auto i : pointCloud_1) {
+//                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+//                    cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
+//                    ++index;
+//                }
+                std::vector<cv::Point3f> pcloud_CV;
+                TriangulateOpenCV(PK_0, PK_LR, points_L1, points_R1, pcloud_CV);
+
+//                index = 0;
+//                for (auto i : pcloud_CV) {
+//                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
+//                    cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
+//                    ++index;
+//                }
                 std::vector<cv::Vec3b> RGBValues2;
-                for (unsigned int i = 0; i < normP_L2.size(); ++i){
-                    uchar grey2 = image_L2.at<uchar>(points_L2[i].x, points_L2[i].y);
+                for (unsigned int i = 0; i < points_L1.size(); ++i){
+                    //uchar grey2 = image_L2.at<uchar>(points_L2[i].x, points_L2[i].y);
                     //RGBValues2.push_back(cv::Vec3b(grey2,grey2,grey2));
                     RGBValues2.push_back(cv::Vec3b(255,0,0));
                 }
 
-
-                int index = 0;
-                for (auto i : pointCloud_1) {
-                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-                    cout<< "HZ:  "<< index << ":  " << i << "   length: " << length << endl;
-                    ++index;
-                }
-
-                std::vector<cv::Point3f> pcloud_CV;
-                TriangulateOpenCV(P_0, P_LR, normP_L1, normP_R1, pcloud_CV);
-
-                index = 0;
-                for (auto i : pcloud_CV) {
-                    float length = sqrt( i.x*i.x + i.y*i.y + i.z*i.z);
-                    cout<< "CV:  "<< index << ":  " << i << "   length: " << length << endl;
-                    ++index;
-                }
-
-                AddPointcloudToVisualizer(pointCloud_1, "cloud1" + std::to_string(frame1), RGBValues);
                 AddPointcloudToVisualizer(pcloud_CV, "cloud2" + std::to_string(frame1), RGBValues2);
-
+#endif
                 // AddLineToVisualizer(pointCloud_inlier_1, pointCloud_inlier_2, "line"+std::to_string(frame1), cv::Scalar(255,0,0));
 
             }
@@ -771,7 +789,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (1290 < frame1){
+            if (1180 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;

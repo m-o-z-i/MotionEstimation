@@ -4,8 +4,9 @@
 
 bool getRightProjectionMat( cv::Mat& E,
                             cv::Mat& P1,
-                            const vector<cv::Point2f>& normPoints2D_1,
-                            const vector<cv::Point2f>& normPoints2D_2,
+                            const cv::Mat& K,
+                            const vector<cv::Point2f>& points2D_1,
+                            const vector<cv::Point2f>& points2D_2,
                             std::vector<cv::Point3f>& outCloud)
 {
     // no rotation or translation for the left projection matrix
@@ -71,11 +72,15 @@ bool getRightProjectionMat( cv::Mat& E,
                 //projection matrix of second camera: P1  = K[R|t]
                 composeProjectionMat(T, R, P1);
 
-                //triangulate from Richard Hartley and Andrew Zisserman
-                TriangulatePointsHZ(P0, P1, normPoints2D_1, normPoints2D_2, 20, pcloud);
+                // calibrate projection Mat
+                cv::Mat PK_0 = K * P0;
+                cv::Mat PK_1 = K * P1;
 
-                float reproj_error_L = calculateReprojectionErrorHZ(P0, normPoints2D_1, pcloud);
-                float reproj_error_R = calculateReprojectionErrorHZ(P1, normPoints2D_2, pcloud);
+                //triangulate from Richard Hartley and Andrew Zisserman
+                TriangulatePointsHZ(PK_0, PK_1, points2D_1, points2D_2, 20, pcloud);
+
+                float reproj_error_L = calculateReprojectionErrorHZ(PK_0, points2D_1, pcloud);
+                float reproj_error_R = calculateReprojectionErrorHZ(PK_1, points2D_2, pcloud);
 
                 //check if pointa are triangulated --in front-- of both cameras. If yes break loop
                 if (positionCheck(P0, pcloud) && positionCheck(P1, pcloud)) {
@@ -117,7 +122,7 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
     int count = cv::countNonZero(status);
 
     float percentage = ((float)count / (float)points3D.size());
-    //std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
         //less than 55% of the points are in front of the camera
         return false;
@@ -289,14 +294,14 @@ struct Comp{
 };
 
 void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, const cv::Mat& P_R,
-                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
-                    const std::vector<cv::Point2f>& normPoints_L2, const std::vector<cv::Point2f>& normPoints_R2,
+                    const std::vector<cv::Point2f>& points_L1, const std::vector<cv::Point2f>& points_R1,
+                    const std::vector<cv::Point2f>& points_L2, const std::vector<cv::Point2f>& points_R2,
                     float& u, float& v, std::vector<cv::Point3f>& pCloud, std::vector<cv::Point3f>& nearestPoints)
 {
     std::vector<cv::Point3f> X_L, X_R;
-    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, pCloud);
-    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 0, X_L);
-    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 0, X_R);
+    TriangulatePointsHZ(P0, P_LR, points_L1, points_R1, 0, pCloud);
+    TriangulatePointsHZ(P0, P_L , points_L1, points_L2, 0, X_L);
+    TriangulatePointsHZ(P0, P_R , points_R1, points_R2, 0, X_R);
 
     // find 5 nearest points:
     std::vector<cv::Point3f> temp(pCloud);
@@ -327,13 +332,13 @@ void getScaleFactor(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L, 
 }
 
 void getScaleFactorLeft(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_L,
-                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
-                    const std::vector<cv::Point2f>& normPoints_L2,
+                    const std::vector<cv::Point2f>& points_L1, const std::vector<cv::Point2f>& points_R1,
+                    const std::vector<cv::Point2f>& points_L2,
                     float& u)
 {
     std::vector<cv::Point3f> X, X_L;
-    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
-    TriangulatePointsHZ(P0, P_L , normPoints_L1, normPoints_L2, 0, X_L);
+    TriangulatePointsHZ(P0, P_LR, points_L1, points_R1, 0, X);
+    TriangulatePointsHZ(P0, P_L , points_L1, points_L2, 0, X_L);
 
     float sum_L = 0;
     for (unsigned int i = 0; i < X.size(); ++i) {
@@ -344,13 +349,13 @@ void getScaleFactorLeft(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P
 }
 
 void getScaleFactorRight(const cv::Mat& P0, const cv::Mat& P_LR, const cv::Mat& P_R,
-                    const std::vector<cv::Point2f>& normPoints_L1, const std::vector<cv::Point2f>& normPoints_R1,
-                    const std::vector<cv::Point2f>& normPoints_R2,
+                    const std::vector<cv::Point2f>& points_L1, const std::vector<cv::Point2f>& points_R1,
+                    const std::vector<cv::Point2f>& points_R2,
                     float& u)
 {
     std::vector<cv::Point3f> X, X_R;
-    TriangulatePointsHZ(P0, P_LR, normPoints_L1, normPoints_R1, 0, X);
-    TriangulatePointsHZ(P0, P_R , normPoints_R1, normPoints_R2, 0, X_R);
+    TriangulatePointsHZ(P0, P_LR, points_L1, points_R1, 0, X);
+    TriangulatePointsHZ(P0, P_R , points_R1, points_R2, 0, X_R);
 
     float sum_R = 0;
     for (unsigned int i = 0; i < X.size(); ++i) {

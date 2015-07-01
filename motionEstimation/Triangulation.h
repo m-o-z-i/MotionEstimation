@@ -16,15 +16,15 @@ using namespace std;
 cv::Mat_<float> LinearLSTriangulation(cv::Point3f u,cv::Matx34f P,
                                        cv::Point3f u1, cv::Matx34f P1);
 
-void TriangulatePointsHZ(const cv::Matx34f& P0, const cv::Matx34f& P1,
+void TriangulatePointsHZ(const cv::Mat& P_L, const cv::Mat& P_R,
                          const vector<cv::Point2f>& points1, const vector<cv::Point2f>& points2,
                          int numberOfTriangulations,
                          vector<cv::Point3f>& pointcloud);
 
 void TriangulateOpenCV(const cv::Mat& P_L,
                        const cv::Mat& P_R,
-                       const vector<cv::Point2f>& normPtr_L,
-                       const vector<cv::Point2f>& normPtr_R,
+                       const vector<cv::Point2f>& points_L,
+                       const vector<cv::Point2f>& points_R,
                        std::vector<cv::Point3f>& outCloud);
 
 cv::Mat_<float> IterativeLinearLSTriangulation(cv::Point3f point2d1_h, cv::Matx34f P0,
@@ -34,14 +34,11 @@ void triangulate(const cv::Mat& P0, const cv::Mat& P1,
                  const vector<cv::Point2f>& x0, const vector<cv::Point2f>& x1,
                  vector<cv::Point3f>& result3D);
 
-void TriangulatePointsWithInlier(
-        const cv::Matx34f& P0, const cv::Matx34f& P1,
-        const vector<cv::Point2f>& normPoints1, //normalized (inv(K)*x)
-        const vector<cv::Point2f>& normPoints2, //normalized (inv(K)*x)
-        int numberOfTriangulations,
-        vector<cv::Point3f>& pointcloud,
+void TriangulatePointsWithInlier(const cv::Matx34f& P0, const cv::Matx34f& P1,
         const vector<cv::Point2f>& points1,
         const vector<cv::Point2f>& points2,
+        int numberOfTriangulations,
+        vector<cv::Point3f>& pointcloud,
         vector<cv::Point2f>& inlier1,
         vector<cv::Point2f>& inlier2);
 
@@ -59,7 +56,7 @@ float calculateReprojectionErrorOpenCV(const cv::Mat& P,
                                         const std::vector<cv::Point3f>& points3D);
 
 float calculateReprojectionErrorHZ(const cv::Mat& P,
-                                    const vector<cv::Point2f> &NormPoints2D,
+                                    const vector<cv::Point2f> &points2D,
                                     const std::vector<cv::Point3f>& points3D);
 
 #endif // TRIANGULATION_H

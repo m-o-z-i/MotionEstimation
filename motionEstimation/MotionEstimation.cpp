@@ -51,12 +51,6 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
         return false;
     }
 
-    if(cv::norm(T) > 2000.0) {
-        // this is bad...
-        std::cout << "NO MOVEMENT: estimated camera movement is too big, skip this camera.. T = " << cv::norm(T) << std::endl;
-        return false;
-    }
-
     cv::Rodrigues(rvec, R);
     R.convertTo(R, CV_32F);
     if(!CheckCoherentRotation(R)) {
@@ -68,23 +62,19 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
 }
 
 
-bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& inliersF1,
-                                   const std::vector<cv::Point2f>& inliersF2,
+bool motionEstimationEssentialMat (const std::vector<cv::Point2f>& points_1,
+                                   const std::vector<cv::Point2f>& points_2,
                                    const cv::Mat& F,
-                                   const cv::Mat& K, const cv::Mat& KInv,
+                                   const cv::Mat& K,
                                    cv::Mat& T, cv::Mat& R)
 {
-    // normalisize all Points
-    std::vector<cv::Point2f> normPoints1, normPoints2;
-    normalizePoints(KInv, inliersF1, inliersF2, normPoints1, normPoints2);
-
     // calculate essential mat
     cv::Mat E = K.t() * F * K; //according to HZ (9.12)
 
     // decompose right solution for R and T values and saved it to P1. get point cloud of triangulated points
     cv::Mat P;
     std::vector<cv::Point3f> pointCloud;
-    bool goodPFound = getRightProjectionMat(E, P, normPoints1, normPoints2, pointCloud);
+    bool goodPFound = getRightProjectionMat(E, P, K, points_1, points_2, pointCloud);
 
     if (!goodPFound) {
         cout << "NO MOVEMENT: no perspective Mat Found" << endl;

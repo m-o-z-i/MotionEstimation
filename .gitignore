@@ -11,6 +11,13 @@
 # Vim session files
 *.vim
 
+# TexStudio files
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.dvi
+
 # QTCreator
 *.pro.user
 *.pro.user.*

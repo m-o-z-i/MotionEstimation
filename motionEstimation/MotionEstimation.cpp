@@ -47,14 +47,14 @@ bool motionEstimationPnP (const std::vector<cv::Point2f>& imgPoints,
 
 
     if(inliers.size() < (float)(imgPoints.size())/5.0) {
-        std::cout << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")" << std::endl;
+        //std::cout << "NO MOVEMENT: not enough inliers to consider a good pose ("<<inliers.size()<<"/"<<imgPoints.size()<<")" << std::endl;
         return false;
     }
 
     cv::Rodrigues(rvec, R);
     R.convertTo(R, CV_32F);
     if(!CheckCoherentRotation(R)) {
-        std::cout <<  "NO MOVEMENT: rotation is incoherent..." << std::endl;
+        //std::cout <<  "NO MOVEMENT: rotation is incoherent..." << std::endl;
         return false;
     }
 

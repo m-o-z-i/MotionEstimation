@@ -535,7 +535,11 @@ int main(){
                 std::stringstream left_PnP;
                 left_PnP << "camera_PnP_left" << frame1;
                 addCameraToVisualizer(translation_PnP_L, rotation_PnP_L, 255, 0, 0, 50, left_PnP.str());
+                std::cout << "abs. position:  " << translation_PnP_L << std::endl;
+
+
                 currentPos_PnP_L  = newPos_PnP_L ;
+
 
 #else
 
@@ -789,7 +793,7 @@ int main(){
 
             // To Do:
             // swap image files...
-            if (1180 < frame1){
+            if (-1 < frame1){
                 key = cv::waitKey(10);
                 if (char(key) == 32) {
                     loop = !loop;
@@ -810,6 +814,19 @@ int main(){
                     }
                 }
 
+            }
+
+            if (frame1 == filenames_left.size()-2){
+                std::cout << "finished. press q to quit." << std::endl;
+                int i = 0;
+                while (true){
+                    RunVisualization(i);
+                    ++i;
+                    key = cv::waitKey(10);
+                    if (char(key) == 'q') {
+                        return 0;
+                    }
+                }
             }
         }
     }

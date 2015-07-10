@@ -122,7 +122,7 @@ bool positionCheck(const cv::Matx34f& P, const std::vector<cv::Point3f>& points3
     int count = cv::countNonZero(status);
 
     float percentage = ((float)count / (float)points3D.size());
-    std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
+    //std::cout << count << "/" << points3D.size() << " = " << percentage*100.0 << "% are in front of camera" << std::endl;
     if(percentage < 0.55){
         //less than 55% of the points are in front of the camera
         return false;

@@ -10,15 +10,13 @@
 \usepackage{subcaption}
 \usepackage{hyperref}
 
-\usepackage[babel,german=quotes]{csquotes} 
-\usepackage[style=alphabetic]{biblatex} 
-%\addbibresource{reference.bib}      %Zuweisung der .bib bei Biblatex 
-\bibliography{reference}
-
 \title{\textbf{Motion estimation}}
 \author{ Moritz Loos 112385 }
 \date{ Winter term 2014/15 }
+
 \begin{document}
+	%\bibliographystyle{acm}%Association for Computiny Machinery  bibliograhpic style
+	\bibliographystyle{unsrt}
 	
 	\maketitle
 
@@ -103,7 +101,7 @@
 		\caption{image setup}
 	\end{figure}
 	
-	We start to detect features in $C_{L1}$ with the Shi-Tomasi Corner detector that is implemented in OpenCV. The Shi-Tomasi approach is a faster and more stable modification of Harris Corner detector \cite{Shi-Tomasi_Wiki,}. 
+	We start to detect features in $C_{L1}$ with the Shi-Tomasi Corner detector that is implemented in OpenCV. The Shi-Tomasi approach is a faster and more stable modification of Harris Corner detector \cite{Shi-Tomasi_Wiki}. 
 
 	Features are characterized by their gradiation and the direction of the gradiation. With analyzing the eigenvalues of Window pattern arround a pixel is it possible to decide if the point is a corner, an edge or neither of them. 
 	
@@ -118,7 +116,7 @@
 	After finding the features in $C_{L1}$ the algorithm tries to find the corresponding points in $C_{R1}$ and $C_{L2}$. Subsequently the points found in $C_{R1}$ are matched with the ones of $C_{R2}$
 	To refind points in different images we use the Lucas-kanade algorithm that is also part of the OpenCV library.
 
-	Beside SURF the Lucas-Kanade Algorithm is one of the most common methods to find features in an image. One requirement for this method is, that the intensity of a point in a specified window will not change from frame to frame. That is the main reason why the algorithm works best on systems with a high framerate, so that the movement between the single frames is very low \cite{\cite{Lucas_Kanade}}.
+	Beside SURF the Lucas-Kanade Algorithm is one of the most common methods to find features in an image. One requirement for this method is, that the intensity of a point in a specified window will not change from frame to frame. That is the main reason why the algorithm works best on systems with a high framerate, so that the movement between the single frames is very low \cite{Lucas_Kanade}.
 
 	In this project we used the pyramidical approach of this algorithm. Therefore the reference image is downscaled to a certain number of pyramidal layers (see figure 7) with different resolutions. Afterwards the Lucas-Kanade Algorithm is called on each layer in ascending order (only in the range found previously). Using this method the algorithm is way faster, more robust and provides a better accuracy \cite{Lucas_Kanade_TU_dresden}.
 
@@ -198,10 +196,8 @@
 	
 	\section{Future work}
 	In order to make the algorithm more robust it is important that the error from frame to frame does not grow more. Bundle adjustment could be a useful approach to solve this problem. A comparison between these three methods would be useful to evaluate the best method for a specific setup. Another idea would be to combine the methods to get a system which is able to cope with very different situations. The current code is basically written to be used in a comfortable way, therefore an implementation with focus on performance and stability would be important. Live test should be also done in order to evaluate the current performance and robustness.
-	
-	\nocite{*}
-%\bibliographystyle{acm}
-%\bibliography{reference}
-\printbibliography
+
+	\newpage
+	\bibliography{reference}
 
 \end{document}

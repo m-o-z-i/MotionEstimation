@@ -17,6 +17,10 @@
 *.out
 *.synctex.gz
 *.dvi
+*.bbl
+*.bcf
+*.blg
+*.run.xml
 
 # QTCreator
 *.pro.user

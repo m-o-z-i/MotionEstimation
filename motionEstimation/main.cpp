@@ -126,20 +126,21 @@ int main(){
         // ######################## ESSENTIAL MAT ################################
         if(1 == mode) {
 
-            drawPoints(image_L1, points_L1, "features left", cv::Scalar(255,0,0));
-            drawPoints(image_R1, points_R1, "features right", cv::Scalar(255,0,0));
+            //drawPoints(image_L1, points_L1, "features left", cv::Scalar(255,0,0));
+            //drawPoints(image_R1, points_R1, "features right", cv::Scalar(255,0,0));
 
-            cv::Mat flowL, cflowL;
-            cv::calcOpticalFlowFarneback(image_L1, image_L2, flowL, 0.5, 3, 15, 3, 5, 1.2, 0);
-            cv::cvtColor(image_L1, cflowL, CV_GRAY2BGR);
-            drawOptFlowMap(flowL, cflowL, 10, CV_RGB(0, 255, 0));
-            cv::imshow("optical flow field left", cflowL);
 
-            cv::Mat flowR, cflowR;
-            cv::calcOpticalFlowFarneback(image_R1, image_R2, flowR, 0.5, 3, 15, 3, 5, 1.2, 0);
-            cv::cvtColor(image_R1, cflowR, CV_GRAY2BGR);
-            drawOptFlowMap(flowR, cflowR, 10, CV_RGB(0, 255, 0));
-            cv::imshow("optical flow field left", cflowR);
+            //cv::Mat flowL, cflowL;
+            //cv::calcOpticalFlowFarneback(image_L1, image_L2, flowL, 0.5, 3, 15, 3, 5, 1.2, 0);
+            //cv::cvtColor(image_L1, cflowL, CV_GRAY2BGR);
+            //drawOptFlowMap(flowL, cflowL, 10, CV_RGB(0, 255, 0));
+            //cv::imshow("optical flow field left", cflowL);
+
+            //cv::Mat flowR, cflowR;
+            //cv::calcOpticalFlowFarneback(image_R1, image_R2, flowR, 0.5, 3, 15, 3, 5, 1.2, 0);
+            //cv::cvtColor(image_R1, cflowR, CV_GRAY2BGR);
+            //drawOptFlowMap(flowR, cflowR, 10, CV_RGB(0, 255, 0));
+            //cv::imshow("optical flow field left", cflowR);
 
 
             drawCorresPoints(image_L1, points_L1, points_L2, "corres Left", cv::Scalar(0,255,0));
@@ -151,8 +152,8 @@ int main(){
             cv::cvtColor(image_L1, color_image_L1, CV_GRAY2RGB);
             cv::cvtColor(image_R1, color_image_R1, CV_GRAY2RGB);
 
-            drawCorresPointsRef(color_image_L1, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
-            drawCorresPointsRef(color_image_R1, points_R1, points_R2, "all points right", cv::Scalar(255,0,0));
+//            drawCorresPointsRef(color_image_L1, points_L1, points_L2, "all points left", cv::Scalar(255,0,0));
+//            drawCorresPointsRef(color_image_R1, points_R1, points_R2, "all points right", cv::Scalar(255,0,0));
 
             // get inlier from stereo constraints
             std::vector<cv::Point2f> inliersHorizontal_L1, inliersHorizontal_R1, inliersHorizontal_L2, inliersHorizontal_R2;
@@ -557,7 +558,7 @@ int main(){
 
         // To Do:
         // swap image files...
-        if (198 < frame){
+        if (1 < frame){
             key = cv::waitKey(10);
             if (char(key) == 32) {
                 loop = !loop;
